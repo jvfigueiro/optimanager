@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0B5694;
+  --color-primary-dark: #083f6e;
+  --color-primary-light: #e6f0f9;
+}
+
+/* Scrollbar invisível onde necessário */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Regras estritas para impressão e geração de PDF nativa */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #a4-preview, #a4-preview * {
+    visibility: visible;
+  }
+  #a4-preview {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
