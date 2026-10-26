@@ -99,3 +99,4 @@ export interface DashboardData {
   cobrancas_pendentes: OrdemServico[]
   atalhos: Atalho[]
 }
+

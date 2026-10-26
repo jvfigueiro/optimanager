@@ -110,5 +110,32 @@ echo "Novo Atalho: $NOVO_ATALHO"
 echo "$NOVO_ATALHO" | grep -q "Banco Inter PJ" || { echo "ERRO ao criar atalho"; exit 1; }
 
 echo ""
+echo "=== 11. Testando Geração de PDFs Nativos via Maroto (/api/ordens/$OS_ID/pdf) ==="
+for TIPO in "relatorio" "orcamento" "recibo"; do
+    PDF_HEADER=$(curl -s -i "$BASE_URL/ordens/$OS_ID/pdf?tipo=$TIPO" | head -n 8)
+    echo "Cabeçalho PDF ($TIPO):"
+    echo "$PDF_HEADER" | grep -i "Content-Type: application/pdf" || { echo "ERRO: Tipo de conteúdo não é application/pdf para $TIPO"; exit 1; }
+    echo "$PDF_HEADER" | grep -i "HTTP/1.1 200 OK" || { echo "ERRO: Status não é 200 para $TIPO"; exit 1; }
+done
+
+echo ""
+echo "=== 12. Testando Entrega do Frontend SPA Embutido (//go:embed) ==="
+ROOT_HTML=$(curl -s "http://127.0.0.1:$PORT/")
+echo "$ROOT_HTML" | grep -q "OptiManager 3.0" || { echo "ERRO: HTML raiz do SPA não encontrado"; exit 1; }
+echo "HTML do SPA entregue com sucesso!"
+
+echo ""
+echo "=== 13. Medindo Uso de Memória RAM (RSS) ==="
+ps -o pid,user,%cpu,%mem,vsz,rss,comm -p $SERVER_PID
+RSS_KB=$(ps -o rss= -p $SERVER_PID | tr -d ' ')
+RSS_MB=$((RSS_KB / 1024))
+echo "Consumo total de RAM: ~${RSS_MB} MB (Meta: < 40 MB)"
+if [ "$RSS_MB" -gt 40 ]; then
+    echo "AVISO: Consumo ultrapassou a meta de 40 MB."
+else
+    echo "CONFIRMADO: Consumo de memória dentro da meta (< 40 MB)!"
+fi
+
+echo ""
 echo "=== TODOS OS TESTES PASSARAM COM SUCESSO! ==="
 

@@ -106,3 +106,4 @@ export const useOrdensStore = defineStore('ordens', () => {
     openWhatsApp,
   }
 })
+

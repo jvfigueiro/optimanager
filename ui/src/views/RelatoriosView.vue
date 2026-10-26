@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useOrdensStore } from '../stores/ordens'
 import { useConfigStore } from '../stores/config'
 import { formatBRL, formatDate } from '../utils/formatters'
-import { Printer, MessageCircle, FileText, ShieldCheck } from 'lucide-vue-next'
+import { Printer, MessageCircle, FileText, ShieldCheck, Download } from 'lucide-vue-next'
 
 const ordensStore = useOrdensStore()
 const configStore = useConfigStore()
@@ -89,6 +89,11 @@ function dispararWhatsApp() {
 
 function imprimirDocumento() {
   window.print()
+}
+
+function baixarPDFNativo() {
+  if (!selectedOSId.value) return
+  window.open(`/api/ordens/${selectedOSId.value}/pdf?tipo=${docType.value}`, '_blank')
 }
 </script>
 
@@ -243,6 +248,14 @@ function imprimirDocumento() {
         >
           <Printer class="w-4 h-4" />
           <span>Imprimir / Salvar como PDF (Ctrl+P)</span>
+        </button>
+
+        <button
+          @click="baixarPDFNativo"
+          class="w-full bg-opti hover:bg-opti-dark text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-xs"
+        >
+          <Download class="w-4 h-4" />
+          <span>Baixar PDF Oficial (Maroto Go)</span>
         </button>
 
         <button

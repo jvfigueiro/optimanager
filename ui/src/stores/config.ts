@@ -105,3 +105,4 @@ export const useConfigStore = defineStore('config', () => {
     saveConfig,
   }
 })
+

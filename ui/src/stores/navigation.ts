@@ -45,3 +45,4 @@ export const useNavigationStore = defineStore('navigation', () => {
     toggleMobileSidebar,
   }
 })
+

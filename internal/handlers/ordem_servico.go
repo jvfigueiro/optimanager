@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"optimanager/internal/database"
 	"optimanager/internal/models"
+	"optimanager/internal/services/pdf"
 )
 
 type OrdemHandler struct {
@@ -155,4 +157,49 @@ func (h *OrdemHandler) BaixaPagamento(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, os)
 }
+
+// DownloadPDF gera e retorna o arquivo PDF da OS (Relatório, Orçamento ou Recibo) via Maroto nativo.
+func (h *OrdemHandler) DownloadPDF(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "ID da ordem de serviço inválido")
+		return
+	}
+
+	tipo := r.URL.Query().Get("tipo")
+	if tipo == "" {
+		tipo = "relatorio"
+	}
+
+	os, err := h.db.GetOrdemByID(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if os == nil {
+		respondError(w, http.StatusNotFound, "Ordem de serviço não encontrada")
+		return
+	}
+
+	cfg, err := h.db.GetConfig()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	pdfBytes, err := pdf.GenerateDocument(cfg, os, tipo)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Falha na geração do PDF: "+err.Error())
+		return
+	}
+
+	filename := fmt.Sprintf("%s_OS_%d.pdf", strings.ToLower(tipo), id)
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", strconv.Itoa(len(pdfBytes)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(pdfBytes)
+}
+
 

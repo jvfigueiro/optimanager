@@ -25,3 +25,4 @@ export const useToastStore = defineStore('toast', () => {
 
   return { toasts, show, remove }
 })
+
