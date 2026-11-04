@@ -60,6 +60,10 @@ onMounted(async () => {
 
   // Se uma OS foi selecionada anteriormente a partir da tabela de serviços
   if (ordensStore.selectedOSForDoc) {
+    if (ordensStore.selectedDocTypeForDoc) {
+      docType.value = ordensStore.selectedDocTypeForDoc
+      ordensStore.selectedDocTypeForDoc = null
+    }
     selectedOSId.value = ordensStore.selectedOSForDoc.id
     carregarOSNoGerador(ordensStore.selectedOSForDoc.id)
     ordensStore.selectedOSForDoc = null
@@ -68,6 +72,21 @@ onMounted(async () => {
     carregarOSNoGerador(ordensStore.ordens[0].id)
   }
 })
+
+watch(
+  () => ordensStore.selectedOSForDoc,
+  (os) => {
+    if (os) {
+      if (ordensStore.selectedDocTypeForDoc) {
+        docType.value = ordensStore.selectedDocTypeForDoc
+        ordensStore.selectedDocTypeForDoc = null
+      }
+      selectedOSId.value = os.id
+      carregarOSNoGerador(os.id)
+      ordensStore.selectedOSForDoc = null
+    }
+  }
+)
 
 watch(selectedOSId, (novoId) => {
   if (novoId) {
@@ -373,7 +392,7 @@ function imprimirDocumento() {
                     CNPJ: {{ configStore.config.cnpj }} • Tel: {{ configStore.config.fones }}
                   </p>
                   <p class="text-[10px] text-slate-600 leading-tight">
-                    <span v-if="configStore.config.endereco">{{ configStore.config.endereco }} • </span>{{ configStore.config.cidade }}
+                    <span v-if="configStore.config.endereco">{{ configStore.config.endereco }} - </span>{{ configStore.config.cidade }}
                   </p>
                 </div>
               </div>
@@ -469,7 +488,7 @@ function imprimirDocumento() {
                     CNPJ: {{ configStore.config.cnpj }} • Tel: {{ configStore.config.fones }}
                   </p>
                   <p class="text-[10px] text-slate-600 leading-tight">
-                    <span v-if="configStore.config.endereco">{{ configStore.config.endereco }} • </span>{{ configStore.config.cidade }}
+                    <span v-if="configStore.config.endereco">{{ configStore.config.endereco }} - </span>{{ configStore.config.cidade }}
                   </p>
                 </div>
               </div>
@@ -565,8 +584,7 @@ function imprimirDocumento() {
                     <span v-if="configStore.config.email_contato"> • {{ configStore.config.email_contato }}</span>
                   </p>
                   <p class="text-xs text-slate-700">
-                    Responsável: {{ configStore.config.responsavel }}
-                    <span v-if="configStore.config.endereco"> • {{ configStore.config.endereco }}</span>
+                    <span v-if="configStore.config.endereco">{{ configStore.config.endereco }} - </span>{{ configStore.config.cidade }}
                   </p>
                 </div>
               </div>

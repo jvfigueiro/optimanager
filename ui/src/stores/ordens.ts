@@ -12,6 +12,7 @@ export const useOrdensStore = defineStore('ordens', () => {
   const currentFiltro = ref('TODOS')
   const searchQuery = ref('')
   const selectedOSForDoc = ref<OrdemServico | null>(null)
+  const selectedDocTypeForDoc = ref<'relatorio' | 'os' | 'orcamento' | 'recibo' | null>(null)
 
   async function loadOrdens() {
     loading.value = true
@@ -136,6 +137,7 @@ export const useOrdensStore = defineStore('ordens', () => {
     currentFiltro,
     searchQuery,
     selectedOSForDoc,
+    selectedDocTypeForDoc,
     loadOrdens,
     setFiltro,
     setSearch,
