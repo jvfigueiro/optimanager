@@ -4,6 +4,7 @@ import { useNavigationStore, type ViewType } from '../stores/navigation'
 import { useConfigStore } from '../stores/config'
 import { useDashboardStore } from '../stores/dashboard'
 import { useClientesStore } from '../stores/clientes'
+import { useAuthStore } from '../stores/auth'
 import {
   LayoutDashboard,
   Wrench,
@@ -16,6 +17,10 @@ import {
   Sun,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
+  UserCheck,
 } from 'lucide-vue-next'
 
 import DashboardView from '../views/DashboardView.vue'
@@ -30,6 +35,7 @@ const nav = useNavigationStore()
 const configStore = useConfigStore()
 const dashboardStore = useDashboardStore()
 const clientesStore = useClientesStore()
+const authStore = useAuthStore()
 
 const pageMeta: Record<ViewType, { title: string; sub: string }> = {
   dashboard: {
@@ -50,7 +56,7 @@ const pageMeta: Record<ViewType, { title: string; sub: string }> = {
   },
   configuracoes: {
     title: 'Configurações do Sistema',
-    sub: 'Personalização visual, dados institucionais do MEI e termos de garantia',
+    sub: 'Personalização visual, dados do MEI, termos de garantia e gestão de usuários',
   },
 }
 
@@ -70,25 +76,30 @@ const abertosCount = computed(
       class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 z-40 lg:hidden no-print transition-opacity"
     ></div>
 
-    <!-- SIDEBAR (MENU LATERAL) -->
+    <!-- SIDEBAR (MENU LATERAL RETRÁTIL NO DESKTOP E DRAWER NO MOBILE) -->
     <aside
-      class="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-opti text-white flex flex-col justify-between transform transition-transform duration-200 ease-in-out shadow-xl no-print"
-      :class="nav.isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+      class="fixed lg:static inset-y-0 left-0 z-50 bg-opti text-white flex flex-col justify-between transform transition-all duration-200 ease-in-out shadow-xl no-print shrink-0 overflow-hidden"
+      :class="[
+        nav.isMobileSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64',
+        nav.isDesktopSidebarOpen
+          ? 'lg:translate-x-0 lg:w-64'
+          : 'lg:-translate-x-full lg:w-0'
+      ]"
     >
       <!-- Topo: Identificação & Links -->
-      <div>
+      <div class="w-64">
         <!-- Logo & Identificação -->
         <div class="p-5 border-b border-white/10 flex items-center justify-between">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 min-w-0">
             <img
               v-if="configStore.config.logo_base64"
               :src="configStore.config.logo_base64"
               alt="Logo"
-              class="w-10 h-10 object-contain rounded-lg bg-white p-0.5"
+              class="w-10 h-10 object-contain rounded-lg bg-white p-0.5 shrink-0"
             />
             <div
               v-else
-              class="bg-white text-opti font-black px-2.5 py-1.5 rounded-lg text-lg tracking-tight shadow"
+              class="bg-white text-opti font-black px-2.5 py-1.5 rounded-lg text-lg tracking-tight shadow shrink-0"
             >
               OPTI
             </div>
@@ -101,11 +112,23 @@ const abertosCount = computed(
               </span>
             </div>
           </div>
+
+          <!-- Botão Fechar (Mobile) -->
           <button
             @click="nav.toggleMobileSidebar()"
-            class="lg:hidden text-blue-200 hover:text-white p-1"
+            class="lg:hidden text-blue-200 hover:text-white p-1 rounded-lg transition"
+            title="Fechar menu"
           >
             <X class="w-6 h-6" />
+          </button>
+
+          <!-- Botão Ocultar Barra Lateral (Desktop) -->
+          <button
+            @click="nav.toggleDesktopSidebar()"
+            class="hidden lg:flex text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition"
+            title="Ocultar barra lateral"
+          >
+            <PanelLeftClose class="w-5 h-5" />
           </button>
         </div>
 
@@ -205,41 +228,66 @@ const abertosCount = computed(
         </nav>
       </div>
 
-      <!-- Rodapé da Sidebar (Dados do MEI) -->
-      <div class="p-4 border-t border-white/10 bg-opti-dark/60 text-xs space-y-2">
-        <div class="flex justify-between items-center text-blue-200">
-          <span>CNPJ MEI:</span>
+      <!-- Rodapé da Sidebar (Dados do MEI & Usuário Logado) -->
+      <div class="w-64 p-4 border-t border-white/10 bg-opti-dark/60 text-xs space-y-2.5">
+        <div>
+          <div class="flex justify-between items-center text-blue-200">
+            <span>CNPJ MEI:</span>
+            <button
+              @click="dashboardStore.copyCNPJ()"
+              class="underline hover:text-white font-semibold flex items-center gap-1"
+              title="Copiar CNPJ"
+            >
+              <Copy class="w-3 h-3" />
+              <span>Copiar</span>
+            </button>
+          </div>
+          <p class="font-mono font-bold text-white text-sm mt-0.5">
+            {{ configStore.config.cnpj }}
+          </p>
+        </div>
+
+        <!-- Usuário Logado & Logout -->
+        <div
+          v-if="authStore.user"
+          class="pt-2.5 border-t border-white/10 flex items-center justify-between gap-2"
+        >
+          <div class="flex items-center gap-2 min-w-0">
+            <UserCheck class="w-4 h-4 text-emerald-300 shrink-0" />
+            <div class="truncate">
+              <p class="font-bold text-white truncate">{{ authStore.user.nome }}</p>
+              <p class="text-[10px] text-blue-200 truncate">{{ authStore.user.email }}</p>
+            </div>
+          </div>
           <button
-            @click="dashboardStore.copyCNPJ()"
-            class="underline hover:text-white font-semibold flex items-center gap-1"
-            title="Copiar CNPJ"
+            @click="authStore.logout()"
+            class="p-1.5 rounded-lg bg-white/10 hover:bg-rose-600 text-blue-100 hover:text-white transition shrink-0"
+            title="Sair do sistema"
           >
-            <Copy class="w-3 h-3" />
-            <span>Copiar</span>
+            <LogOut class="w-4 h-4" />
           </button>
         </div>
-        <p class="font-mono font-bold text-white text-sm">
-          {{ configStore.config.cnpj }}
-        </p>
-        <p class="text-[11px] text-blue-300 truncate">
-          {{ configStore.config.responsavel }}
-        </p>
       </div>
     </aside>
 
     <!-- ÁREA CENTRAL DE CONTEÚDO -->
-    <div class="flex-1 flex flex-col h-screen overflow-hidden">
+    <div class="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
       <!-- HEADER CONTEXTUAL / TOPBAR -->
       <header
         class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 py-3.5 flex justify-between items-center shrink-0 no-print"
       >
         <div class="flex items-center gap-3">
+          <!-- Botão Exibir/Ocultar Barra Lateral (Mobile e Desktop) -->
           <button
-            @click="nav.toggleMobileSidebar()"
-            class="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition"
+            @click="nav.toggleSidebar()"
+            class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-1.5"
+            :title="nav.isDesktopSidebarOpen ? 'Ocultar barra lateral de menus' : 'Exibir barra lateral de menus'"
           >
-            <Menu class="w-5 h-5" />
+            <Menu class="w-5 h-5 lg:hidden" />
+            <PanelLeftClose v-if="nav.isDesktopSidebarOpen" class="w-5 h-5 hidden lg:block" />
+            <PanelLeftOpen v-else class="w-5 h-5 hidden lg:block text-opti dark:text-blue-400" />
           </button>
+
           <div>
             <h2 class="font-bold text-lg text-slate-800 dark:text-white leading-tight">
               {{ currentMeta.title }}
@@ -270,13 +318,23 @@ const abertosCount = computed(
             <span class="hidden sm:inline">Copiar CNPJ</span>
           </button>
 
-          <!-- Botão Nova OS (Mobile) -->
+          <!-- Botão Nova OS (Visível no mobile ou quando a sidebar desktop está recolhida) -->
           <button
             @click="nav.openNovaOS()"
-            class="lg:hidden bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1"
+            :class="nav.isDesktopSidebarOpen ? 'lg:hidden' : 'flex'"
+            class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 transition"
           >
             <Plus class="w-3.5 h-3.5" />
             <span>Nova OS</span>
+          </button>
+
+          <!-- Botão Sair Rápido -->
+          <button
+            @click="authStore.logout()"
+            class="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 transition"
+            title="Sair do sistema"
+          >
+            <LogOut class="w-4 h-4" />
           </button>
         </div>
       </header>

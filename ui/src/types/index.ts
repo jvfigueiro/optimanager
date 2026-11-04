@@ -100,3 +100,37 @@ export interface DashboardData {
   atalhos: Atalho[]
 }
 
+export interface Usuario {
+  id: number
+  nome: string
+  email: string
+  role: 'admin' | 'operador'
+  created_at: string
+}
+
+export interface AuthStatusResponse {
+  needs_setup: boolean
+  authenticated: boolean
+  usuario?: Usuario
+}
+
+export interface AuthResponse {
+  token: string
+  usuario: Usuario
+}
+
+export interface CreateUsuarioPayload {
+  nome: string
+  email: string
+  senha: string
+  role: 'admin' | 'operador'
+}
+
+export interface UpdateUsuarioPayload {
+  nome: string
+  email: string
+  senha?: string
+  role: 'admin' | 'operador'
+}
+
+

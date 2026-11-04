@@ -82,3 +82,16 @@ INSERT OR IGNORE INTO atalhos (id, titulo, descricao, url, ordem) VALUES
 (3, 'Portal do Empreendedor', 'Serviços e Declaração Anual (DASN)', 'https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei', 3),
 (4, 'Consulta Cartão CNPJ', 'Comprovante de Inscrição Receita', 'https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp', 4);
 
+-- Tabela de Usuários para Autenticação e Controle de Acesso
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    senha_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'operador')),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+
+

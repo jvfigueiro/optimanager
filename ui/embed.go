@@ -16,3 +16,4 @@ func DistFS() fs.FS {
 	}
 	return sub
 }
+

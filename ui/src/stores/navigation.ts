@@ -7,6 +7,7 @@ export const useNavigationStore = defineStore('navigation', () => {
   const currentView = ref<ViewType>('dashboard')
   const isNovaOSModalOpen = ref(false)
   const isMobileSidebarOpen = ref(false)
+  const isDesktopSidebarOpen = ref(localStorage.getItem('optimanager_sidebar_open') !== 'false')
 
   function navigate(view: ViewType) {
     currentView.value = view
@@ -34,15 +35,30 @@ export const useNavigationStore = defineStore('navigation', () => {
     isMobileSidebarOpen.value = !isMobileSidebarOpen.value
   }
 
+  function toggleDesktopSidebar() {
+    isDesktopSidebarOpen.value = !isDesktopSidebarOpen.value
+    localStorage.setItem('optimanager_sidebar_open', String(isDesktopSidebarOpen.value))
+  }
+
+  function toggleSidebar() {
+    if (window.innerWidth >= 1024) {
+      toggleDesktopSidebar()
+    } else {
+      toggleMobileSidebar()
+    }
+  }
+
   return {
     currentView,
     isNovaOSModalOpen,
     isMobileSidebarOpen,
+    isDesktopSidebarOpen,
     navigate,
     initFromHash,
     openNovaOS,
     closeNovaOS,
     toggleMobileSidebar,
+    toggleDesktopSidebar,
+    toggleSidebar,
   }
 })
-

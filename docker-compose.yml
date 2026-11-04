@@ -24,3 +24,4 @@ services:
 volumes:
   optimanager_data:
     driver: local
+

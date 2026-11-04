@@ -31,6 +31,7 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 	r := chi.NewRouter()
 
 	healthH := handlers.NewHealthHandler(db)
+	authH := handlers.NewAuthHandler(db)
 	dashH := handlers.NewDashboardHandler(db)
 	cliH := handlers.NewClienteHandler(db)
 	osH := handlers.NewOrdemHandler(db)
@@ -39,22 +40,39 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 
 	r.Route("/api", func(api chi.Router) {
 		api.Get("/health", healthH.Check)
-		api.Get("/dashboard", dashH.Get)
-		api.Route("/clientes", func(cr chi.Router) {
-			cr.Get("/", cliH.List)
-			cr.Post("/", cliH.Create)
+		api.Get("/config", cfgH.Get)
+		api.Route("/auth", func(ar chi.Router) {
+			ar.Get("/status", authH.Status)
+			ar.Post("/setup", authH.Setup)
+			ar.Post("/login", authH.Login)
+			ar.Post("/logout", authH.Logout)
 		})
-		api.Route("/ordens", func(or chi.Router) {
-			or.Get("/", osH.List)
-			or.Post("/", osH.Create)
-			or.Patch("/{id}/baixa", osH.BaixaPagamento)
-		})
-		api.Route("/config", func(cfr chi.Router) {
-			cfr.Get("/", cfgH.Get)
-		})
-		api.Route("/atalhos", func(ar chi.Router) {
-			ar.Get("/", atH.List)
-			ar.Post("/", atH.Create)
+
+		api.Group(func(protected chi.Router) {
+			protected.Use(authH.RequireAuth)
+
+			protected.Get("/dashboard", dashH.Get)
+			protected.Put("/config", cfgH.Update)
+
+			protected.Route("/usuarios", func(ur chi.Router) {
+				ur.Get("/", authH.ListUsuarios)
+				ur.Post("/", authH.CreateUsuario)
+				ur.Put("/{id}", authH.UpdateUsuario)
+				ur.Delete("/{id}", authH.DeleteUsuario)
+			})
+			protected.Route("/clientes", func(cr chi.Router) {
+				cr.Get("/", cliH.List)
+				cr.Post("/", cliH.Create)
+			})
+			protected.Route("/ordens", func(or chi.Router) {
+				or.Get("/", osH.List)
+				or.Post("/", osH.Create)
+				or.Patch("/{id}/baixa", osH.BaixaPagamento)
+			})
+			protected.Route("/atalhos", func(ar chi.Router) {
+				ar.Get("/", atH.List)
+				ar.Post("/", atH.Create)
+			})
 		})
 	})
 
@@ -66,6 +84,30 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 	}
 
 	return r, db, teardown
+}
+
+func setupAdminAndGetToken(t *testing.T, r *chi.Mux) string {
+	t.Helper()
+	setupPayload := models.SetupAdminRequest{
+		Nome:  "Admin Teste",
+		Email: "admin@optimanager.com",
+		Senha: "password123",
+	}
+	body, _ := json.Marshal(setupPayload)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/setup", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("esperado 201 no setup admin, recebido %d: %s", w.Code, w.Body.String())
+	}
+
+	var authResp models.AuthResponse
+	if err := json.NewDecoder(w.Body).Decode(&authResp); err != nil {
+		t.Fatalf("erro ao decodificar resposta setup: %v", err)
+	}
+	return authResp.Token
 }
 
 func TestHealthCheck(t *testing.T) {
@@ -89,9 +131,79 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
+func TestAuthFlowAndUsuariosCRUD(t *testing.T) {
+	r, _, teardown := setupTestServer(t)
+	defer teardown()
+
+	// 1. Verifica status inicial (needs_setup = true)
+	reqStatus := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
+	wStatus := httptest.NewRecorder()
+	r.ServeHTTP(wStatus, reqStatus)
+
+	var st models.AuthStatusResponse
+	_ = json.NewDecoder(wStatus.Body).Decode(&st)
+	if !st.NeedsSetup || st.Authenticated {
+		t.Fatalf("esperado needs_setup=true e authenticated=false, recebido %+v", st)
+	}
+
+	// 2. Rota protegida sem token deve retornar 401
+	reqUnauth := httptest.NewRequest(http.MethodGet, "/api/dashboard", nil)
+	wUnauth := httptest.NewRecorder()
+	r.ServeHTTP(wUnauth, reqUnauth)
+	if wUnauth.Code != http.StatusUnauthorized {
+		t.Fatalf("esperado 401 sem token, recebido %d", wUnauth.Code)
+	}
+
+	// 3. Realiza Setup do Admin
+	token := setupAdminAndGetToken(t, r)
+
+	// 4. Novo setup deve ser bloqueado com 403
+	setupBody, _ := json.Marshal(models.SetupAdminRequest{
+		Nome:  "Outro Admin",
+		Email: "outro@optimanager.com",
+		Senha: "password123",
+	})
+	reqDupSetup := httptest.NewRequest(http.MethodPost, "/api/auth/setup", bytes.NewReader(setupBody))
+	wDupSetup := httptest.NewRecorder()
+	r.ServeHTTP(wDupSetup, reqDupSetup)
+	if wDupSetup.Code != http.StatusForbidden {
+		t.Fatalf("esperado 403 em segundo setup, recebido %d", wDupSetup.Code)
+	}
+
+	// 5. Cria segundo usuário via /api/usuarios
+	newUsrPayload := models.CreateUsuarioRequest{
+		Nome:  "Operador 1",
+		Email: "op1@optimanager.com",
+		Senha: "senha123",
+		Role:  "operador",
+	}
+	usrBody, _ := json.Marshal(newUsrPayload)
+	reqCreateUsr := httptest.NewRequest(http.MethodPost, "/api/usuarios", bytes.NewReader(usrBody))
+	reqCreateUsr.Header.Set("Authorization", "Bearer "+token)
+	wCreateUsr := httptest.NewRecorder()
+	r.ServeHTTP(wCreateUsr, reqCreateUsr)
+	if wCreateUsr.Code != http.StatusCreated {
+		t.Fatalf("esperado 201 ao criar usuário, recebido %d: %s", wCreateUsr.Code, wCreateUsr.Body.String())
+	}
+
+	// 6. Lista usuários (deve haver 2)
+	reqListUsr := httptest.NewRequest(http.MethodGet, "/api/usuarios", nil)
+	reqListUsr.Header.Set("Authorization", "Bearer "+token)
+	wListUsr := httptest.NewRecorder()
+	r.ServeHTTP(wListUsr, reqListUsr)
+	var usuarios []models.Usuario
+	_ = json.NewDecoder(wListUsr.Body).Decode(&usuarios)
+	if len(usuarios) != 2 {
+		t.Fatalf("esperado 2 usuários, recebido %d", len(usuarios))
+	}
+}
+
 func TestCreateOrdemAndAutoClient(t *testing.T) {
 	r, _, teardown := setupTestServer(t)
 	defer teardown()
+
+	token := setupAdminAndGetToken(t, r)
+	authHeader := "Bearer " + token
 
 	// 1. Cria OS com cliente novo e atalho VT
 	payload := models.CreateOrdemRequest{
@@ -108,6 +220,7 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	body, _ := json.Marshal(payload)
 	req := httptest.NewRequest(http.MethodPost, "/api/ordens", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -133,6 +246,7 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 
 	// 2. Verifica se cliente foi cadastrado na base
 	reqCli := httptest.NewRequest(http.MethodGet, "/api/clientes?search=Advocacia", nil)
+	reqCli.Header.Set("Authorization", authHeader)
 	wCli := httptest.NewRecorder()
 	r.ServeHTTP(wCli, reqCli)
 
@@ -144,6 +258,7 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 
 	// 3. Verifica Dashboard com a pendência
 	reqDash := httptest.NewRequest(http.MethodGet, "/api/dashboard", nil)
+	reqDash.Header.Set("Authorization", authHeader)
 	wDash := httptest.NewRecorder()
 	r.ServeHTTP(wDash, reqDash)
 
@@ -157,6 +272,7 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	baixaPayload := models.BaixaPagamentoRequest{Forma: "Pix", Status: "Pago"}
 	bBody, _ := json.Marshal(baixaPayload)
 	reqBaixa := httptest.NewRequest(http.MethodPatch, "/api/ordens/1000/baixa", bytes.NewReader(bBody))
+	reqBaixa.Header.Set("Authorization", authHeader)
 	wBaixa := httptest.NewRecorder()
 	r.ServeHTTP(wBaixa, reqBaixa)
 
@@ -165,8 +281,10 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	}
 
 	// 5. Verifica Dashboard após baixa
+	reqDash2 := httptest.NewRequest(http.MethodGet, "/api/dashboard", nil)
+	reqDash2.Header.Set("Authorization", authHeader)
 	wDash2 := httptest.NewRecorder()
-	r.ServeHTTP(wDash2, httptest.NewRequest(http.MethodGet, "/api/dashboard", nil))
+	r.ServeHTTP(wDash2, reqDash2)
 
 	var dash2 models.DashboardData
 	_ = json.NewDecoder(wDash2.Body).Decode(&dash2)
@@ -174,4 +292,3 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 		t.Fatalf("esperado caixa recebido 80.00 e pendente 0, recebido: %+v", dash2.Metricas)
 	}
 }
-

@@ -6,9 +6,15 @@ import type {
   UpdateOrdemPayload,
   Atalho,
   DashboardData,
+  Usuario,
+  AuthStatusResponse,
+  AuthResponse,
+  CreateUsuarioPayload,
+  UpdateUsuarioPayload,
 } from '../types'
 
 const API_BASE = '/api'
+export const TOKEN_STORAGE_KEY = 'optimanager_token'
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`
@@ -18,12 +24,23 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Content-Type', 'application/json')
   }
 
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include',
   })
 
   if (!response.ok) {
+    if (response.status === 401 && !endpoint.startsWith('/auth/')) {
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
+      window.dispatchEvent(new CustomEvent('optimanager:unauthorized'))
+    }
+
     let errorMsg = `Erro ${response.status}: ${response.statusText}`
     try {
       const errJson = await response.json()
@@ -47,6 +64,40 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const api = {
   // Health
   getHealth: () => request<{ status: string }>('/health'),
+
+  // Auth
+  getAuthStatus: () => request<AuthStatusResponse>('/auth/status'),
+  setupAdmin: (payload: { nome: string; email: string; senha: string }) =>
+    request<AuthResponse>('/auth/setup', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  login: (payload: { email: string; senha: string }) =>
+    request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  logout: () =>
+    request<{ message: string }>('/auth/logout', {
+      method: 'POST',
+    }),
+
+  // Usuários
+  getUsuarios: () => request<Usuario[]>('/usuarios'),
+  createUsuario: (payload: CreateUsuarioPayload) =>
+    request<Usuario>('/usuarios', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateUsuario: (id: number, payload: UpdateUsuarioPayload) =>
+    request<Usuario>(`/usuarios/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  deleteUsuario: (id: number) =>
+    request<{ message: string }>(`/usuarios/${id}`, {
+      method: 'DELETE',
+    }),
 
   // Config
   getConfig: () => request<Config>('/config'),
@@ -114,4 +165,3 @@ export const api = {
       method: 'DELETE',
     }),
 }
-
