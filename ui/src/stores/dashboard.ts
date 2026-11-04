@@ -74,6 +74,20 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  async function updateShortcut(id: number, atalho: Partial<Atalho>) {
+    try {
+      const updated = await api.updateAtalho(id, atalho)
+      const idx = data.value.atalhos.findIndex((a) => a.id === id)
+      if (idx !== -1) {
+        data.value.atalhos[idx] = updated
+      }
+      toast.show('Atalho atualizado com sucesso!')
+    } catch (err: any) {
+      toast.show('Erro ao atualizar atalho: ' + err.message, 'error')
+      throw err
+    }
+  }
+
   async function liquidarOS(id: number) {
     try {
       await api.baixaPagamento(id, 'Pix', 'Pago')
@@ -91,6 +105,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     copyCNPJ,
     openShortcut,
     addShortcut,
+    updateShortcut,
     removeShortcut,
     liquidarOS,
   }

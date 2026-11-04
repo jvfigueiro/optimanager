@@ -469,19 +469,6 @@ async function handleDeleteUser(u: Usuario) {
             />
           </div>
 
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Valor Padrão Visita Técnica (VT R$)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              v-model.number="form.vt_valor_padrao"
-              required
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-bold focus:ring-2 focus:ring-opti outline-none"
-            />
-          </div>
-
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
               Termo de Garantia Padrão (Rodapé dos Relatórios)

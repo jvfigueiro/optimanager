@@ -42,19 +42,19 @@ const pageMeta: Record<ViewType, { title: string; sub: string }> = {
     title: 'Dashboard',
     sub: 'Visão geral do faturamento, pendências e atalhos rápidos',
   },
-  servicos: {
+  orders: {
     title: 'Ordens de Serviço',
     sub: 'Relação de atendimentos em aberto na bancada e serviços já concluídos',
   },
-  clientes: {
+  clients: {
     title: 'Base de Clientes',
     sub: 'Cadastro rápido para autocompletar em Ordens de Serviço e Relatórios',
   },
-  relatorios: {
+  reports: {
     title: 'Central de Relatórios & PDFs',
     sub: 'Emita Relatórios Técnicos, Orçamentos ou Recibos prontos para impressão',
   },
-  configuracoes: {
+  settings: {
     title: 'Configurações do Sistema',
     sub: 'Personalização visual, dados do MEI, termos de garantia e gestão de usuários',
   },
@@ -159,10 +159,10 @@ const abertosCount = computed(
           </button>
 
           <button
-            @click="nav.navigate('servicos')"
+            @click="nav.navigate('orders')"
             class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition font-medium"
             :class="
-              nav.currentView === 'servicos'
+              nav.currentView === 'orders'
                 ? 'bg-white text-opti font-bold shadow-xs'
                 : 'text-blue-100 hover:bg-opti-dark'
             "
@@ -180,10 +180,10 @@ const abertosCount = computed(
           </button>
 
           <button
-            @click="nav.navigate('clientes')"
+            @click="nav.navigate('clients')"
             class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition font-medium"
             :class="
-              nav.currentView === 'clientes'
+              nav.currentView === 'clients'
                 ? 'bg-white text-opti font-bold shadow-xs'
                 : 'text-blue-100 hover:bg-opti-dark'
             "
@@ -201,10 +201,10 @@ const abertosCount = computed(
           </button>
 
           <button
-            @click="nav.navigate('relatorios')"
+            @click="nav.navigate('reports')"
             class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition font-medium"
             :class="
-              nav.currentView === 'relatorios'
+              nav.currentView === 'reports'
                 ? 'bg-white text-opti font-bold shadow-xs'
                 : 'text-blue-100 hover:bg-opti-dark'
             "
@@ -214,10 +214,10 @@ const abertosCount = computed(
           </button>
 
           <button
-            @click="nav.navigate('configuracoes')"
+            @click="nav.navigate('settings')"
             class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition font-medium"
             :class="
-              nav.currentView === 'configuracoes'
+              nav.currentView === 'settings'
                 ? 'bg-white text-opti font-bold shadow-xs'
                 : 'text-blue-100 hover:bg-opti-dark'
             "
@@ -228,29 +228,11 @@ const abertosCount = computed(
         </nav>
       </div>
 
-      <!-- Rodapé da Sidebar (Dados do MEI & Usuário Logado) -->
-      <div class="w-64 p-4 border-t border-white/10 bg-opti-dark/60 text-xs space-y-2.5">
-        <div>
-          <div class="flex justify-between items-center text-blue-200">
-            <span>CNPJ MEI:</span>
-            <button
-              @click="dashboardStore.copyCNPJ()"
-              class="underline hover:text-white font-semibold flex items-center gap-1"
-              title="Copiar CNPJ"
-            >
-              <Copy class="w-3 h-3" />
-              <span>Copiar</span>
-            </button>
-          </div>
-          <p class="font-mono font-bold text-white text-sm mt-0.5">
-            {{ configStore.config.cnpj }}
-          </p>
-        </div>
-
-        <!-- Usuário Logado & Logout -->
+      <!-- Rodapé da Sidebar (Usuário Logado & Logout) -->
+      <div class="w-64 p-4 border-t border-white/10 bg-opti-dark/60 text-xs">
         <div
           v-if="authStore.user"
-          class="pt-2.5 border-t border-white/10 flex items-center justify-between gap-2"
+          class="flex items-center justify-between gap-2"
         >
           <div class="flex items-center gap-2 min-w-0">
             <UserCheck class="w-4 h-4 text-emerald-300 shrink-0" />
@@ -342,10 +324,10 @@ const abertosCount = computed(
       <!-- CONTEÚDO DA VIEW ATIVA -->
       <main class="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 lg:pb-8">
         <DashboardView v-if="nav.currentView === 'dashboard'" />
-        <ServicosView v-else-if="nav.currentView === 'servicos'" />
-        <ClientesView v-else-if="nav.currentView === 'clientes'" />
-        <RelatoriosView v-else-if="nav.currentView === 'relatorios'" />
-        <ConfiguracoesView v-else-if="nav.currentView === 'configuracoes'" />
+        <ServicosView v-else-if="nav.currentView === 'orders'" />
+        <ClientesView v-else-if="nav.currentView === 'clients'" />
+        <RelatoriosView v-else-if="nav.currentView === 'reports'" />
+        <ConfiguracoesView v-else-if="nav.currentView === 'settings'" />
       </main>
 
       <!-- BOTTOM NAVIGATION BAR (FIXA NO MOBILE) -->
@@ -362,27 +344,27 @@ const abertosCount = computed(
         </button>
 
         <button
-          @click="nav.navigate('servicos')"
+          @click="nav.navigate('orders')"
           class="flex flex-col items-center gap-1 px-3 py-1 transition"
-          :class="nav.currentView === 'servicos' ? 'text-opti dark:text-blue-400 font-bold' : ''"
+          :class="nav.currentView === 'orders' ? 'text-opti dark:text-blue-400 font-bold' : ''"
         >
           <Wrench class="w-5 h-5" />
           <span>Serviços</span>
         </button>
 
         <button
-          @click="nav.navigate('clientes')"
+          @click="nav.navigate('clients')"
           class="flex flex-col items-center gap-1 px-3 py-1 transition"
-          :class="nav.currentView === 'clientes' ? 'text-opti dark:text-blue-400 font-bold' : ''"
+          :class="nav.currentView === 'clients' ? 'text-opti dark:text-blue-400 font-bold' : ''"
         >
           <Users class="w-5 h-5" />
           <span>Clientes</span>
         </button>
 
         <button
-          @click="nav.navigate('relatorios')"
+          @click="nav.navigate('reports')"
           class="flex flex-col items-center gap-1 px-3 py-1 transition"
-          :class="nav.currentView === 'relatorios' ? 'text-opti dark:text-blue-400 font-bold' : ''"
+          :class="nav.currentView === 'reports' ? 'text-opti dark:text-blue-400 font-bold' : ''"
         >
           <FileText class="w-5 h-5" />
           <span>Relatórios</span>

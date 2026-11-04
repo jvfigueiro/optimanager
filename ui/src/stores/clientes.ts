@@ -43,6 +43,24 @@ export const useClientesStore = defineStore('clientes', () => {
     }
   }
 
+  async function updateCliente(id: number, cli: Partial<Cliente>) {
+    loading.value = true
+    try {
+      const updated = await api.updateCliente(id, cli)
+      const idx = clientes.value.findIndex((c) => c.id === id)
+      if (idx !== -1) {
+        clientes.value[idx] = updated
+      }
+      toast.show('👤 Cliente atualizado com sucesso!')
+      return updated
+    } catch (err: any) {
+      toast.show('Erro ao atualizar cliente: ' + err.message, 'error')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function deleteCliente(id: number) {
     try {
       await api.deleteCliente(id)
@@ -60,6 +78,7 @@ export const useClientesStore = defineStore('clientes', () => {
     loadClientes,
     setSearch,
     createCliente,
+    updateCliente,
     deleteCliente,
   }
 })

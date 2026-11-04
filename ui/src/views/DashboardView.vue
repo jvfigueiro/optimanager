@@ -4,14 +4,13 @@ import { useDashboardStore } from '../stores/dashboard'
 import { useNavigationStore } from '../stores/navigation'
 import { useOrdensStore } from '../stores/ordens'
 import { formatBRL, formatDate } from '../utils/formatters'
-import NovoAtalhoModal from '../components/NovoAtalhoModal.vue'
+import GerenciarAtalhosModal from '../components/GerenciarAtalhosModal.vue'
 import {
   DollarSign,
   Clock,
   CheckCircle2,
   TrendingUp,
-  Plus,
-  Trash2,
+  SlidersHorizontal,
   ExternalLink,
   Wrench,
   ChevronRight,
@@ -29,7 +28,7 @@ onMounted(() => {
 
 function irParaServicos(filtro = 'TODOS') {
   ordensStore.setFiltro(filtro)
-  nav.navigate('servicos')
+  nav.navigate('orders')
 }
 
 function getStatusBadgeClass(status: string) {
@@ -132,8 +131,8 @@ function getStatusBadgeClass(status: string) {
           @click="isShortcutModalOpen = true"
           class="text-xs bg-opti-light dark:bg-slate-700 text-opti dark:text-sky-300 hover:bg-opti dark:hover:bg-opti hover:text-white dark:hover:text-white border border-transparent dark:border-slate-600 font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs"
         >
-          <Plus class="w-3.5 h-3.5" />
-          <span>Novo Atalho</span>
+          <SlidersHorizontal class="w-3.5 h-3.5" />
+          <span>Editar Atalhos</span>
         </button>
       </div>
 
@@ -172,7 +171,7 @@ function getStatusBadgeClass(status: string) {
           <div class="flex justify-between items-center mb-3">
             <h3 class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
               <Wrench class="w-4 h-4 text-opti" />
-              <span>Serviços em Aberto / Bancada ({{ dashboardStore.data.servicos_aberto.length }})</span>
+              <span>Serviços em aberto ({{ dashboardStore.data.servicos_aberto.length }})</span>
             </h3>
             <button
               @click="irParaServicos('ABERTOS')"
@@ -263,8 +262,8 @@ function getStatusBadgeClass(status: string) {
       </div>
     </div>
 
-    <!-- Modal Novo Atalho -->
-    <NovoAtalhoModal
+    <!-- Modal Gerenciar Atalhos -->
+    <GerenciarAtalhosModal
       v-if="isShortcutModalOpen"
       @close="isShortcutModalOpen = false"
     />

@@ -50,6 +50,29 @@ func (d *DB) CreateAtalho(a *models.Atalho) error {
 	return nil
 }
 
+// UpdateAtalho updates an existing portal shortcut.
+func (d *DB) UpdateAtalho(a *models.Atalho) error {
+	a.Titulo = strings.TrimSpace(a.Titulo)
+	a.Url = strings.TrimSpace(a.Url)
+	if a.Titulo == "" || a.Url == "" {
+		return errors.New("shortcut title and URL are required")
+	}
+
+	query := `UPDATE atalhos SET titulo = ?, descricao = ?, url = ?, ordem = ? WHERE id = ?`
+	res, err := d.Writer.Exec(query, a.Titulo, strings.TrimSpace(a.Descricao), a.Url, a.Ordem, a.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update shortcut: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("shortcut not found")
+	}
+	return nil
+}
+
 // DeleteAtalho removes a portal shortcut by ID.
 func (d *DB) DeleteAtalho(id int64) error {
 	res, err := d.Writer.Exec(`DELETE FROM atalhos WHERE id = ?`, id)

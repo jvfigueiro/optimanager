@@ -72,6 +72,8 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 			protected.Route("/atalhos", func(ar chi.Router) {
 				ar.Get("/", atH.List)
 				ar.Post("/", atH.Create)
+				ar.Put("/{id}", atH.Update)
+				ar.Delete("/{id}", atH.Delete)
 			})
 		})
 	})

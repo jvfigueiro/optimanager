@@ -3,12 +3,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useOrdensStore } from '../stores/ordens'
 import { useConfigStore } from '../stores/config'
 import { formatBRL, formatDate } from '../utils/formatters'
-import { Printer, MessageCircle, FileText, ShieldCheck, Download } from 'lucide-vue-next'
+import { Printer, MessageCircle, FileText, ShieldCheck } from 'lucide-vue-next'
 
 const ordensStore = useOrdensStore()
 const configStore = useConfigStore()
 
-type DocType = 'relatorio' | 'orcamento' | 'recibo'
+type DocType = 'relatorio' | 'os' | 'orcamento' | 'recibo'
 const docType = ref<DocType>('relatorio')
 
 const selectedOSId = ref<number | null>(null)
@@ -61,6 +61,8 @@ const docTitulo = computed(() => {
   switch (docType.value) {
     case 'relatorio':
       return 'Relatório de Serviço'
+    case 'os':
+      return 'Ordem de Serviço (OS)'
     case 'orcamento':
       return 'Orçamento Técnico'
     case 'recibo':
@@ -89,11 +91,6 @@ function dispararWhatsApp() {
 
 function imprimirDocumento() {
   window.print()
-}
-
-function baixarPDFNativo() {
-  if (!selectedOSId.value) return
-  window.open(`/api/ordens/${selectedOSId.value}/pdf?tipo=${docType.value}`, '_blank')
 }
 </script>
 
@@ -135,7 +132,7 @@ function baixarPDFNativo() {
         <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
           2. Tipo de Documento
         </label>
-        <div class="grid grid-cols-3 gap-2 text-xs font-bold">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-bold">
           <button
             type="button"
             @click="docType = 'relatorio'"
@@ -146,7 +143,19 @@ function baixarPDFNativo() {
                 : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:bg-slate-50'
             "
           >
-            Relatório / OS
+            Relatório
+          </button>
+          <button
+            type="button"
+            @click="docType = 'os'"
+            class="py-2.5 px-2 rounded-xl transition border text-center"
+            :class="
+              docType === 'os'
+                ? 'bg-opti text-white border-opti shadow-xs'
+                : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:bg-slate-50'
+            "
+          >
+            Ordem de Serviço
           </button>
           <button
             type="button"
@@ -251,14 +260,6 @@ function baixarPDFNativo() {
         </button>
 
         <button
-          @click="baixarPDFNativo"
-          class="w-full bg-opti hover:bg-opti-dark text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-xs"
-        >
-          <Download class="w-4 h-4" />
-          <span>Baixar PDF Oficial (Maroto Go)</span>
-        </button>
-
-        <button
           @click="dispararWhatsApp"
           class="w-full bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs"
         >
@@ -272,140 +273,343 @@ function baixarPDFNativo() {
     <div class="lg:col-span-7">
       <div
         id="a4-preview"
-        class="bg-white text-slate-800 p-6 sm:p-10 rounded-2xl shadow-md border border-slate-200 text-xs sm:text-sm min-h-[640px] flex flex-col justify-between"
+        class="bg-white text-slate-800 p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 text-xs sm:text-sm min-h-[640px]"
       >
-        <!-- CABEÇALHO DA EMPRESA -->
-        <div>
-          <div class="flex justify-between items-start border-b-2 border-opti pb-4 mb-5">
-            <div class="flex items-center gap-3.5">
-              <img
-                v-if="configStore.config.logo_base64"
-                :src="configStore.config.logo_base64"
-                alt="Logo"
-                class="w-14 h-14 object-contain rounded"
-              />
-              <div v-else class="bg-opti text-white font-black px-3 py-2 rounded-lg text-lg tracking-tight">
-                OPTI
+        <!-- LAYOUT DUPLICADO NA MESMA FOLHA: ORDEM DE SERVIÇO (OS) -->
+        <div v-if="docType === 'os'" class="space-y-4">
+          <!-- 1ª VIA - EMPRESA -->
+          <div class="border border-slate-300 rounded-xl p-4 bg-white space-y-2.5 shadow-2xs">
+            <div class="flex justify-between items-start border-b border-opti/40 pb-2">
+              <div class="flex items-center gap-2.5">
+                <img
+                  v-if="configStore.config.logo_base64"
+                  :src="configStore.config.logo_base64"
+                  alt="Logo"
+                  class="w-9 h-9 object-contain rounded"
+                />
+                <div v-else class="bg-opti text-white font-black px-2 py-0.5 rounded text-xs tracking-tight">
+                  OPTI
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-opti leading-tight">
+                    {{ configStore.config.fantasia }}
+                  </h3>
+                  <p class="text-[10px] text-slate-600 leading-tight">
+                    CNPJ: {{ configStore.config.cnpj }} • Tel: {{ configStore.config.fones }}
+                  </p>
+                  <p class="text-[10px] text-slate-500 leading-tight">
+                    <span v-if="configStore.config.endereco">{{ configStore.config.endereco }} • </span>{{ configStore.config.cidade }}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 class="text-xl font-black text-opti leading-tight">
-                  {{ configStore.config.fantasia }}
-                </h2>
-                <p class="text-xs text-slate-600">CNPJ: {{ configStore.config.cnpj }}</p>
-                <p class="text-xs text-slate-600">
-                  Fones: {{ configStore.config.fones }}
-                  <span v-if="configStore.config.email_contato"> • {{ configStore.config.email_contato }}</span>
-                </p>
-                <p class="text-xs text-slate-600">
-                  Responsável: {{ configStore.config.responsavel }}
-                  <span v-if="configStore.config.endereco"> • {{ configStore.config.endereco }}</span>
+
+              <div class="text-right">
+                <div class="inline-flex items-center gap-1.5">
+                  <span class="bg-opti text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                    ORDEM DE SERVIÇO
+                  </span>
+                  <span class="bg-slate-100 border border-slate-300 font-bold px-2 py-0.5 rounded text-[10px] text-slate-700">
+                    1ª VIA - EMPRESA
+                  </span>
+                </div>
+                <p class="text-xs text-slate-700 mt-0.5 font-bold">
+                  OS #{{ selectedOSId || '---' }} • <span class="text-slate-500 font-normal">{{ docData }}</span>
                 </p>
               </div>
             </div>
 
-            <div class="text-right">
-              <span class="bg-opti text-white font-bold px-3 py-1.5 rounded-lg text-xs uppercase tracking-wider inline-block">
-                {{ docTitulo }}
+            <!-- Dados Cliente & Equipamento -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <div>
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">Cliente:</span>
+                <span class="font-bold text-slate-800">{{ docCliente || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">CPF / CNPJ:</span>
+                <span class="font-mono text-slate-700">{{ docCpfCnpj || 'Não informado' }}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">Contato:</span>
+                <span class="text-slate-700">{{ docContato || 'Não informado' }}</span>
+              </div>
+              <div class="sm:col-span-2">
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">Equipamento:</span>
+                <span class="font-semibold text-slate-800">{{ docEquipamento }}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">Valor Total:</span>
+                <span class="font-black text-opti text-xs">{{ formatBRL(docValor) }}</span>
+              </div>
+            </div>
+
+            <!-- Serviço Solicitado -->
+            <div class="text-[11px] space-y-0.5">
+              <span class="font-bold text-slate-700 uppercase text-[9px] tracking-wide block">
+                Serviço / Descrição Técnica:
               </span>
-              <p class="text-xs text-slate-500 mt-2 font-bold">
-                Cód. #{{ selectedOSId || '---' }}
+              <div class="p-2 bg-slate-50 border border-slate-200 rounded text-slate-800 leading-snug whitespace-pre-line text-xs">
+                {{ docServico }}
+                <div v-if="docObs" class="pt-1 mt-1 border-t border-slate-200 text-opti font-medium text-[11px]">
+                  Obs: {{ docObs }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Assinaturas -->
+            <div class="pt-1">
+              <div class="grid grid-cols-2 gap-6 text-[10px] text-center text-slate-600 mb-1">
+                <div class="border-t border-slate-400 pt-1">
+                  {{ configStore.config.responsavel }} (Responsável)
+                </div>
+                <div class="border-t border-slate-400 pt-1">
+                  {{ docCliente || 'Assinatura do Cliente' }}
+                </div>
+              </div>
+              <p class="text-center text-[9px] text-slate-400">
+                Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias sujeitos a custas de guarda.
               </p>
             </div>
           </div>
 
-          <!-- MODELO 1: RELATÓRIO DE SERVIÇO -->
-          <div v-if="docType === 'relatorio'" class="space-y-4">
-            <div class="bg-opti text-white text-xs font-bold px-3 py-1.5 rounded-sm uppercase tracking-wide">
-              Dados do Atendimento
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-xs border-b border-slate-200 pb-4">
-              <div><strong>Data de Emissão:</strong> {{ docData }}</div>
-              <div><strong>Cidade:</strong> {{ configStore.config.cidade }}</div>
-              <div><strong>Cliente:</strong> {{ docCliente || 'N/A' }}</div>
-              <div><strong>CPF/CNPJ:</strong> {{ docCpfCnpj || 'Não informado' }}</div>
-              <div class="col-span-2"><strong>Equipamento:</strong> {{ docEquipamento }}</div>
-            </div>
-
-            <div class="bg-opti text-white text-xs font-bold px-3 py-1.5 rounded-sm uppercase tracking-wide">
-              Descrição dos Serviços Realizados
-            </div>
-            <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed space-y-2">
-              <p class="whitespace-pre-line">{{ docServico }}</p>
-              <div v-if="docObs" class="pt-2 border-t border-slate-300 font-semibold text-opti">
-                Parâmetros / Observações Técnicas: {{ docObs }}
-              </div>
-            </div>
-
-            <div v-if="configStore.config.termo_garantia" class="flex items-start gap-2 p-3 bg-blue-50/50 border border-blue-200/80 rounded-lg text-[11px] text-slate-600">
-              <ShieldCheck class="w-4 h-4 text-opti shrink-0 mt-0.5" />
-              <span>{{ configStore.config.termo_garantia }}</span>
-            </div>
+          <!-- LINHA DE CORTE / DESTACAR -->
+          <div class="flex items-center gap-2 py-1 text-slate-400 select-none">
+            <div class="border-t-2 border-dashed border-slate-300 flex-1"></div>
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 bg-slate-100 border border-dashed border-slate-300 rounded-full flex items-center gap-1.5 text-slate-600">
+              ✂ Destaque aqui (1ª Via Empresa / 2ª Via Cliente)
+            </span>
+            <div class="border-t-2 border-dashed border-slate-300 flex-1"></div>
           </div>
 
-          <!-- MODELO 2: ORÇAMENTO -->
-          <div v-else-if="docType === 'orcamento'" class="space-y-4">
-            <div class="grid grid-cols-2 gap-2 text-xs border-b border-slate-200 pb-4">
-              <div><strong>Cliente:</strong> {{ docCliente || 'N/A' }}</div>
-              <div><strong>Data de Emissão:</strong> {{ docData }} (Validade: 30 dias)</div>
-              <div><strong>Equipamento:</strong> {{ docEquipamento }}</div>
-              <div><strong>Cidade:</strong> {{ configStore.config.cidade }}</div>
-            </div>
-
-            <div class="bg-opti text-white text-xs font-bold px-3 py-1.5 rounded-sm uppercase tracking-wide">
-              Descritivo do Orçamento
-            </div>
-            <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed">
-              <p class="whitespace-pre-line">{{ docServico }}</p>
-              <div class="text-right text-base font-black text-opti mt-4 pt-3 border-t border-slate-200">
-                Valor Total: {{ formatBRL(docValor) }}
+          <!-- 2ª VIA - CLIENTE -->
+          <div class="border border-slate-300 rounded-xl p-4 bg-white space-y-2.5 shadow-2xs">
+            <div class="flex justify-between items-start border-b border-opti/40 pb-2">
+              <div class="flex items-center gap-2.5">
+                <img
+                  v-if="configStore.config.logo_base64"
+                  :src="configStore.config.logo_base64"
+                  alt="Logo"
+                  class="w-9 h-9 object-contain rounded"
+                />
+                <div v-else class="bg-opti text-white font-black px-2 py-0.5 rounded text-xs tracking-tight">
+                  OPTI
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-opti leading-tight">
+                    {{ configStore.config.fantasia }}
+                  </h3>
+                  <p class="text-[10px] text-slate-600 leading-tight">
+                    CNPJ: {{ configStore.config.cnpj }} • Tel: {{ configStore.config.fones }}
+                  </p>
+                  <p class="text-[10px] text-slate-500 leading-tight">
+                    <span v-if="configStore.config.endereco">{{ configStore.config.endereco }} • </span>{{ configStore.config.cidade }}
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div v-if="docObs" class="p-3 bg-blue-50/60 border border-blue-200 rounded-lg text-xs text-slate-700">
-              <strong>Observações adicionais:</strong> {{ docObs }}
-            </div>
-          </div>
-
-          <!-- MODELO 3: RECIBO DE PAGAMENTO -->
-          <div v-else class="py-6 space-y-6">
-            <div class="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200">
-              <div>
-                <span class="text-xs uppercase font-bold text-slate-500 block">Data</span>
-                <span class="font-bold text-slate-800 text-sm">{{ docData }}</span>
-              </div>
               <div class="text-right">
-                <span class="text-xs uppercase font-bold text-slate-500 block">Valor Recebido</span>
-                <span class="text-xl font-black text-opti">{{ formatBRL(docValor) }}</span>
+                <div class="inline-flex items-center gap-1.5">
+                  <span class="bg-opti text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                    ORDEM DE SERVIÇO
+                  </span>
+                  <span class="bg-blue-50 border border-blue-200 font-bold px-2 py-0.5 rounded text-[10px] text-opti">
+                    2ª VIA - CLIENTE
+                  </span>
+                </div>
+                <p class="text-xs text-slate-700 mt-0.5 font-bold">
+                  OS #{{ selectedOSId || '---' }} • <span class="text-slate-500 font-normal">{{ docData }}</span>
+                </p>
               </div>
             </div>
 
-            <p class="text-justify leading-loose text-sm text-slate-700">
-              Eu, <strong>{{ configStore.config.razao_social }}</strong>, inscrito sob o CNPJ <strong>{{ configStore.config.cnpj }}</strong>,
-              recebi de <strong>{{ docCliente }}</strong>
-              <span v-if="docCpfCnpj"> (CPF/CNPJ: {{ docCpfCnpj }})</span>, a importância de
-              <strong>{{ formatBRL(docValor) }}</strong>, referente a:
-              <em>{{ docServico }}</em>, e para clareza e fins legais firmo o presente recibo.
-            </p>
+            <!-- Dados Cliente & Equipamento -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-200">
+              <div>
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">Cliente:</span>
+                <span class="font-bold text-slate-800">{{ docCliente || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">CPF / CNPJ:</span>
+                <span class="font-mono text-slate-700">{{ docCpfCnpj || 'Não informado' }}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">Contato:</span>
+                <span class="text-slate-700">{{ docContato || 'Não informado' }}</span>
+              </div>
+              <div class="sm:col-span-2">
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">Equipamento:</span>
+                <span class="font-semibold text-slate-800">{{ docEquipamento }}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 font-medium block text-[9px] uppercase">Valor Total:</span>
+                <span class="font-black text-opti text-xs">{{ formatBRL(docValor) }}</span>
+              </div>
+            </div>
 
-            <p class="text-right text-xs text-slate-600">
-              {{ configStore.config.cidade }}, {{ docData }}.
-            </p>
+            <!-- Serviço Solicitado -->
+            <div class="text-[11px] space-y-0.5">
+              <span class="font-bold text-slate-700 uppercase text-[9px] tracking-wide block">
+                Serviço / Descrição Técnica:
+              </span>
+              <div class="p-2 bg-slate-50 border border-slate-200 rounded text-slate-800 leading-snug whitespace-pre-line text-xs">
+                {{ docServico }}
+                <div v-if="docObs" class="pt-1 mt-1 border-t border-slate-200 text-opti font-medium text-[11px]">
+                  Obs: {{ docObs }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Assinaturas -->
+            <div class="pt-1">
+              <div class="grid grid-cols-2 gap-6 text-[10px] text-center text-slate-600 mb-1">
+                <div class="border-t border-slate-400 pt-1">
+                  {{ configStore.config.responsavel }} (Responsável)
+                </div>
+                <div class="border-t border-slate-400 pt-1">
+                  {{ docCliente || 'Assinatura do Cliente' }}
+                </div>
+              </div>
+              <p class="text-center text-[9px] text-slate-400">
+                Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias sujeitos a custas de guarda.
+              </p>
+            </div>
           </div>
         </div>
 
-        <!-- RODAPÉ & ASSINATURAS DO DOCUMENTO -->
-        <div class="pt-8">
-          <div class="grid grid-cols-2 gap-8 mb-6 text-xs text-center text-slate-600">
-            <div class="border-t border-slate-400 pt-1.5">
-              {{ configStore.config.responsavel }} ({{ configStore.config.fantasia }})
+        <!-- LAYOUT PADRÃO EM PÁGINA INTEIRA: RELATÓRIO, ORÇAMENTO, RECIBO -->
+        <div v-else class="flex flex-col justify-between min-h-[580px]">
+          <div>
+            <!-- CABEÇALHO DA EMPRESA -->
+            <div class="flex justify-between items-start border-b-2 border-opti pb-4 mb-5">
+              <div class="flex items-center gap-3.5">
+                <img
+                  v-if="configStore.config.logo_base64"
+                  :src="configStore.config.logo_base64"
+                  alt="Logo"
+                  class="w-14 h-14 object-contain rounded"
+                />
+                <div v-else class="bg-opti text-white font-black px-3 py-2 rounded-lg text-lg tracking-tight">
+                  OPTI
+                </div>
+                <div>
+                  <h2 class="text-xl font-black text-opti leading-tight">
+                    {{ configStore.config.fantasia }}
+                  </h2>
+                  <p class="text-xs text-slate-600">CNPJ: {{ configStore.config.cnpj }}</p>
+                  <p class="text-xs text-slate-600">
+                    Fones: {{ configStore.config.fones }}
+                    <span v-if="configStore.config.email_contato"> • {{ configStore.config.email_contato }}</span>
+                  </p>
+                  <p class="text-xs text-slate-600">
+                    Responsável: {{ configStore.config.responsavel }}
+                    <span v-if="configStore.config.endereco"> • {{ configStore.config.endereco }}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="text-right">
+                <span class="bg-opti text-white font-bold px-3 py-1.5 rounded-lg text-xs uppercase tracking-wider inline-block">
+                  {{ docTitulo }}
+                </span>
+                <p class="text-xs text-slate-500 mt-2 font-bold">
+                  Cód. #{{ selectedOSId || '---' }}
+                </p>
+              </div>
             </div>
-            <div class="border-t border-slate-400 pt-1.5">
-              {{ docCliente || 'Assinatura do Cliente' }}
+
+            <!-- MODELO: RELATÓRIO DE SERVIÇO -->
+            <div v-if="docType === 'relatorio'" class="space-y-4">
+              <div class="bg-opti text-white text-xs font-bold px-3 py-1.5 rounded-sm uppercase tracking-wide">
+                Dados do Atendimento
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs border-b border-slate-200 pb-4">
+                <div><strong>Data de Emissão:</strong> {{ docData }}</div>
+                <div><strong>Cidade:</strong> {{ configStore.config.cidade }}</div>
+                <div><strong>Cliente:</strong> {{ docCliente || 'N/A' }}</div>
+                <div><strong>CPF/CNPJ:</strong> {{ docCpfCnpj || 'Não informado' }}</div>
+                <div class="col-span-2"><strong>Equipamento:</strong> {{ docEquipamento }}</div>
+              </div>
+
+              <div class="bg-opti text-white text-xs font-bold px-3 py-1.5 rounded-sm uppercase tracking-wide">
+                Descrição dos Serviços Realizados
+              </div>
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed space-y-2">
+                <p class="whitespace-pre-line">{{ docServico }}</p>
+                <div v-if="docObs" class="pt-2 border-t border-slate-300 font-semibold text-opti">
+                  Parâmetros / Observações Técnicas: {{ docObs }}
+                </div>
+              </div>
+
+              <div v-if="configStore.config.termo_garantia" class="flex items-start gap-2 p-3 bg-blue-50/50 border border-blue-200/80 rounded-lg text-[11px] text-slate-600">
+                <ShieldCheck class="w-4 h-4 text-opti shrink-0 mt-0.5" />
+                <span>{{ configStore.config.termo_garantia }}</span>
+              </div>
+            </div>
+
+            <!-- MODELO: ORÇAMENTO -->
+            <div v-else-if="docType === 'orcamento'" class="space-y-4">
+              <div class="grid grid-cols-2 gap-2 text-xs border-b border-slate-200 pb-4">
+                <div><strong>Cliente:</strong> {{ docCliente || 'N/A' }}</div>
+                <div><strong>Data de Emissão:</strong> {{ docData }} (Validade: 30 dias)</div>
+                <div><strong>Equipamento:</strong> {{ docEquipamento }}</div>
+                <div><strong>Cidade:</strong> {{ configStore.config.cidade }}</div>
+              </div>
+
+              <div class="bg-opti text-white text-xs font-bold px-3 py-1.5 rounded-sm uppercase tracking-wide">
+                Descritivo do Orçamento
+              </div>
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed">
+                <p class="whitespace-pre-line">{{ docServico }}</p>
+                <div class="text-right text-base font-black text-opti mt-4 pt-3 border-t border-slate-200">
+                  Valor Total: {{ formatBRL(docValor) }}
+                </div>
+              </div>
+
+              <div v-if="docObs" class="p-3 bg-blue-50/60 border border-blue-200 rounded-lg text-xs text-slate-700">
+                <strong>Observações adicionais:</strong> {{ docObs }}
+              </div>
+            </div>
+
+            <!-- MODELO: RECIBO DE PAGAMENTO -->
+            <div v-else class="py-6 space-y-6">
+              <div class="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200">
+                <div>
+                  <span class="text-xs uppercase font-bold text-slate-500 block">Data</span>
+                  <span class="font-bold text-slate-800 text-sm">{{ docData }}</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs uppercase font-bold text-slate-500 block">Valor Recebido</span>
+                  <span class="text-xl font-black text-opti">{{ formatBRL(docValor) }}</span>
+                </div>
+              </div>
+
+              <p class="text-justify leading-loose text-sm text-slate-700">
+                Eu, <strong>{{ configStore.config.razao_social }}</strong>, inscrito sob o CNPJ <strong>{{ configStore.config.cnpj }}</strong>,
+                recebi de <strong>{{ docCliente }}</strong>
+                <span v-if="docCpfCnpj"> (CPF/CNPJ: {{ docCpfCnpj }})</span>, a importância de
+                <strong>{{ formatBRL(docValor) }}</strong>, referente a:
+                <em>{{ docServico }}</em>, e para clareza e fins legais firmo o presente recibo.
+              </p>
+
+              <p class="text-right text-xs text-slate-600">
+                {{ configStore.config.cidade }}, {{ docData }}.
+              </p>
             </div>
           </div>
-          <p class="text-center text-[10px] font-bold text-opti border-t border-slate-200 pt-2 tracking-wide">
-            Emitido via OptiManager • {{ configStore.config.fantasia }} • {{ configStore.config.cidade }}
-          </p>
+
+          <!-- RODAPÉ & ASSINATURAS DO DOCUMENTO (PÁGINA INTEIRA) -->
+          <div class="pt-8">
+            <div class="grid grid-cols-2 gap-8 mb-6 text-xs text-center text-slate-600">
+              <div class="border-t border-slate-400 pt-1.5">
+                {{ configStore.config.responsavel }} ({{ configStore.config.fantasia }})
+              </div>
+              <div class="border-t border-slate-400 pt-1.5">
+                {{ docCliente || 'Assinatura do Cliente' }}
+              </div>
+            </div>
+            <p class="text-center text-[10px] font-bold text-opti border-t border-slate-200 pt-2 tracking-wide">
+              Emitido via OptiManager • {{ configStore.config.fantasia }} • {{ configStore.config.cidade }}
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -161,6 +161,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(a),
     }),
+  updateAtalho: (id: number, a: Partial<Atalho>) =>
+    request<Atalho>(`/atalhos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(a),
+    }),
   deleteAtalho: (id: number) =>
     request<{ message: string }>(`/atalhos/${id}`, {
       method: 'DELETE',

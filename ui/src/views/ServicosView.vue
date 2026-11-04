@@ -35,7 +35,7 @@ function getStatusBadgeClass(status: string) {
 
 function gerarDocumento(os: OrdemServico) {
   ordensStore.selectedOSForDoc = os
-  nav.navigate('relatorios')
+  nav.navigate('reports')
 }
 </script>
 
@@ -66,7 +66,7 @@ function gerarDocumento(os: OrdemServico) {
                 : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600'
             "
           >
-            🔧 Em Aberto (Bancada/Orçamento)
+            Aberto
           </button>
           <button
             @click="ordensStore.setFiltro('CONCLUIDOS')"
@@ -77,7 +77,7 @@ function gerarDocumento(os: OrdemServico) {
                 : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600'
             "
           >
-            ✅ Concluídos
+            Concluídos
           </button>
           <button
             @click="ordensStore.setFiltro('PENDENTE')"
@@ -88,7 +88,7 @@ function gerarDocumento(os: OrdemServico) {
                 : 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
             "
           >
-            ⏳ Pagamento Pendente
+            Pagamento Pendente
           </button>
         </div>
 
