@@ -54,7 +54,7 @@ func (h *AuthHandler) generateToken(u *models.Usuario) (string, error) {
 		UserID: u.ID,
 		Email:  u.Email,
 		Role:   u.Role,
-		Exp:    time.Now().Add(7 * 24 * time.Hour).Unix(), // 7 dias de validade
+		Exp:    time.Now().Add(7 * 24 * time.Hour).Unix(), // 7 days expiration
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -72,7 +72,7 @@ func (h *AuthHandler) generateToken(u *models.Usuario) (string, error) {
 func (h *AuthHandler) verifyToken(tokenStr string) (*tokenPayload, error) {
 	parts := strings.Split(tokenStr, ".")
 	if len(parts) != 2 {
-		return nil, errors.New("formato de token inválido")
+		return nil, errors.New("invalid token format")
 	}
 
 	mac := hmac.New(sha256.New, h.secret)
@@ -80,21 +80,21 @@ func (h *AuthHandler) verifyToken(tokenStr string) (*tokenPayload, error) {
 	expectedSig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 
 	if !hmac.Equal([]byte(parts[1]), []byte(expectedSig)) {
-		return nil, errors.New("assinatura de token inválida")
+		return nil, errors.New("invalid token signature")
 	}
 
 	rawPayload, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return nil, errors.New("erro ao decodificar payload do token")
+		return nil, errors.New("failed to decode token payload")
 	}
 
 	var payload tokenPayload
 	if err := json.Unmarshal(rawPayload, &payload); err != nil {
-		return nil, errors.New("payload do token malformado")
+		return nil, errors.New("malformed token payload")
 	}
 
 	if time.Now().Unix() > payload.Exp {
-		return nil, errors.New("token expirado")
+		return nil, errors.New("token expired")
 	}
 
 	return &payload, nil
@@ -103,20 +103,20 @@ func (h *AuthHandler) verifyToken(tokenStr string) (*tokenPayload, error) {
 func (h *AuthHandler) extractUserFromRequest(r *http.Request) *models.Usuario {
 	var tokenStr string
 
-	// 1. Tenta header Authorization: Bearer <token>
+	// 1. Authorization: Bearer <token>
 	authHeader := r.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		tokenStr = strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
 	}
 
-	// 2. Tenta Cookie HttpOnly
+	// 2. HttpOnly Cookie
 	if tokenStr == "" {
 		if cookie, err := r.Cookie(CookieName); err == nil {
 			tokenStr = cookie.Value
 		}
 	}
 
-	// 3. Tenta query parameter ?token= (para links de download PDF diretos se necessário)
+	// 3. Query param ?token= (used for direct PDF viewing if needed)
 	if tokenStr == "" {
 		tokenStr = r.URL.Query().Get("token")
 	}
@@ -149,12 +149,12 @@ func (h *AuthHandler) setTokenCookie(w http.ResponseWriter, token string) {
 	})
 }
 
-// Middleware RequireAuth protege rotas privadas da API.
+// RequireAuth middleware protects private API endpoints.
 func (h *AuthHandler) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := h.extractUserFromRequest(r)
 		if u == nil {
-			respondError(w, http.StatusUnauthorized, "Não autenticado. Faça login para continuar.")
+			respondError(w, http.StatusUnauthorized, "Authentication required. Please log in.")
 			return
 		}
 		ctx := context.WithValue(r.Context(), UserContextKey, u)
@@ -162,7 +162,7 @@ func (h *AuthHandler) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// Status retorna se o sistema precisa de setup inicial (0 usuários) e se o usuário atual está autenticado.
+// Status checks if initial system setup is required (0 users) and whether current user is authenticated.
 func (h *AuthHandler) Status(w http.ResponseWriter, r *http.Request) {
 	count, err := h.db.CountUsuarios()
 	if err != nil {
@@ -194,7 +194,7 @@ func (h *AuthHandler) Status(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Setup realiza o cadastro do administrador no primeiro acesso (quando há 0 usuários).
+// Setup creates the initial administrator account and updates company settings.
 func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	count, err := h.db.CountUsuarios()
 	if err != nil {
@@ -202,18 +202,18 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if count > 0 {
-		respondError(w, http.StatusForbidden, "O administrador inicial já foi configurado. Faça login normalmente.")
+		respondError(w, http.StatusForbidden, "Initial administrator is already configured. Please log in.")
 		return
 	}
 
 	var req models.SetupAdminRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido")
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	if strings.TrimSpace(req.Nome) == "" || strings.TrimSpace(req.Email) == "" || len(req.Senha) < 4 {
-		respondError(w, http.StatusBadRequest, "Preencha nome, e-mail válido e uma senha de no mínimo 4 caracteres")
+		respondError(w, http.StatusBadRequest, "Please provide a valid name, email and password (minimum 4 characters)")
 		return
 	}
 
@@ -223,7 +223,7 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Se dados da empresa foram informados no assistente de primeiro uso, atualiza a tabela config
+	// Update institutional company settings if provided during initial wizard
 	if cfg, err := h.db.GetConfig(); err == nil && cfg != nil {
 		cfg.Responsavel = strings.TrimSpace(req.Nome)
 		if strings.TrimSpace(req.Fantasia) != "" {
@@ -252,7 +252,7 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.generateToken(u)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao gerar sessão")
+		respondError(w, http.StatusInternalServerError, "Failed to generate session token")
 		return
 	}
 
@@ -263,32 +263,32 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Login autentica um usuário existente com e-mail e senha.
+// Login authenticates an existing user by email and password.
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido")
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	u, err := h.db.GetUsuarioByEmail(req.Email)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao verificar credenciais")
+		respondError(w, http.StatusInternalServerError, "Error verifying credentials")
 		return
 	}
 	if u == nil {
-		respondError(w, http.StatusUnauthorized, "E-mail ou senha incorretos")
+		respondError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.SenhaHash), []byte(req.Senha)); err != nil {
-		respondError(w, http.StatusUnauthorized, "E-mail ou senha incorretos")
+		respondError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
 
 	token, err := h.generateToken(u)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao gerar token de acesso")
+		respondError(w, http.StatusInternalServerError, "Failed to generate access token")
 		return
 	}
 
@@ -299,7 +299,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Logout encerra a sessão limpando o cookie de autenticação.
+// Logout clears the authentication cookie.
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     CookieName,
@@ -308,10 +308,10 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		MaxAge:   -1,
 	})
-	respondJSON(w, http.StatusOK, map[string]string{"message": "Sessão encerrada com sucesso"})
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Session terminated successfully"})
 }
 
-// ListUsuarios retorna a lista de todos os usuários para a tela de configurações.
+// ListUsuarios returns the list of all system users.
 func (h *AuthHandler) ListUsuarios(w http.ResponseWriter, r *http.Request) {
 	usuarios, err := h.db.ListUsuarios()
 	if err != nil {
@@ -321,17 +321,17 @@ func (h *AuthHandler) ListUsuarios(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, usuarios)
 }
 
-// CreateUsuario adiciona um novo usuário a partir da tela de configurações.
+// CreateUsuario adds a new user to the system.
 func (h *AuthHandler) CreateUsuario(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateUsuarioRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido")
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	u, err := h.db.CreateUsuario(req.Nome, req.Email, req.Senha, req.Role)
 	if err != nil {
-		if strings.Contains(err.Error(), "já existe") {
+		if strings.Contains(err.Error(), "already exists") {
 			respondError(w, http.StatusConflict, err.Error())
 			return
 		}
@@ -342,28 +342,28 @@ func (h *AuthHandler) CreateUsuario(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, u)
 }
 
-// UpdateUsuario edita os dados (e opcionalmente a senha) de um usuário existente.
+// UpdateUsuario modifies existing user credentials or role.
 func (h *AuthHandler) UpdateUsuario(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID de usuário inválido")
+		respondError(w, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 
 	var req models.UpdateUsuarioRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido")
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
 
 	u, err := h.db.UpdateUsuario(id, req.Nome, req.Email, req.Senha, req.Role)
 	if err != nil {
-		if strings.Contains(err.Error(), "não encontrado") {
+		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		if strings.Contains(err.Error(), "já existe") {
+		if strings.Contains(err.Error(), "already exists") {
 			respondError(w, http.StatusConflict, err.Error())
 			return
 		}
@@ -374,25 +374,25 @@ func (h *AuthHandler) UpdateUsuario(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, u)
 }
 
-// DeleteUsuario remove um usuário do sistema.
+// DeleteUsuario deletes a user from the system.
 func (h *AuthHandler) DeleteUsuario(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID de usuário inválido")
+		respondError(w, http.StatusBadRequest, "Invalid user ID")
 		return
 	}
 
-	// Impede que o usuário logado exclua a própria conta ativa
+	// Prevent logged in user from deleting their own active account
 	if currentUser, ok := r.Context().Value(UserContextKey).(*models.Usuario); ok && currentUser != nil {
 		if currentUser.ID == id {
-			respondError(w, http.StatusBadRequest, "Você não pode excluir sua própria conta em uso.")
+			respondError(w, http.StatusBadRequest, "You cannot delete your own active account.")
 			return
 		}
 	}
 
 	if err := h.db.DeleteUsuario(id); err != nil {
-		if strings.Contains(err.Error(), "não encontrado") {
+		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -400,6 +400,5 @@ func (h *AuthHandler) DeleteUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"message": "Usuário removido com sucesso"})
+	respondJSON(w, http.StatusOK, map[string]string{"message": "User deleted successfully"})
 }
-

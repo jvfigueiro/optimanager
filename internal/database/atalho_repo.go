@@ -8,12 +8,12 @@ import (
 	"optimanager/internal/models"
 )
 
-// ListAtalhos retorna os links e atalhos rápidos ordenados.
+// ListAtalhos returns quick portal links ordered by display sequence.
 func (d *DB) ListAtalhos() ([]models.Atalho, error) {
 	query := `SELECT id, titulo, descricao, url, ordem FROM atalhos ORDER BY ordem ASC, id ASC`
 	rows, err := d.Reader.Query(query)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao listar atalhos: %w", err)
+		return nil, fmt.Errorf("failed to query shortcuts: %w", err)
 	}
 	defer rows.Close()
 
@@ -21,25 +21,25 @@ func (d *DB) ListAtalhos() ([]models.Atalho, error) {
 	for rows.Next() {
 		var a models.Atalho
 		if err := rows.Scan(&a.ID, &a.Titulo, &a.Descricao, &a.Url, &a.Ordem); err != nil {
-			return nil, fmt.Errorf("erro ao ler atalho: %w", err)
+			return nil, fmt.Errorf("failed to scan shortcut: %w", err)
 		}
 		atalhos = append(atalhos, a)
 	}
 	return atalhos, rows.Err()
 }
 
-// CreateAtalho cadastra um novo atalho rápido no sistema.
+// CreateAtalho registers a new portal shortcut.
 func (d *DB) CreateAtalho(a *models.Atalho) error {
 	a.Titulo = strings.TrimSpace(a.Titulo)
 	a.Url = strings.TrimSpace(a.Url)
 	if a.Titulo == "" || a.Url == "" {
-		return errors.New("título e URL do atalho são obrigatórios")
+		return errors.New("shortcut title and URL are required")
 	}
 
 	query := `INSERT INTO atalhos (titulo, descricao, url, ordem) VALUES (?, ?, ?, ?)`
 	res, err := d.Writer.Exec(query, a.Titulo, strings.TrimSpace(a.Descricao), a.Url, a.Ordem)
 	if err != nil {
-		return fmt.Errorf("erro ao criar atalho: %w", err)
+		return fmt.Errorf("failed to create shortcut: %w", err)
 	}
 
 	id, err := res.LastInsertId()
@@ -50,19 +50,18 @@ func (d *DB) CreateAtalho(a *models.Atalho) error {
 	return nil
 }
 
-// DeleteAtalho remove um atalho pelo ID.
+// DeleteAtalho removes a portal shortcut by ID.
 func (d *DB) DeleteAtalho(id int64) error {
 	res, err := d.Writer.Exec(`DELETE FROM atalhos WHERE id = ?`, id)
 	if err != nil {
-		return fmt.Errorf("erro ao deletar atalho: %w", err)
+		return fmt.Errorf("failed to delete shortcut: %w", err)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("atalho não encontrado")
+		return errors.New("shortcut not found")
 	}
 	return nil
 }
-

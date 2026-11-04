@@ -10,7 +10,7 @@ import (
 	"optimanager/internal/models"
 )
 
-// ListOrdens busca as ordens de serviço com JOIN nos clientes, aplicando filtros e busca textual.
+// ListOrdens queries service orders with client join, filtering and textual search.
 func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, error) {
 	filtroStatus = strings.TrimSpace(strings.ToUpper(filtroStatus))
 	busca = strings.TrimSpace(busca)
@@ -27,7 +27,7 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 
 	switch filtroStatus {
 	case "", "TODOS":
-		// Sem filtro de status
+		// No filter
 	case "ABERTOS":
 		query += ` AND os.status != 'Concluído'`
 	case "CONCLUIDOS":
@@ -35,7 +35,6 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 	case "PENDENTE":
 		query += ` AND os.status = 'Concluído' AND os.pagamento_status = 'Pendente'`
 	default:
-		// Se passou um status específico ("Avaliação", "Orçamento", etc.)
 		query += ` AND os.status = ?`
 		args = append(args, filtroStatus)
 	}
@@ -50,11 +49,10 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 
 	rows, err := d.Reader.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao consultar ordens de serviço: %w", err)
+		return nil, fmt.Errorf("failed to query service orders: %w", err)
 	}
 	defer rows.Close()
 
-	// Obtém CNPJ da config para links de WhatsApp
 	var cnpj, fantasia string
 	_ = d.Reader.QueryRow(`SELECT cnpj, fantasia FROM config WHERE id = 1`).Scan(&cnpj, &fantasia)
 
@@ -70,7 +68,7 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 			&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.CreatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("erro ao mapear ordem de serviço: %w", err)
+			return nil, fmt.Errorf("failed to scan service order: %w", err)
 		}
 
 		if pagoEm.Valid {
@@ -84,7 +82,7 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 	return ordens, rows.Err()
 }
 
-// GetOrdemByID busca uma ordem de serviço completa pelo ID.
+// GetOrdemByID queries a single order with joined client data.
 func (d *DB) GetOrdemByID(id int64) (*models.OrdemServico, error) {
 	query := `SELECT os.id, os.data_emissao, os.status, os.cliente_id,
 	                 c.nome, c.doc, c.contato,
@@ -108,7 +106,7 @@ func (d *DB) GetOrdemByID(id int64) (*models.OrdemServico, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("erro ao buscar ordem #%d: %w", id, err)
+		return nil, fmt.Errorf("failed to get order #%d: %w", id, err)
 	}
 
 	if pagoEm.Valid {
@@ -122,30 +120,30 @@ func (d *DB) GetOrdemByID(id int64) (*models.OrdemServico, error) {
 	return &os, nil
 }
 
-// CreateOrdem cria uma nova Ordem de Serviço em transação com auto-cadastro de cliente e atalho VT.
+// CreateOrdem creates a new service order within a transaction with auto-client creation and VT shortcut support.
 func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, error) {
 	if strings.TrimSpace(req.Servico) == "" {
-		return nil, errors.New("a descrição do serviço é obrigatória")
+		return nil, errors.New("service description is required")
 	}
 
 	tx, err := d.Writer.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("erro ao iniciar transação: %w", err)
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// 1. Resolução ou Auto-cadastro do Cliente
+	// 1. Resolve or auto-create client
 	var cliente *models.Cliente
 	if req.ClienteID > 0 {
 		cliente = &models.Cliente{ID: req.ClienteID}
 		err = tx.QueryRow(`SELECT nome, doc, contato, desde_ano, created_at FROM clientes WHERE id = ?`, req.ClienteID).
 			Scan(&cliente.Nome, &cliente.Doc, &cliente.Contato, &cliente.DesdeAno, &cliente.CreatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("cliente informado (#%d) não encontrado: %w", req.ClienteID, err)
+			return nil, fmt.Errorf("client #%d not found: %w", req.ClienteID, err)
 		}
 	} else {
 		if strings.TrimSpace(req.ClienteNome) == "" {
-			return nil, errors.New("nome do cliente ou ID é obrigatório")
+			return nil, errors.New("client name or ID is required")
 		}
 		cliente, err = d.GetOrCreateCliente(tx, req.ClienteNome, req.ClienteDoc, req.ClienteContato)
 		if err != nil {
@@ -153,7 +151,7 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 		}
 	}
 
-	// 2. Regra de Negócio: Atalho Visita Técnica (VT)
+	// 2. Business rules: Technical Visit (VT) shortcut
 	equipamento := strings.TrimSpace(req.Equipamento)
 	servico := strings.TrimSpace(req.Servico)
 	valor := req.ValorTotal
@@ -178,7 +176,7 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 		equipamento = "N/A"
 	}
 
-	// 3. Defaults de campos
+	// 3. Field defaults
 	dataEmissao := strings.TrimSpace(req.DataEmissao)
 	if dataEmissao == "" {
 		dataEmissao = time.Now().Format("2006-01-02")
@@ -204,7 +202,7 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 		pagoEm = sql.NullTime{Time: time.Now(), Valid: true}
 	}
 
-	// 4. Inserção no banco
+	// 4. Insert into database
 	query := `INSERT INTO ordens_servico (
 		data_emissao, status, cliente_id, equipamento, servico, 
 		obs_tecnicas, valor_total, pagamento_status, pagamento_forma, pago_em
@@ -223,16 +221,16 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 		pagoEm,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao salvar ordem de serviço: %w", err)
+		return nil, fmt.Errorf("failed to insert service order: %w", err)
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return nil, fmt.Errorf("erro ao recuperar ID gerado da OS: %w", err)
+		return nil, fmt.Errorf("failed to get generated order id: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("erro ao finalizar transação: %w", err)
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	var cnpj, fantasia string
@@ -262,31 +260,29 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 	return novaOS, nil
 }
 
-// UpdateOrdem atualiza os dados de uma ordem de serviço existente.
+// UpdateOrdem updates an existing service order record.
 func (d *DB) UpdateOrdem(id int64, req *models.UpdateOrdemRequest) (*models.OrdemServico, error) {
 	if strings.TrimSpace(req.Servico) == "" {
-		return nil, errors.New("a descrição do serviço é obrigatória")
+		return nil, errors.New("service description is required")
 	}
 
 	tx, err := d.Writer.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("erro ao iniciar transação: %w", err)
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// Verifica se a OS existe
 	var osExistente models.OrdemServico
 	var pagoEmExistente sql.NullTime
 	err = tx.QueryRow(`SELECT id, status, cliente_id, pagamento_status, pago_em FROM ordens_servico WHERE id = ?`, id).
 		Scan(&osExistente.ID, &osExistente.Status, &osExistente.ClienteID, &osExistente.PagamentoStatus, &pagoEmExistente)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("ordem de serviço não encontrada")
+			return nil, errors.New("service order not found")
 		}
 		return nil, err
 	}
 
-	// Resolução de cliente se alterado
 	clienteID := osExistente.ClienteID
 	if req.ClienteID > 0 {
 		clienteID = req.ClienteID
@@ -318,7 +314,6 @@ func (d *DB) UpdateOrdem(id int64, req *models.UpdateOrdemRequest) (*models.Orde
 		pagamentoForma = "Pix"
 	}
 
-	// Tratamento do pago_em
 	pagoEm := pagoEmExistente
 	if pagamentoStatus == "Pago" && !pagoEm.Valid {
 		pagoEm = sql.NullTime{Time: time.Now(), Valid: true}
@@ -351,17 +346,17 @@ func (d *DB) UpdateOrdem(id int64, req *models.UpdateOrdemRequest) (*models.Orde
 		id,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao atualizar ordem de serviço: %w", err)
+		return nil, fmt.Errorf("failed to update service order: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("erro ao confirmar atualização da OS: %w", err)
+		return nil, fmt.Errorf("failed to commit order update: %w", err)
 	}
 
 	return d.GetOrdemByID(id)
 }
 
-// UpdatePagamento realiza a baixa rápida de pagamento para uma OS pendente.
+// UpdatePagamento quickly marks an order as paid or updates its payment status.
 func (d *DB) UpdatePagamento(id int64, forma, status string) error {
 	status = strings.TrimSpace(status)
 	if status == "" {
@@ -392,7 +387,7 @@ func (d *DB) UpdatePagamento(id int64, forma, status string) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("erro ao atualizar pagamento da OS #%d: %w", id, err)
+		return fmt.Errorf("failed to update payment for order #%d: %w", id, err)
 	}
 
 	rows, err := res.RowsAffected()
@@ -400,8 +395,7 @@ func (d *DB) UpdatePagamento(id int64, forma, status string) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("ordem de serviço não encontrada")
+		return errors.New("service order not found")
 	}
 	return nil
 }
-

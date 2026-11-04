@@ -20,11 +20,11 @@ import (
 	"optimanager/internal/models"
 )
 
-// HexToColor converte string hex ("#0B5694") para *props.Color do Maroto
+// HexToColor converts a hex string ("#0B5694") into Maroto's *props.Color.
 func HexToColor(hex string) *props.Color {
 	hex = strings.TrimPrefix(hex, "#")
 	if len(hex) != 6 {
-		return &props.Color{Red: 11, Green: 86, Blue: 148} // Padrão Opti Blue
+		return &props.Color{Red: 11, Green: 86, Blue: 148} // Default Opti Blue
 	}
 	r, err1 := strconv.ParseUint(hex[0:2], 16, 8)
 	g, err2 := strconv.ParseUint(hex[2:4], 16, 8)
@@ -35,12 +35,12 @@ func HexToColor(hex string) *props.Color {
 	return &props.Color{Red: int(r), Green: int(g), Blue: int(b)}
 }
 
-// FormatBRL formata valores para padrão moeda brasileira
+// FormatBRL formats numeric floats into Brazilian Real currency string.
 func FormatBRL(v float64) string {
 	return fmt.Sprintf("R$ %.2f", v)
 }
 
-// FormatDate formata YYYY-MM-DD para DD/MM/YYYY
+// FormatDate converts YYYY-MM-DD format to DD/MM/YYYY.
 func FormatDate(d string) string {
 	parts := strings.Split(strings.Split(d, "T")[0], "-")
 	if len(parts) == 3 {
@@ -49,7 +49,7 @@ func FormatDate(d string) string {
 	return d
 }
 
-// GenerateDocument cria o PDF nativo A4 de Relatório, Orçamento ou Recibo usando Maroto v2.
+// GenerateDocument produces native A4 PDF reports, quotes, or receipts using Maroto v2.
 func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType string) ([]byte, error) {
 	primaryColor := HexToColor(cfg.CorPrimaria)
 	white := &props.Color{Red: 255, Green: 255, Blue: 255}
@@ -85,7 +85,7 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 		dataEmissao = time.Now().Format("02/01/2006")
 	}
 
-	// 1. Cabeçalho Institucional
+	// 1. Institutional Header
 	linhaContato := fmt.Sprintf("CNPJ: %s | Fones: %s", cfg.CNPJ, cfg.Fones)
 	if strings.TrimSpace(cfg.EmailContato) != "" {
 		linhaContato += fmt.Sprintf(" | %s", strings.TrimSpace(cfg.EmailContato))
@@ -142,13 +142,13 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 			Color:     primaryColor,
 			Thickness: 1.2,
 		}),
-		row.New(3).Add(col.New(12).Add(text.New("", props.Text{}))), // Espaçador
+		row.New(3).Add(col.New(12).Add(text.New("", props.Text{}))), // Spacer
 	)
 
-	// 2. Miolo do Documento conforme o Tipo
+	// 2. Document body according to type
 	switch docType {
 	case "relatorio":
-		// Dados do Atendimento
+		// Service Details
 		m.AddRows(
 			row.New(6).Add(
 				col.New(12).Add(
@@ -173,7 +173,7 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 				col.New(12).Add(text.New(fmt.Sprintf("Equipamento: %s", os.Equipamento), props.Text{Size: 8.5})),
 			),
 			row.New(4).Add(col.New(12).Add(text.New("", props.Text{}))),
-			// Descrição dos Serviços
+			// Service Description
 			row.New(6).Add(
 				col.New(12).Add(
 					text.New("  DESCRIÇÃO DOS SERVIÇOS REALIZADOS", props.Text{
@@ -224,7 +224,7 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 			)
 		}
 
-		// Valor
+		// Amount
 		m.AddRows(
 			row.New(4).Add(col.New(12).Add(text.New("", props.Text{}))),
 			row.New(7).Add(
@@ -356,9 +356,9 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 		)
 	}
 
-	// 3. Rodapé com Assinaturas
+	// 3. Document Footer and Signatures
 	m.AddRows(
-		row.New(15).Add(col.New(12).Add(text.New("", props.Text{}))), // Espaçador
+		row.New(15).Add(col.New(12).Add(text.New("", props.Text{}))), // Spacer
 		row.New(1).Add(
 			col.New(5).Add(line.New(props.Line{Color: slate500, Thickness: 0.8})),
 			col.New(2).Add(text.New("", props.Text{})),
@@ -397,7 +397,7 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 
 	doc, err := m.Generate()
 	if err != nil {
-		return nil, fmt.Errorf("erro ao gerar PDF com Maroto: %w", err)
+		return nil, fmt.Errorf("failed to generate PDF using Maroto: %w", err)
 	}
 
 	return doc.GetBytes(), nil
@@ -409,4 +409,3 @@ func defaultStr(val, def string) string {
 	}
 	return val
 }
-

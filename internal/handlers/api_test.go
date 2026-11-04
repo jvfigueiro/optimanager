@@ -25,7 +25,7 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 
 	db, err := database.New(testDBPath)
 	if err != nil {
-		t.Fatalf("Erro ao inicializar banco de teste: %v", err)
+		t.Fatalf("failed to initialize test database: %v", err)
 	}
 
 	r := chi.NewRouter()
@@ -107,12 +107,12 @@ func setupAdminAndGetToken(t *testing.T, r *chi.Mux) string {
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusCreated {
-		t.Fatalf("esperado 201 no setup admin, recebido %d: %s", w.Code, w.Body.String())
+		t.Fatalf("expected 201 on admin setup, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var authResp models.AuthResponse
 	if err := json.NewDecoder(w.Body).Decode(&authResp); err != nil {
-		t.Fatalf("erro ao decodificar resposta setup: %v", err)
+		t.Fatalf("failed to decode setup response: %v", err)
 	}
 	return authResp.Token
 }
@@ -126,15 +126,15 @@ func TestHealthCheck(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Fatalf("esperado status 200, recebido %d", w.Code)
+		t.Fatalf("expected status 200, got %d", w.Code)
 	}
 
 	var resp handlers.HealthResponse
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
-		t.Fatalf("erro ao decodificar resposta: %v", err)
+		t.Fatalf("failed to decode response: %v", err)
 	}
 	if resp.Database != "connected" || resp.JournalMode != "wal" {
-		t.Fatalf("esperado banco conectado em wal, recebido %s / %s", resp.Database, resp.JournalMode)
+		t.Fatalf("expected connected database in WAL mode, got %s / %s", resp.Database, resp.JournalMode)
 	}
 }
 
@@ -142,7 +142,7 @@ func TestAuthFlowAndUsuariosCRUD(t *testing.T) {
 	r, _, teardown := setupTestServer(t)
 	defer teardown()
 
-	// 1. Verifica status inicial (needs_setup = true)
+	// 1. Initial status check (needs_setup = true)
 	reqStatus := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
 	wStatus := httptest.NewRecorder()
 	r.ServeHTTP(wStatus, reqStatus)
@@ -150,21 +150,21 @@ func TestAuthFlowAndUsuariosCRUD(t *testing.T) {
 	var st models.AuthStatusResponse
 	_ = json.NewDecoder(wStatus.Body).Decode(&st)
 	if !st.NeedsSetup || st.Authenticated {
-		t.Fatalf("esperado needs_setup=true e authenticated=false, recebido %+v", st)
+		t.Fatalf("expected needs_setup=true and authenticated=false, got %+v", st)
 	}
 
-	// 2. Rota protegida sem token deve retornar 401
+	// 2. Protected route without token must return 401
 	reqUnauth := httptest.NewRequest(http.MethodGet, "/api/dashboard", nil)
 	wUnauth := httptest.NewRecorder()
 	r.ServeHTTP(wUnauth, reqUnauth)
 	if wUnauth.Code != http.StatusUnauthorized {
-		t.Fatalf("esperado 401 sem token, recebido %d", wUnauth.Code)
+		t.Fatalf("expected 401 without token, got %d", wUnauth.Code)
 	}
 
-	// 3. Realiza Setup do Admin
+	// 3. Admin setup
 	token := setupAdminAndGetToken(t, r)
 
-	// 4. Novo setup deve ser bloqueado com 403
+	// 4. Duplicate setup must be blocked with 403
 	setupBody, _ := json.Marshal(models.SetupAdminRequest{
 		Nome:  "Outro Admin",
 		Email: "outro@optimanager.com",
@@ -174,10 +174,10 @@ func TestAuthFlowAndUsuariosCRUD(t *testing.T) {
 	wDupSetup := httptest.NewRecorder()
 	r.ServeHTTP(wDupSetup, reqDupSetup)
 	if wDupSetup.Code != http.StatusForbidden {
-		t.Fatalf("esperado 403 em segundo setup, recebido %d", wDupSetup.Code)
+		t.Fatalf("expected 403 on duplicate setup, got %d", wDupSetup.Code)
 	}
 
-	// 5. Cria segundo usuário via /api/usuarios
+	// 5. Create second user via /api/usuarios
 	newUsrPayload := models.CreateUsuarioRequest{
 		Nome:  "Operador 1",
 		Email: "op1@optimanager.com",
@@ -190,10 +190,10 @@ func TestAuthFlowAndUsuariosCRUD(t *testing.T) {
 	wCreateUsr := httptest.NewRecorder()
 	r.ServeHTTP(wCreateUsr, reqCreateUsr)
 	if wCreateUsr.Code != http.StatusCreated {
-		t.Fatalf("esperado 201 ao criar usuário, recebido %d: %s", wCreateUsr.Code, wCreateUsr.Body.String())
+		t.Fatalf("expected 201 on create user, got %d: %s", wCreateUsr.Code, wCreateUsr.Body.String())
 	}
 
-	// 6. Lista usuários (deve haver 2)
+	// 6. List users (should have 2)
 	reqListUsr := httptest.NewRequest(http.MethodGet, "/api/usuarios", nil)
 	reqListUsr.Header.Set("Authorization", "Bearer "+token)
 	wListUsr := httptest.NewRecorder()
@@ -201,7 +201,7 @@ func TestAuthFlowAndUsuariosCRUD(t *testing.T) {
 	var usuarios []models.Usuario
 	_ = json.NewDecoder(wListUsr.Body).Decode(&usuarios)
 	if len(usuarios) != 2 {
-		t.Fatalf("esperado 2 usuários, recebido %d", len(usuarios))
+		t.Fatalf("expected 2 users, got %d", len(usuarios))
 	}
 }
 
@@ -212,14 +212,14 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	token := setupAdminAndGetToken(t, r)
 	authHeader := "Bearer " + token
 
-	// 1. Cria OS com cliente novo e atalho VT
+	// 1. Create order with new client and VT shortcut
 	payload := models.CreateOrdemRequest{
 		ClienteNome:     "Advocacia Santos",
 		ClienteDoc:      "12.345.678/0001-90",
 		ClienteContato:  "(55) 99111-2233",
 		Servico:         "Configuração de rede e impressoras",
 		IsVT:            true,
-		ValorTotal:      0, // Deve adotar 80.00
+		ValorTotal:      0, // Adopts default 80.00
 		Status:          "Concluído",
 		PagamentoStatus: "Pendente",
 	}
@@ -232,26 +232,26 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusCreated {
-		t.Fatalf("esperado status 201 ao criar OS, recebido %d: %s", w.Code, w.Body.String())
+		t.Fatalf("expected status 201 on create order, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var osResp models.OrdemServico
 	_ = json.NewDecoder(w.Body).Decode(&osResp)
 
 	if osResp.ID < 1000 {
-		t.Fatalf("esperado ID >= 1000, recebido %d", osResp.ID)
+		t.Fatalf("expected ID >= 1000, got %d", osResp.ID)
 	}
 	if osResp.Equipamento != "N/A" {
-		t.Fatalf("esperado Equipamento 'N/A', recebido '%s'", osResp.Equipamento)
+		t.Fatalf("expected Equipamento 'N/A', got '%s'", osResp.Equipamento)
 	}
 	if osResp.ValorTotal != 80.00 {
-		t.Fatalf("esperado valor padrão VT 80.00, recebido %.2f", osResp.ValorTotal)
+		t.Fatalf("expected default VT value 80.00, got %.2f", osResp.ValorTotal)
 	}
 	if osResp.ClienteNome != "Advocacia Santos" {
-		t.Fatalf("esperado ClienteNome 'Advocacia Santos', recebido '%s'", osResp.ClienteNome)
+		t.Fatalf("expected ClienteNome 'Advocacia Santos', got '%s'", osResp.ClienteNome)
 	}
 
-	// 2. Verifica se cliente foi cadastrado na base
+	// 2. Verify auto-created client in database
 	reqCli := httptest.NewRequest(http.MethodGet, "/api/clientes?search=Advocacia", nil)
 	reqCli.Header.Set("Authorization", authHeader)
 	wCli := httptest.NewRecorder()
@@ -260,10 +260,10 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	var clientes []models.Cliente
 	_ = json.NewDecoder(wCli.Body).Decode(&clientes)
 	if len(clientes) != 1 || clientes[0].Nome != "Advocacia Santos" {
-		t.Fatalf("esperado 1 cliente cadastrado automaticamente, recebido: %v", clientes)
+		t.Fatalf("expected 1 auto-created client, got: %v", clientes)
 	}
 
-	// 3. Verifica Dashboard com a pendência
+	// 3. Verify dashboard pending metrics
 	reqDash := httptest.NewRequest(http.MethodGet, "/api/dashboard", nil)
 	reqDash.Header.Set("Authorization", authHeader)
 	wDash := httptest.NewRecorder()
@@ -272,10 +272,10 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	var dash models.DashboardData
 	_ = json.NewDecoder(wDash.Body).Decode(&dash)
 	if dash.Metricas.PendenteReceber != 80.00 || dash.Metricas.QtdPendentes != 1 {
-		t.Fatalf("esperado pendente 80.00 / 1 pendência, recebido: %+v", dash.Metricas)
+		t.Fatalf("expected pending 80.00 / 1 order, got: %+v", dash.Metricas)
 	}
 
-	// 4. Baixa de pagamento
+	// 4. Quick payment settlement
 	baixaPayload := models.BaixaPagamentoRequest{Forma: "Pix", Status: "Pago"}
 	bBody, _ := json.Marshal(baixaPayload)
 	reqBaixa := httptest.NewRequest(http.MethodPatch, "/api/ordens/1000/baixa", bytes.NewReader(bBody))
@@ -284,18 +284,18 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	r.ServeHTTP(wBaixa, reqBaixa)
 
 	if wBaixa.Code != http.StatusOK {
-		t.Fatalf("esperado status 200 na baixa, recebido %d: %s", wBaixa.Code, wBaixa.Body.String())
+		t.Fatalf("expected status 200 on payment settlement, got %d: %s", wBaixa.Code, wBaixa.Body.String())
 	}
 
-	// 5. Verifica Dashboard após baixa
+	// 5. Verify dashboard after payment settlement
+	wDash2 := httptest.NewRecorder()
 	reqDash2 := httptest.NewRequest(http.MethodGet, "/api/dashboard", nil)
 	reqDash2.Header.Set("Authorization", authHeader)
-	wDash2 := httptest.NewRecorder()
 	r.ServeHTTP(wDash2, reqDash2)
 
 	var dash2 models.DashboardData
 	_ = json.NewDecoder(wDash2.Body).Decode(&dash2)
 	if dash2.Metricas.CaixaRecebido != 80.00 || dash2.Metricas.PendenteReceber != 0 || dash2.Metricas.QtdPendentes != 0 {
-		t.Fatalf("esperado caixa recebido 80.00 e pendente 0, recebido: %+v", dash2.Metricas)
+		t.Fatalf("expected received 80.00 and pending 0, got: %+v", dash2.Metricas)
 	}
 }

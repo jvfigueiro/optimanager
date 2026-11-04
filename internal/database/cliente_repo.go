@@ -10,7 +10,7 @@ import (
 	"optimanager/internal/models"
 )
 
-// ListClientes retorna clientes filtrando por nome, documento ou contato.
+// ListClientes queries clients with optional search by name, document, or contact.
 func (d *DB) ListClientes(search string) ([]models.Cliente, error) {
 	search = strings.TrimSpace(search)
 	var rows *sql.Rows
@@ -34,7 +34,7 @@ func (d *DB) ListClientes(search string) ([]models.Cliente, error) {
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("erro ao consultar clientes: %w", err)
+		return nil, fmt.Errorf("failed to query clients: %w", err)
 	}
 	defer rows.Close()
 
@@ -42,7 +42,7 @@ func (d *DB) ListClientes(search string) ([]models.Cliente, error) {
 	for rows.Next() {
 		var c models.Cliente
 		if err := rows.Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.CreatedAt); err != nil {
-			return nil, fmt.Errorf("erro ao ler cliente: %w", err)
+			return nil, fmt.Errorf("failed to scan client: %w", err)
 		}
 		clientes = append(clientes, c)
 	}
@@ -50,7 +50,7 @@ func (d *DB) ListClientes(search string) ([]models.Cliente, error) {
 	return clientes, rows.Err()
 }
 
-// GetClienteByID busca um cliente pelo seu ID.
+// GetClienteByID queries a single client by ID.
 func (d *DB) GetClienteByID(id int64) (*models.Cliente, error) {
 	var c models.Cliente
 	err := d.Reader.QueryRow(
@@ -64,17 +64,16 @@ func (d *DB) GetClienteByID(id int64) (*models.Cliente, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("erro ao buscar cliente #%d: %w", id, err)
+		return nil, fmt.Errorf("failed to query client #%d: %w", id, err)
 	}
 	return &c, nil
 }
 
-// GetOrCreateCliente busca o cliente pelo nome (case-insensitive) ou cadastra automaticamente se não existir.
-// Se tx for fornecido, executa no contexto da transação; senão usa dbWriter.
+// GetOrCreateCliente finds an existing client by name or inserts a new one within a transaction or write connection.
 func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.Cliente, error) {
 	nome = strings.TrimSpace(nome)
 	if nome == "" {
-		return nil, errors.New("nome do cliente não pode ser vazio")
+		return nil, errors.New("client name cannot be empty")
 	}
 	doc = strings.TrimSpace(doc)
 	contato = strings.TrimSpace(contato)
@@ -93,7 +92,7 @@ func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.
 	}
 
 	if err == nil {
-		// Cliente já existe. Se foram passados doc ou contato novos, atualiza se estavam vazios
+		// Client exists; update empty fields if new details were supplied
 		needsUpdate := false
 		if c.Doc == "" && doc != "" {
 			c.Doc = doc
@@ -117,10 +116,10 @@ func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.
 	}
 
 	if !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("erro ao verificar cliente existente: %w", err)
+		return nil, fmt.Errorf("failed to check existing client: %w", err)
 	}
 
-	// Cliente não existe: cadastra novo com desde_ano = ano atual
+	// Create new client with current year
 	desdeAno := time.Now().Year()
 	insertQuery := `INSERT INTO clientes (nome, doc, contato, desde_ano) VALUES (?, ?, ?, ?)`
 
@@ -132,12 +131,12 @@ func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("erro ao cadastrar cliente automático: %w", err)
+		return nil, fmt.Errorf("failed to auto-create client: %w", err)
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return nil, fmt.Errorf("erro ao recuperar ID do cliente cadastrado: %w", err)
+		return nil, fmt.Errorf("failed to retrieve created client id: %w", err)
 	}
 
 	return &models.Cliente{
@@ -150,11 +149,11 @@ func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.
 	}, nil
 }
 
-// CreateCliente insere um novo cliente manualmente.
+// CreateCliente manually creates a new client.
 func (d *DB) CreateCliente(c *models.Cliente) error {
 	c.Nome = strings.TrimSpace(c.Nome)
 	if c.Nome == "" {
-		return errors.New("nome do cliente é obrigatório")
+		return errors.New("client name is required")
 	}
 	c.Doc = strings.TrimSpace(c.Doc)
 	c.Contato = strings.TrimSpace(c.Contato)
@@ -168,9 +167,9 @@ func (d *DB) CreateCliente(c *models.Cliente) error {
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
-			return errors.New("já existe um cliente cadastrado com este nome")
+			return errors.New("a client with this name already exists")
 		}
-		return fmt.Errorf("erro ao criar cliente: %w", err)
+		return fmt.Errorf("failed to create client: %w", err)
 	}
 
 	id, err := res.LastInsertId()
@@ -182,11 +181,11 @@ func (d *DB) CreateCliente(c *models.Cliente) error {
 	return nil
 }
 
-// UpdateCliente atualiza os dados de um cliente existente.
+// UpdateCliente updates client information.
 func (d *DB) UpdateCliente(c *models.Cliente) error {
 	c.Nome = strings.TrimSpace(c.Nome)
 	if c.Nome == "" {
-		return errors.New("nome do cliente é obrigatório")
+		return errors.New("client name is required")
 	}
 	c.Doc = strings.TrimSpace(c.Doc)
 	c.Contato = strings.TrimSpace(c.Contato)
@@ -199,9 +198,9 @@ func (d *DB) UpdateCliente(c *models.Cliente) error {
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
-			return errors.New("já existe outro cliente cadastrado com este nome")
+			return errors.New("another client with this name already exists")
 		}
-		return fmt.Errorf("erro ao atualizar cliente: %w", err)
+		return fmt.Errorf("failed to update client: %w", err)
 	}
 
 	rows, err := res.RowsAffected()
@@ -209,19 +208,19 @@ func (d *DB) UpdateCliente(c *models.Cliente) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("cliente não encontrado")
+		return errors.New("client not found")
 	}
 	return nil
 }
 
-// DeleteCliente remove um cliente se não possuir ordens de serviço vinculadas.
+// DeleteCliente removes a client, failing if foreign key constraints exist on orders.
 func (d *DB) DeleteCliente(id int64) error {
 	res, err := d.Writer.Exec(`DELETE FROM clientes WHERE id = ?`, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "FOREIGN KEY") || strings.Contains(err.Error(), "constraint failed") {
-			return errors.New("não é possível excluir cliente que possui ordens de serviço registradas")
+			return errors.New("cannot delete client with linked service orders")
 		}
-		return fmt.Errorf("erro ao excluir cliente: %w", err)
+		return fmt.Errorf("failed to delete client: %w", err)
 	}
 
 	rows, err := res.RowsAffected()
@@ -229,8 +228,7 @@ func (d *DB) DeleteCliente(id int64) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("cliente não encontrado")
+		return errors.New("client not found")
 	}
 	return nil
 }
-

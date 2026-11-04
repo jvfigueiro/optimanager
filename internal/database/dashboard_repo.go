@@ -7,9 +7,9 @@ import (
 	"optimanager/internal/models"
 )
 
-// GetDashboardData calcula todas as métricas em query agregada e retorna resumos para a tela inicial.
+// GetDashboardData computes consolidated metrics and summaries in a single indexed query.
 func (d *DB) GetDashboardData() (*models.DashboardData, error) {
-	// 1. Métricas consolidadas em consulta única otimizada
+	// 1. Consolidated metrics
 	metricsQuery := `
 		SELECT
 			COALESCE(SUM(CASE WHEN data_emissao = DATE('now', 'localtime') AND status = 'Concluído' THEN valor_total ELSE 0 END), 0) AS faturamento_hoje,
@@ -31,10 +31,10 @@ func (d *DB) GetDashboardData() (*models.DashboardData, error) {
 		&metricas.QtdPendentes,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao calcular métricas do dashboard: %w", err)
+		return nil, fmt.Errorf("failed to compute dashboard metrics: %w", err)
 	}
 
-	// 2. Serviços em Aberto (limitado aos 10 mais recentes)
+	// 2. Open service orders (limited to 10 latest)
 	abertosQuery := `
 		SELECT os.id, os.data_emissao, os.status, os.cliente_id,
 		       c.nome, c.doc, c.contato,
@@ -48,10 +48,10 @@ func (d *DB) GetDashboardData() (*models.DashboardData, error) {
 	`
 	servicosAberto, err := d.fetchOrdens(abertosQuery)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao listar serviços em aberto: %w", err)
+		return nil, fmt.Errorf("failed to list open services: %w", err)
 	}
 
-	// 3. Cobranças Pendentes (concluídos aguardando pagamento, limitado aos 10 mais recentes)
+	// 3. Pending payments (concluded orders awaiting payment)
 	pendentesQuery := `
 		SELECT os.id, os.data_emissao, os.status, os.cliente_id,
 		       c.nome, c.doc, c.contato,
@@ -65,13 +65,13 @@ func (d *DB) GetDashboardData() (*models.DashboardData, error) {
 	`
 	cobrancasPend, err := d.fetchOrdens(pendentesQuery)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao listar cobranças pendentes: %w", err)
+		return nil, fmt.Errorf("failed to list pending collections: %w", err)
 	}
 
-	// 4. Atalhos rápidos
+	// 4. Quick portal shortcuts
 	atalhos, err := d.ListAtalhos()
 	if err != nil {
-		return nil, fmt.Errorf("erro ao listar atalhos: %w", err)
+		return nil, fmt.Errorf("failed to list shortcuts: %w", err)
 	}
 
 	return &models.DashboardData{
@@ -114,4 +114,3 @@ func (d *DB) fetchOrdens(query string, args ...interface{}) ([]models.OrdemServi
 	}
 	return res, rows.Err()
 }
-

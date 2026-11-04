@@ -9,7 +9,7 @@ import (
 	"optimanager/internal/models"
 )
 
-// GetConfig retorna a configuração institucional da empresa/MEI.
+// GetConfig retrieves the company/business institutional settings.
 func (d *DB) GetConfig() (*models.Config, error) {
 	query := `SELECT id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, 
 	                 vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria 
@@ -23,14 +23,14 @@ func (d *DB) GetConfig() (*models.Config, error) {
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("configuração não encontrada")
+			return nil, errors.New("configuration record not found")
 		}
-		return nil, fmt.Errorf("erro ao carregar configurações: %w", err)
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 	return &c, nil
 }
 
-// UpdateConfig atualiza os dados cadastrais da empresa/MEI.
+// UpdateConfig updates the institutional business settings.
 func (d *DB) UpdateConfig(cfg *models.Config) error {
 	query := `UPDATE config SET 
 		fantasia = ?, razao_social = ?, cnpj = ?, responsavel = ?, 
@@ -54,7 +54,7 @@ func (d *DB) UpdateConfig(cfg *models.Config) error {
 		strings.TrimSpace(cfg.CorSecundaria),
 	)
 	if err != nil {
-		return fmt.Errorf("erro ao atualizar configurações: %w", err)
+		return fmt.Errorf("failed to update configuration: %w", err)
 	}
 
 	rows, err := res.RowsAffected()
@@ -62,7 +62,7 @@ func (d *DB) UpdateConfig(cfg *models.Config) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("nenhuma linha de configuração foi atualizada")
+		return errors.New("no configuration rows were updated")
 	}
 	return nil
 }

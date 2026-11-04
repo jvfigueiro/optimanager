@@ -39,7 +39,7 @@ func (h *ClienteHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID de cliente inválido")
+		respondError(w, http.StatusBadRequest, "Invalid client ID")
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *ClienteHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if cliente == nil {
-		respondError(w, http.StatusNotFound, "Cliente não encontrado")
+		respondError(w, http.StatusNotFound, "Client not found")
 		return
 	}
 
@@ -59,17 +59,17 @@ func (h *ClienteHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *ClienteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var c models.Cliente
 	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido: "+err.Error())
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
 		return
 	}
 
 	if strings.TrimSpace(c.Nome) == "" {
-		respondError(w, http.StatusBadRequest, "O nome do cliente é obrigatório")
+		respondError(w, http.StatusBadRequest, "Client name is required")
 		return
 	}
 
 	if err := h.db.CreateCliente(&c); err != nil {
-		if strings.Contains(err.Error(), "já existe") {
+		if strings.Contains(err.Error(), "already exists") {
 			respondError(w, http.StatusConflict, err.Error())
 			return
 		}
@@ -84,28 +84,28 @@ func (h *ClienteHandler) Update(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID de cliente inválido")
+		respondError(w, http.StatusBadRequest, "Invalid client ID")
 		return
 	}
 
 	var c models.Cliente
 	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido: "+err.Error())
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
 		return
 	}
 	c.ID = id
 
 	if strings.TrimSpace(c.Nome) == "" {
-		respondError(w, http.StatusBadRequest, "O nome do cliente é obrigatório")
+		respondError(w, http.StatusBadRequest, "Client name is required")
 		return
 	}
 
 	if err := h.db.UpdateCliente(&c); err != nil {
-		if strings.Contains(err.Error(), "não encontrado") {
+		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		if strings.Contains(err.Error(), "já existe") {
+		if strings.Contains(err.Error(), "already exists") {
 			respondError(w, http.StatusConflict, err.Error())
 			return
 		}
@@ -120,16 +120,16 @@ func (h *ClienteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID de cliente inválido")
+		respondError(w, http.StatusBadRequest, "Invalid client ID")
 		return
 	}
 
 	if err := h.db.DeleteCliente(id); err != nil {
-		if strings.Contains(err.Error(), "não é possível excluir") {
+		if strings.Contains(err.Error(), "cannot delete client") {
 			respondError(w, http.StatusConflict, err.Error())
 			return
 		}
-		if strings.Contains(err.Error(), "não encontrado") {
+		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -137,6 +137,5 @@ func (h *ClienteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"message": "Cliente excluído com sucesso"})
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Client deleted successfully"})
 }
-

@@ -46,7 +46,7 @@ func (h *OrdemHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID da ordem de serviço inválido")
+		respondError(w, http.StatusBadRequest, "Invalid service order ID")
 		return
 	}
 
@@ -56,7 +56,7 @@ func (h *OrdemHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if os == nil {
-		respondError(w, http.StatusNotFound, "Ordem de serviço não encontrada")
+		respondError(w, http.StatusNotFound, "Service order not found")
 		return
 	}
 
@@ -66,16 +66,16 @@ func (h *OrdemHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *OrdemHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateOrdemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido: "+err.Error())
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
 		return
 	}
 
 	if strings.TrimSpace(req.Servico) == "" {
-		respondError(w, http.StatusBadRequest, "A descrição do serviço é obrigatória")
+		respondError(w, http.StatusBadRequest, "Service description is required")
 		return
 	}
 	if req.ClienteID <= 0 && strings.TrimSpace(req.ClienteNome) == "" {
-		respondError(w, http.StatusBadRequest, "Informe o nome do cliente ou o ID de um cliente existente")
+		respondError(w, http.StatusBadRequest, "Client name or existing client ID is required")
 		return
 	}
 
@@ -92,24 +92,24 @@ func (h *OrdemHandler) Update(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID da ordem de serviço inválido")
+		respondError(w, http.StatusBadRequest, "Invalid service order ID")
 		return
 	}
 
 	var req models.UpdateOrdemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido: "+err.Error())
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
 		return
 	}
 
 	if strings.TrimSpace(req.Servico) == "" {
-		respondError(w, http.StatusBadRequest, "A descrição do serviço é obrigatória")
+		respondError(w, http.StatusBadRequest, "Service description is required")
 		return
 	}
 
 	osAtualizada, err := h.db.UpdateOrdem(id, &req)
 	if err != nil {
-		if strings.Contains(err.Error(), "não encontrada") {
+		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -120,17 +120,16 @@ func (h *OrdemHandler) Update(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, osAtualizada)
 }
 
-// BaixaPagamento liquida rapidamente o pagamento de uma OS pendente.
+// BaixaPagamento settles payment status for an existing service order.
 func (h *OrdemHandler) BaixaPagamento(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID da ordem de serviço inválido")
+		respondError(w, http.StatusBadRequest, "Invalid service order ID")
 		return
 	}
 
 	var req models.BaixaPagamentoRequest
-	// Corpo opcional (se não vier, default é Pix / Pago)
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
 	if req.Status == "" {
@@ -141,7 +140,7 @@ func (h *OrdemHandler) BaixaPagamento(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.UpdatePagamento(id, req.Forma, req.Status); err != nil {
-		if strings.Contains(err.Error(), "não encontrada") {
+		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -158,12 +157,12 @@ func (h *OrdemHandler) BaixaPagamento(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, os)
 }
 
-// DownloadPDF gera e retorna o arquivo PDF da OS (Relatório, Orçamento ou Recibo) via Maroto nativo.
+// DownloadPDF generates and streams native A4 PDF reports, quotes, or receipts via Maroto.
 func (h *OrdemHandler) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID da ordem de serviço inválido")
+		respondError(w, http.StatusBadRequest, "Invalid service order ID")
 		return
 	}
 
@@ -178,7 +177,7 @@ func (h *OrdemHandler) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if os == nil {
-		respondError(w, http.StatusNotFound, "Ordem de serviço não encontrada")
+		respondError(w, http.StatusNotFound, "Service order not found")
 		return
 	}
 
@@ -190,7 +189,7 @@ func (h *OrdemHandler) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 
 	pdfBytes, err := pdf.GenerateDocument(cfg, os, tipo)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Falha na geração do PDF: "+err.Error())
+		respondError(w, http.StatusInternalServerError, "PDF generation failed: "+err.Error())
 		return
 	}
 
@@ -201,5 +200,3 @@ func (h *OrdemHandler) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(pdfBytes)
 }
-
-

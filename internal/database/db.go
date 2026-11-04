@@ -15,20 +15,20 @@ import (
 //go:embed migrations/001_initial_schema.sql
 var initialSchemaSQL string
 
+// DB holds the SQLite database connection pools.
 type DB struct {
 	Writer *sql.DB
 	Reader *sql.DB
 	Path   string
 }
 
-// New inicializa a conexão SQLite com WAL mode e pools separados de escrita e leitura.
+// New initializes the SQLite database with WAL mode and dedicated writer/reader pools.
 func New(customPath string) (*DB, error) {
 	dbPath := customPath
 	if dbPath == "" {
 		dbPath = os.Getenv("DB_PATH")
 	}
 	if dbPath == "" {
-		// Se /data existir e for gravável (ex: no container Docker), usa /data/optimanager.db
 		if info, err := os.Stat("/data"); err == nil && info.IsDir() {
 			dbPath = "/data/optimanager.db"
 		} else {
@@ -38,38 +38,38 @@ func New(customPath string) (*DB, error) {
 
 	dir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("erro ao criar diretório para o banco (%s): %w", dir, err)
+		return nil, fmt.Errorf("failed to create directory for database (%s): %w", dir, err)
 	}
 
 	dsn := fmt.Sprintf("%s?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=cache_size(-8000)", dbPath)
 
-	// Pool de Escrita: 1 única conexão aberta para evitar contenção de escrita
+	// Writer pool: strictly 1 connection to prevent concurrent write contention and locks
 	writer, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("falha ao abrir conexão de escrita: %w", err)
+		return nil, fmt.Errorf("failed to open write connection: %w", err)
 	}
 	writer.SetMaxOpenConns(1)
 	writer.SetMaxIdleConns(1)
 
-	// Pool de Leitura: até 8 conexões concorrentes para leitura simultânea sem bloqueio
+	// Reader pool: up to 8 concurrent read connections
 	reader, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		writer.Close()
-		return nil, fmt.Errorf("falha ao abrir conexão de leitura: %w", err)
+		return nil, fmt.Errorf("failed to open read connection: %w", err)
 	}
 	reader.SetMaxOpenConns(8)
 	reader.SetMaxIdleConns(8)
 
-	// Verifica conectividade
+	// Verify connectivity
 	if err := writer.Ping(); err != nil {
 		writer.Close()
 		reader.Close()
-		return nil, fmt.Errorf("falha no ping da conexão de escrita: %w", err)
+		return nil, fmt.Errorf("ping failed on write connection: %w", err)
 	}
 	if err := reader.Ping(); err != nil {
 		writer.Close()
 		reader.Close()
-		return nil, fmt.Errorf("falha no ping da conexão de leitura: %w", err)
+		return nil, fmt.Errorf("ping failed on read connection: %w", err)
 	}
 
 	instance := &DB{
@@ -78,31 +78,57 @@ func New(customPath string) (*DB, error) {
 		Path:   dbPath,
 	}
 
-	// Executa as migrações iniciais usando o pool de escrita
+	// Run initial schema creation and incremental migrations
 	if err := instance.migrate(); err != nil {
 		instance.Close()
-		return nil, fmt.Errorf("falha ao executar migrações: %w", err)
+		return nil, fmt.Errorf("failed to run database migrations: %w", err)
 	}
 
-	log.Printf("[DB] SQLite inicializado com sucesso em %s (WAL mode, Writer: 1 conn, Reader: 8 conns)", dbPath)
+	log.Printf("[DB] SQLite successfully initialized at %s (WAL mode, Writer: 1 conn, Reader: 8 conns)", dbPath)
 	return instance, nil
 }
 
 func (d *DB) migrate() error {
+	// Execute schema creation with IF NOT EXISTS
 	if _, err := d.Writer.Exec(initialSchemaSQL); err != nil {
 		return err
 	}
 
-	// Migrações incrementais seguras para bancos de dados já existentes
-	alterStatements := []string{
-		`ALTER TABLE config ADD COLUMN email_contato TEXT NOT NULL DEFAULT '';`,
-		`ALTER TABLE config ADD COLUMN endereco TEXT NOT NULL DEFAULT '';`,
+	// Incremental migrations: check existing table columns in 'config' table before inserting or altering
+	var tableCount int
+	err := d.Writer.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='config'`).Scan(&tableCount)
+	if err != nil {
+		return fmt.Errorf("failed to inspect sqlite_master: %w", err)
 	}
-	for _, stmt := range alterStatements {
-		if _, err := d.Writer.Exec(stmt); err != nil {
-			// Ignora erro caso a coluna já exista na tabela
-			if !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
-				return err
+
+	if tableCount > 0 {
+		columns, err := d.getTableColumns("config")
+		if err != nil {
+			return fmt.Errorf("failed to get columns for config table: %w", err)
+		}
+
+		// Add missing columns dynamically if upgrading from an older schema version
+		if !columns["email_contato"] {
+			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN email_contato TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("failed to add email_contato column: %w", err)
+			}
+			columns["email_contato"] = true
+		}
+		if !columns["endereco"] {
+			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN endereco TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("failed to add endereco column: %w", err)
+			}
+			columns["endereco"] = true
+		}
+
+		// Ensure default company row exists
+		var configRowCount int
+		_ = d.Writer.QueryRow(`SELECT COUNT(*) FROM config WHERE id = 1`).Scan(&configRowCount)
+		if configRowCount == 0 {
+			insertQuery := `INSERT OR IGNORE INTO config (id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria)
+			VALUES (1, 'Opti Tecnologia', 'João Vítor Streb Figueiró', '38.136.905/0001-66', 'João Figueiró', '(55) 99127-2332 | (55) 99674-5762', '', '', 'Santa Maria - RS', 80.00, 'Garantia legal de 90 dias para serviços executados e peças aplicadas.', '', '#0B5694', '#083f6e')`
+			if _, err := d.Writer.Exec(insertQuery); err != nil {
+				return fmt.Errorf("failed to insert default config record: %w", err)
 			}
 		}
 	}
@@ -110,6 +136,29 @@ func (d *DB) migrate() error {
 	return nil
 }
 
+// getTableColumns inspects SQLite PRAGMA table_info to return a map of column names.
+func (d *DB) getTableColumns(tableName string) (map[string]bool, error) {
+	rows, err := d.Writer.Query(fmt.Sprintf("PRAGMA table_info(%s)", tableName))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cols := make(map[string]bool)
+	for rows.Next() {
+		var cid int
+		var name, colType string
+		var notNull, pk int
+		var dfltValue sql.NullString
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &dfltValue, &pk); err != nil {
+			return nil, err
+		}
+		cols[strings.ToLower(name)] = true
+	}
+	return cols, rows.Err()
+}
+
+// Close gracefully closes both write and read database pools.
 func (d *DB) Close() {
 	if d.Writer != nil {
 		d.Writer.Close()

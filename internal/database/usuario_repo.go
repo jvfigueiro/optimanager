@@ -12,23 +12,23 @@ import (
 	"optimanager/internal/models"
 )
 
-// CountUsuarios retorna o total de usuários cadastrados no sistema.
+// CountUsuarios returns the total count of registered users in the database.
 func (d *DB) CountUsuarios() (int, error) {
 	var count int
 	err := d.Reader.QueryRow(`SELECT COUNT(*) FROM usuarios`).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("erro ao contar usuários: %w", err)
+		return 0, fmt.Errorf("failed to count users: %w", err)
 	}
 	return count, nil
 }
 
-// ListUsuarios retorna todos os usuários ordenados por ID.
+// ListUsuarios returns all registered users ordered by ID ascending.
 func (d *DB) ListUsuarios() ([]models.Usuario, error) {
 	rows, err := d.Reader.Query(
 		`SELECT id, nome, email, role, created_at FROM usuarios ORDER BY id ASC`,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao listar usuários: %w", err)
+		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 	defer rows.Close()
 
@@ -36,14 +36,14 @@ func (d *DB) ListUsuarios() ([]models.Usuario, error) {
 	for rows.Next() {
 		var u models.Usuario
 		if err := rows.Scan(&u.ID, &u.Nome, &u.Email, &u.Role, &u.CreatedAt); err != nil {
-			return nil, fmt.Errorf("erro ao ler usuário: %w", err)
+			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 		usuarios = append(usuarios, u)
 	}
 	return usuarios, rows.Err()
 }
 
-// GetUsuarioByID busca um usuário pelo ID.
+// GetUsuarioByID fetches a single user by primary key ID.
 func (d *DB) GetUsuarioByID(id int64) (*models.Usuario, error) {
 	var u models.Usuario
 	err := d.Reader.QueryRow(
@@ -55,12 +55,12 @@ func (d *DB) GetUsuarioByID(id int64) (*models.Usuario, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("erro ao buscar usuário #%d: %w", id, err)
+		return nil, fmt.Errorf("failed to get user #%d: %w", id, err)
 	}
 	return &u, nil
 }
 
-// GetUsuarioByEmail busca um usuário pelo e-mail (case-insensitive).
+// GetUsuarioByEmail fetches a user by email address (case-insensitive).
 func (d *DB) GetUsuarioByEmail(email string) (*models.Usuario, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	var u models.Usuario
@@ -73,19 +73,19 @@ func (d *DB) GetUsuarioByEmail(email string) (*models.Usuario, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("erro ao buscar usuário por e-mail: %w", err)
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 	return &u, nil
 }
 
-// CreateUsuario cria um novo usuário com senha criptografada via Bcrypt.
+// CreateUsuario hashes the password with bcrypt and stores a new user record.
 func (d *DB) CreateUsuario(nome, email, senha, role string) (*models.Usuario, error) {
 	nome = strings.TrimSpace(nome)
 	email = strings.TrimSpace(strings.ToLower(email))
 	role = strings.TrimSpace(strings.ToLower(role))
 
 	if nome == "" || email == "" || len(senha) < 4 {
-		return nil, errors.New("nome, e-mail e senha (mínimo 4 caracteres) são obrigatórios")
+		return nil, errors.New("name, email and password (minimum 4 characters) are required")
 	}
 	if role != "admin" && role != "operador" {
 		role = "admin"
@@ -93,7 +93,7 @@ func (d *DB) CreateUsuario(nome, email, senha, role string) (*models.Usuario, er
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(senha), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao gerar hash de senha: %w", err)
+		return nil, fmt.Errorf("failed to generate password hash: %w", err)
 	}
 
 	res, err := d.Writer.Exec(
@@ -102,9 +102,9 @@ func (d *DB) CreateUsuario(nome, email, senha, role string) (*models.Usuario, er
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
-			return nil, errors.New("já existe um usuário cadastrado com este e-mail")
+			return nil, errors.New("a user with this email already exists")
 		}
-		return nil, fmt.Errorf("erro ao cadastrar usuário: %w", err)
+		return nil, fmt.Errorf("failed to insert user: %w", err)
 	}
 
 	id, err := res.LastInsertId()
@@ -121,14 +121,14 @@ func (d *DB) CreateUsuario(nome, email, senha, role string) (*models.Usuario, er
 	}, nil
 }
 
-// UpdateUsuario atualiza nome, e-mail, perfil e opcionalmente a senha de um usuário.
+// UpdateUsuario updates user profile details and optionally sets a new password.
 func (d *DB) UpdateUsuario(id int64, nome, email, senha, role string) (*models.Usuario, error) {
 	nome = strings.TrimSpace(nome)
 	email = strings.TrimSpace(strings.ToLower(email))
 	role = strings.TrimSpace(strings.ToLower(role))
 
 	if nome == "" || email == "" {
-		return nil, errors.New("nome e e-mail são obrigatórios")
+		return nil, errors.New("name and email are required")
 	}
 	if role != "admin" && role != "operador" {
 		role = "operador"
@@ -139,11 +139,11 @@ func (d *DB) UpdateUsuario(id int64, nome, email, senha, role string) (*models.U
 
 	if strings.TrimSpace(senha) != "" {
 		if len(senha) < 4 {
-			return nil, errors.New("a nova senha deve ter pelo menos 4 caracteres")
+			return nil, errors.New("new password must have at least 4 characters")
 		}
 		hash, errHash := bcrypt.GenerateFromPassword([]byte(senha), bcrypt.DefaultCost)
 		if errHash != nil {
-			return nil, fmt.Errorf("erro ao criptografar senha: %w", errHash)
+			return nil, fmt.Errorf("failed to hash password: %w", errHash)
 		}
 		res, err = d.Writer.Exec(
 			`UPDATE usuarios SET nome = ?, email = ?, senha_hash = ?, role = ? WHERE id = ?`,
@@ -158,9 +158,9 @@ func (d *DB) UpdateUsuario(id int64, nome, email, senha, role string) (*models.U
 
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
-			return nil, errors.New("já existe outro usuário com este e-mail")
+			return nil, errors.New("another user with this email already exists")
 		}
-		return nil, fmt.Errorf("erro ao atualizar usuário: %w", err)
+		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
 	rows, err := res.RowsAffected()
@@ -168,25 +168,25 @@ func (d *DB) UpdateUsuario(id int64, nome, email, senha, role string) (*models.U
 		return nil, err
 	}
 	if rows == 0 {
-		return nil, errors.New("usuário não encontrado")
+		return nil, errors.New("user not found")
 	}
 
 	return d.GetUsuarioByID(id)
 }
 
-// DeleteUsuario remove um usuário do sistema garantindo que sempre reste ao menos 1 usuário ativo.
+// DeleteUsuario deletes a user while strictly ensuring at least 1 user remains in the system.
 func (d *DB) DeleteUsuario(id int64) error {
 	count, err := d.CountUsuarios()
 	if err != nil {
 		return err
 	}
 	if count <= 1 {
-		return errors.New("não é permitido remover o único usuário do sistema")
+		return errors.New("cannot delete the only remaining user in the system")
 	}
 
 	res, err := d.Writer.Exec(`DELETE FROM usuarios WHERE id = ?`, id)
 	if err != nil {
-		return fmt.Errorf("erro ao remover usuário: %w", err)
+		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
 	rows, err := res.RowsAffected()
@@ -194,8 +194,7 @@ func (d *DB) DeleteUsuario(id int64) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("usuário não encontrado")
+		return errors.New("user not found")
 	}
 	return nil
 }
-

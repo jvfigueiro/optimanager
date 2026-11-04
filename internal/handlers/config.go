@@ -28,7 +28,7 @@ func (h *ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *ConfigHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var cfg models.Config
 	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido: "+err.Error())
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
 		return
 	}
 
@@ -37,12 +37,11 @@ func (h *ConfigHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	atualizada, err := h.db.GetConfig()
+	updated, err := h.db.GetConfig()
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, atualizada)
+	respondJSON(w, http.StatusOK, updated)
 }
-

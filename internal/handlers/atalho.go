@@ -32,12 +32,12 @@ func (h *AtalhoHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *AtalhoHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var a models.Atalho
 	if err := json.NewDecoder(r.Body).Decode(&a); err != nil {
-		respondError(w, http.StatusBadRequest, "Payload JSON inválido: "+err.Error())
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
 		return
 	}
 
 	if strings.TrimSpace(a.Titulo) == "" || strings.TrimSpace(a.Url) == "" {
-		respondError(w, http.StatusBadRequest, "Título e URL do atalho são obrigatórios")
+		respondError(w, http.StatusBadRequest, "Shortcut title and URL are required")
 		return
 	}
 
@@ -53,12 +53,12 @@ func (h *AtalhoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "ID de atalho inválido")
+		respondError(w, http.StatusBadRequest, "Invalid shortcut ID")
 		return
 	}
 
 	if err := h.db.DeleteAtalho(id); err != nil {
-		if strings.Contains(err.Error(), "não encontrado") {
+		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
@@ -66,6 +66,5 @@ func (h *AtalhoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"message": "Atalho excluído com sucesso"})
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Shortcut deleted successfully"})
 }
-
