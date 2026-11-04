@@ -153,6 +153,10 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ forma, status }),
     }),
+  deleteOrdem: (id: number) =>
+    request<{ message: string }>(`/ordens/${id}`, {
+      method: 'DELETE',
+    }),
 
   // Atalhos
   getAtalhos: () => request<Atalho[]>('/atalhos'),

@@ -120,6 +120,27 @@ func (d *DB) migrate() error {
 			}
 			columns["endereco"] = true
 		}
+		if !columns["termo_responsabilidade"] {
+			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN termo_responsabilidade TEXT NOT NULL DEFAULT 'Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda.'`); err != nil {
+				return fmt.Errorf("failed to add termo_responsabilidade column: %w", err)
+			}
+			columns["termo_responsabilidade"] = true
+		}
+		if !columns["obs_padrao"] {
+			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN obs_padrao TEXT NOT NULL DEFAULT 'Aparelho recebido com marcas normais de uso. Backup de dados sob responsabilidade do cliente.'`); err != nil {
+				return fmt.Errorf("failed to add obs_padrao column: %w", err)
+			}
+			columns["obs_padrao"] = true
+		}
+		if !columns["custom_presets"] {
+			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN custom_presets TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("failed to add custom_presets column: %w", err)
+			}
+			columns["custom_presets"] = true
+
+			defaultPresets := `{"marcas":["Asus","Acer","Dell","Lenovo","HP","Apple","Samsung","LG","Positivo"],"modelos":["Notebook","Computador Desktop","All-in-One","Servidor","Monitor","Smartphone","Tablet","Outro"],"servicos":["Formatação e Instalação de Sistema","Limpeza Preventiva e Troca de Pasta Térmica","Troca de SSD / Upgrade de Memória RAM","Reparo de Placa-Mãe / Conector","Troca de Tela / Display","Remoção de Vírus e Otimização"]}`
+			_, _ = d.Writer.Exec(`UPDATE config SET custom_presets = ? WHERE custom_presets = '' OR custom_presets IS NULL`, defaultPresets)
+		}
 
 		// Ensure default company row exists
 		var configRowCount int

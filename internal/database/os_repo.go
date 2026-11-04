@@ -399,3 +399,19 @@ func (d *DB) UpdatePagamento(id int64, forma, status string) error {
 	}
 	return nil
 }
+
+// DeleteOrdem removes a service order by ID.
+func (d *DB) DeleteOrdem(id int64) error {
+	res, err := d.Writer.Exec(`DELETE FROM ordens_servico WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete service order #%d: %w", id, err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("service order not found")
+	}
+	return nil
+}

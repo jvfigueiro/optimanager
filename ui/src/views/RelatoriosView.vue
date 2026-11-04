@@ -3,7 +3,15 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useOrdensStore } from '../stores/ordens'
 import { useConfigStore } from '../stores/config'
 import { formatBRL, formatDate } from '../utils/formatters'
-import { Printer, MessageCircle, FileText, ShieldCheck } from 'lucide-vue-next'
+import {
+  Printer,
+  MessageCircle,
+  FileText,
+  ShieldCheck,
+  SlidersHorizontal,
+  Check,
+  X,
+} from 'lucide-vue-next'
 
 const ordensStore = useOrdensStore()
 const configStore = useConfigStore()
@@ -21,7 +29,29 @@ const docObs = ref('')
 const docData = ref('')
 const docContato = ref('')
 
+// Cláusulas e termos customizáveis
+const docTermoGarantia = ref('')
+const docTermoResponsabilidade = ref('')
+
+// Modal de Personalização
+const isPersonalizarModalOpen = ref(false)
+const tempGarantia = ref('')
+const tempResponsabilidade = ref('')
+const tempObs = ref('')
+const isSavingCustomTerms = ref(false)
+
 onMounted(async () => {
+  if (!configStore.config.termo_garantia) {
+    await configStore.loadConfig()
+  }
+
+  docTermoGarantia.value =
+    configStore.config.termo_garantia ||
+    'Garantia legal de 90 dias para serviços executados e peças aplicadas.'
+  docTermoResponsabilidade.value =
+    configStore.config.termo_responsabilidade ||
+    'Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda.'
+
   if (!ordensStore.ordens.length) {
     await ordensStore.loadOrdens()
   }
@@ -52,9 +82,39 @@ function carregarOSNoGerador(id: number) {
   docEquipamento.value = os.equipamento || 'N/A'
   docValor.value = os.valor_total || 0
   docServico.value = os.servico || ''
-  docObs.value = os.obs_tecnicas || ''
+  docObs.value = os.obs_tecnicas || configStore.config.obs_padrao || ''
   docData.value = formatDate(os.data_emissao) || new Date().toLocaleDateString('pt-BR')
   docContato.value = os.cliente_contato || ''
+}
+
+function openPersonalizarModal() {
+  tempGarantia.value = docTermoGarantia.value
+  tempResponsabilidade.value = docTermoResponsabilidade.value
+  tempObs.value = docObs.value
+  isPersonalizarModalOpen.value = true
+}
+
+function aplicarTermos() {
+  docTermoGarantia.value = tempGarantia.value
+  docTermoResponsabilidade.value = tempResponsabilidade.value
+  docObs.value = tempObs.value
+  isPersonalizarModalOpen.value = false
+}
+
+async function salvarComoPadrao() {
+  isSavingCustomTerms.value = true
+  try {
+    await configStore.saveConfig({
+      termo_garantia: tempGarantia.value,
+      termo_responsabilidade: tempResponsabilidade.value,
+      obs_padrao: tempObs.value,
+    })
+    aplicarTermos()
+  } catch (err) {
+    console.error('Erro ao salvar termos padrão:', err)
+  } finally {
+    isSavingCustomTerms.value = false
+  }
 }
 
 const docTitulo = computed(() => {
@@ -260,6 +320,15 @@ function imprimirDocumento() {
         </button>
 
         <button
+          type="button"
+          @click="openPersonalizarModal"
+          class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-650 text-slate-700 dark:text-slate-200 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs border border-slate-300 dark:border-slate-600 shadow-2xs"
+        >
+          <SlidersHorizontal class="w-4 h-4 text-opti dark:text-blue-400" />
+          <span>Personalizar Termos & Cláusulas</span>
+        </button>
+
+        <button
           @click="dispararWhatsApp"
           class="w-full bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs"
         >
@@ -365,8 +434,8 @@ function imprimirDocumento() {
                   {{ docCliente || 'Assinatura do Cliente' }}
                 </div>
               </div>
-              <p class="text-center text-[9px] text-slate-400">
-                Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias sujeitos a custas de guarda.
+              <p class="text-center text-[9px] text-slate-500 leading-tight">
+                {{ docTermoResponsabilidade }}
               </p>
             </div>
           </div>
@@ -468,8 +537,8 @@ function imprimirDocumento() {
                   {{ docCliente || 'Assinatura do Cliente' }}
                 </div>
               </div>
-              <p class="text-center text-[9px] text-slate-400">
-                Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias sujeitos a custas de guarda.
+              <p class="text-center text-[9px] text-slate-500 leading-tight">
+                {{ docTermoResponsabilidade }}
               </p>
             </div>
           </div>
@@ -539,9 +608,9 @@ function imprimirDocumento() {
                 </div>
               </div>
 
-              <div v-if="configStore.config.termo_garantia" class="flex items-start gap-2 p-3 bg-blue-50/50 border border-blue-200/80 rounded-lg text-[11px] text-slate-600">
+              <div v-if="docTermoGarantia" class="flex items-start gap-2 p-3 bg-blue-50/50 border border-blue-200/80 rounded-lg text-[11px] text-slate-600">
                 <ShieldCheck class="w-4 h-4 text-opti shrink-0 mt-0.5" />
-                <span>{{ configStore.config.termo_garantia }}</span>
+                <span>{{ docTermoGarantia }}</span>
               </div>
             </div>
 
@@ -611,6 +680,93 @@ function imprimirDocumento() {
             </p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal Personalizar Termos, Cláusulas & Guarda -->
+    <div
+      v-if="isPersonalizarModalOpen"
+      class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 no-print"
+      @click.self="isPersonalizarModalOpen = false"
+    >
+      <div
+        class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center shrink-0">
+          <div class="flex items-center gap-2">
+            <SlidersHorizontal class="w-5 h-5" />
+            <h3 class="font-bold text-sm sm:text-base">Personalizar Termos & Cláusulas</h3>
+          </div>
+          <button
+            @click="isPersonalizarModalOpen = false"
+            class="text-blue-200 hover:text-white p-1 rounded-lg transition"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <form @submit.prevent="aplicarTermos" class="p-5 space-y-4 text-xs sm:text-sm overflow-y-auto flex-1">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Termos de Garantia (Exibido em Relatórios e Orçamentos)
+            </label>
+            <textarea
+              v-model="tempGarantia"
+              rows="3"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-opti leading-relaxed"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Termo de Responsabilidade & Guarda (Exibido na OS / Canhoto Duplicado)
+            </label>
+            <textarea
+              v-model="tempResponsabilidade"
+              rows="3"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-opti leading-relaxed"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Observações Técnicas / Parâmetros do Documento
+            </label>
+            <textarea
+              v-model="tempObs"
+              rows="2"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-opti"
+            ></textarea>
+          </div>
+
+          <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              @click="salvarComoPadrao"
+              :disabled="isSavingCustomTerms"
+              class="px-3.5 py-2 border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-opti dark:text-sky-300 rounded-xl text-xs font-bold hover:bg-blue-100 transition flex items-center gap-1.5"
+            >
+              <Check class="w-4 h-4" />
+              <span>{{ isSavingCustomTerms ? 'Salvando...' : 'Salvar como Padrão do Sistema' }}</span>
+            </button>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="isPersonalizarModalOpen = false"
+                class="px-3.5 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition shadow-xs"
+              >
+                Aplicar ao Documento
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>

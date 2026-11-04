@@ -12,14 +12,16 @@ import (
 // GetConfig retrieves the company/business institutional settings.
 func (d *DB) GetConfig() (*models.Config, error) {
 	query := `SELECT id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, 
-	                 vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria 
+	                 vt_valor_padrao, termo_garantia, termo_responsabilidade, obs_padrao, custom_presets, 
+	                 logo_base64, cor_primaria, cor_secundaria 
 	          FROM config 
 	          WHERE id = 1`
 
 	var c models.Config
 	err := d.Reader.QueryRow(query).Scan(
 		&c.ID, &c.Fantasia, &c.RazaoSocial, &c.CNPJ, &c.Responsavel, &c.Fones, &c.EmailContato, &c.Endereco, &c.Cidade,
-		&c.VTValorPadrao, &c.TermoGarantia, &c.LogoBase64, &c.CorPrimaria, &c.CorSecundaria,
+		&c.VTValorPadrao, &c.TermoGarantia, &c.TermoResponsabilidade, &c.ObsPadrao, &c.CustomPresets,
+		&c.LogoBase64, &c.CorPrimaria, &c.CorSecundaria,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -34,7 +36,8 @@ func (d *DB) GetConfig() (*models.Config, error) {
 func (d *DB) UpdateConfig(cfg *models.Config) error {
 	query := `UPDATE config SET 
 		fantasia = ?, razao_social = ?, cnpj = ?, responsavel = ?, 
-		fones = ?, email_contato = ?, endereco = ?, cidade = ?, vt_valor_padrao = ?, termo_garantia = ?, 
+		fones = ?, email_contato = ?, endereco = ?, cidade = ?, vt_valor_padrao = ?, 
+		termo_garantia = ?, termo_responsabilidade = ?, obs_padrao = ?, custom_presets = ?, 
 		logo_base64 = ?, cor_primaria = ?, cor_secundaria = ? 
 		WHERE id = 1`
 
@@ -49,6 +52,9 @@ func (d *DB) UpdateConfig(cfg *models.Config) error {
 		strings.TrimSpace(cfg.Cidade),
 		cfg.VTValorPadrao,
 		strings.TrimSpace(cfg.TermoGarantia),
+		strings.TrimSpace(cfg.TermoResponsabilidade),
+		strings.TrimSpace(cfg.ObsPadrao),
+		strings.TrimSpace(cfg.CustomPresets),
 		cfg.LogoBase64,
 		strings.TrimSpace(cfg.CorPrimaria),
 		strings.TrimSpace(cfg.CorSecundaria),

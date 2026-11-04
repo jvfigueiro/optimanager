@@ -13,30 +13,37 @@ const clientesStore = useClientesStore()
 const configStore = useConfigStore()
 const dashboardStore = useDashboardStore()
 
-const isVT = ref(false)
 const clienteNome = ref('')
 const equipamento = ref('')
 const servico = ref('')
 const obsTecnicas = ref('')
 const status = ref('Concluído')
-const valorTotal = ref(100)
+const valorTotal = ref<number>(100)
 const pagamentoStatus = ref('Pendente')
 const pagamentoForma = ref('Pix')
 const isSubmitting = ref(false)
 
-// Atualiza valor padrão do VT caso o checkbox seja marcado
-function applyVTShortcut() {
-  if (isVT.value) {
-    equipamento.value = 'N/A'
-    if (!servico.value.startsWith('VT - ')) {
-      servico.value = 'VT - ' + servico.value
-    }
-    valorTotal.value = configStore.config.vt_valor_padrao || 80
+function appendMarca(m: string) {
+  if (!equipamento.value) {
+    equipamento.value = m
+  } else if (!equipamento.value.includes(m)) {
+    equipamento.value = `${equipamento.value} ${m}`.trim()
+  }
+}
+
+function appendModelo(mod: string) {
+  if (!equipamento.value) {
+    equipamento.value = mod
+  } else if (!equipamento.value.includes(mod)) {
+    equipamento.value = `${mod} ${equipamento.value}`.trim()
+  }
+}
+
+function selectServico(s: string) {
+  if (!servico.value) {
+    servico.value = s
   } else {
-    if (equipamento.value === 'N/A') {
-      equipamento.value = ''
-    }
-    servico.value = servico.value.replace(/^VT - /, '')
+    servico.value = `${servico.value} + ${s}`
   }
 }
 
@@ -55,15 +62,15 @@ async function handleSubmit() {
   isSubmitting.value = true
   try {
     await ordensStore.createOrdem({
-      cliente_nome: clienteNome.value,
-      equipamento: equipamento.value,
-      servico: servico.value,
-      obs_tecnicas: obsTecnicas.value,
+      cliente_nome: clienteNome.value.trim(),
+      equipamento: equipamento.value.trim() || 'N/A',
+      servico: servico.value.trim(),
+      obs_tecnicas: obsTecnicas.value.trim(),
       status: status.value,
       valor_total: Number(valorTotal.value) || 0,
       pagamento_status: pagamentoStatus.value,
       pagamento_forma: pagamentoForma.value,
-      is_vt: isVT.value,
+      is_vt: false,
     })
 
     // Atualiza listas e clientes no background
@@ -81,7 +88,6 @@ async function handleSubmit() {
     valorTotal.value = 100
     pagamentoForma.value = 'Pix'
     pagamentoStatus.value = 'Pendente'
-    isVT.value = false
 
     nav.closeNovaOS()
   } catch (err) {
@@ -99,7 +105,7 @@ async function handleSubmit() {
     @click.self="nav.closeNovaOS()"
   >
     <div
-      class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[90vh] flex flex-col"
+      class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[92vh] flex flex-col"
     >
       <!-- Header do Modal -->
       <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center shrink-0">
@@ -115,26 +121,8 @@ async function handleSubmit() {
         </button>
       </div>
 
-      <!-- Formulário com scroll se necessário -->
+      <!-- Formulário com scroll -->
       <form @submit.prevent="handleSubmit" class="p-5 space-y-3.5 text-sm overflow-y-auto flex-1">
-        <!-- Atalho VT -->
-        <label
-          class="bg-blue-50 dark:bg-slate-700/50 border border-blue-200 dark:border-slate-600 p-3 rounded-xl flex items-center justify-between cursor-pointer hover:bg-blue-100/60 dark:hover:bg-slate-700 transition"
-        >
-          <div>
-            <span class="font-semibold text-opti dark:text-blue-400 block">Atalho: Visita Técnica (VT)</span>
-            <span class="text-xs text-slate-600 dark:text-slate-300">
-              Preenche Equipamento como N/A, prefixo "VT -" e valor padrão R$ {{ configStore.config.vt_valor_padrao || 80 }}
-            </span>
-          </div>
-          <input
-            type="checkbox"
-            v-model="isVT"
-            @change="applyVTShortcut"
-            class="w-5 h-5 text-opti rounded focus:ring-opti"
-          />
-        </label>
-
         <!-- Cliente & Equipamento -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -162,14 +150,48 @@ async function handleSubmit() {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Equipamento
+              Equipamento / Objeto
             </label>
             <input
               type="text"
               v-model="equipamento"
-              placeholder="Ex: Notebook Acer ou N/A"
+              placeholder="Ex: Notebook Dell Inspiron"
               class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
             />
+          </div>
+        </div>
+
+        <!-- Sugestões de Autocompletar: Modelos & Marcas -->
+        <div class="bg-blue-50/50 dark:bg-slate-750/70 p-3 rounded-xl border border-blue-100 dark:border-slate-700 text-xs space-y-2">
+          <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">
+            <span>Sugestões Rápidas: Modelos & Marcas</span>
+            <span class="font-normal text-slate-400">Clique para preencher</span>
+          </div>
+
+          <!-- Chips Modelos -->
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              v-for="mod in configStore.presets.modelos"
+              :key="mod"
+              type="button"
+              @click="appendModelo(mod)"
+              class="px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-opti hover:text-opti transition text-[11px]"
+            >
+              + {{ mod }}
+            </button>
+          </div>
+
+          <!-- Chips Marcas -->
+          <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+            <button
+              v-for="m in configStore.presets.marcas"
+              :key="m"
+              type="button"
+              @click="appendMarca(m)"
+              class="px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-opti hover:text-opti transition text-[11px]"
+            >
+              + {{ m }}
+            </button>
           </div>
         </div>
 
@@ -185,6 +207,20 @@ async function handleSubmit() {
             placeholder="O que foi executado ou precisa ser orçado..."
             class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
           ></textarea>
+
+          <!-- Sugestões de Serviços Frequentes -->
+          <div class="flex flex-wrap gap-1.5 mt-1.5">
+            <button
+              v-for="s in configStore.presets.servicos"
+              :key="s"
+              type="button"
+              @click="selectServico(s)"
+              class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-opti-light hover:text-opti transition text-[11px] truncate max-w-xs"
+              :title="s"
+            >
+              + {{ s }}
+            </button>
+          </div>
         </div>
 
         <!-- Parâmetros Técnicos / Obs -->
@@ -268,4 +304,3 @@ async function handleSubmit() {
     </div>
   </div>
 </template>
-

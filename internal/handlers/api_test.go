@@ -67,6 +67,8 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 			protected.Route("/ordens", func(or chi.Router) {
 				or.Get("/", osH.List)
 				or.Post("/", osH.Create)
+				or.Put("/{id}", osH.Update)
+				or.Delete("/{id}", osH.Delete)
 				or.Patch("/{id}/baixa", osH.BaixaPagamento)
 			})
 			protected.Route("/atalhos", func(ar chi.Router) {
@@ -299,5 +301,14 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	_ = json.NewDecoder(wDash2.Body).Decode(&dash2)
 	if dash2.Metricas.CaixaRecebido != 80.00 || dash2.Metricas.PendenteReceber != 0 || dash2.Metricas.QtdPendentes != 0 {
 		t.Fatalf("expected received 80.00 and pending 0, got: %+v", dash2.Metricas)
+	}
+
+	// 6. Delete order
+	reqDel := httptest.NewRequest(http.MethodDelete, "/api/ordens/1000", nil)
+	reqDel.Header.Set("Authorization", authHeader)
+	wDel := httptest.NewRecorder()
+	r.ServeHTTP(wDel, reqDel)
+	if wDel.Code != http.StatusOK {
+		t.Fatalf("expected status 200 on order delete, got %d: %s", wDel.Code, wDel.Body.String())
 	}
 }

@@ -10,9 +10,18 @@ export interface Config {
   cidade: string
   vt_valor_padrao: number
   termo_garantia: string
+  termo_responsabilidade?: string
+  obs_padrao?: string
+  custom_presets?: string
   logo_base64: string
   cor_primaria: string
   cor_secundaria: string
+}
+
+export interface AutocompletePresets {
+  marcas: string[]
+  modelos: string[]
+  servicos: string[]
 }
 
 export interface Cliente {

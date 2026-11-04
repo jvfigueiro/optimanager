@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useConfigStore } from '../stores/config'
+import { useConfigStore, DEFAULT_AUTOCOMPLETE_PRESETS } from '../stores/config'
 import { useAuthStore } from '../stores/auth'
-import type { Usuario } from '../types'
+import type { Usuario, AutocompletePresets } from '../types'
 import {
   Settings,
   Upload,
@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   User,
   X,
+  Sparkles,
 } from 'lucide-vue-next'
 
 const configStore = useConfigStore()
@@ -23,6 +24,64 @@ const authStore = useAuthStore()
 
 const form = ref({ ...configStore.config })
 const isSaving = ref(false)
+
+const customPresets = ref<AutocompletePresets>({
+  marcas: [...configStore.presets.marcas],
+  modelos: [...configStore.presets.modelos],
+  servicos: [...configStore.presets.servicos],
+})
+
+const newMarca = ref('')
+const newModelo = ref('')
+const newServico = ref('')
+
+function addMarca() {
+  const val = newMarca.value.trim()
+  if (val && !customPresets.value.marcas.includes(val)) {
+    customPresets.value.marcas.push(val)
+    newMarca.value = ''
+  }
+}
+
+function removeMarca(idx: number) {
+  customPresets.value.marcas.splice(idx, 1)
+}
+
+function addModelo() {
+  const val = newModelo.value.trim()
+  if (val && !customPresets.value.modelos.includes(val)) {
+    customPresets.value.modelos.push(val)
+    newModelo.value = ''
+  }
+}
+
+function removeModelo(idx: number) {
+  customPresets.value.modelos.splice(idx, 1)
+}
+
+function addServico() {
+  const val = newServico.value.trim()
+  if (val && !customPresets.value.servicos.includes(val)) {
+    customPresets.value.servicos.push(val)
+    newServico.value = ''
+  }
+}
+
+function removeServico(idx: number) {
+  customPresets.value.servicos.splice(idx, 1)
+}
+
+function loadPresetTemplate(event: Event) {
+  const key = (event.target as HTMLSelectElement).value
+  if (DEFAULT_AUTOCOMPLETE_PRESETS[key]) {
+    const template = DEFAULT_AUTOCOMPLETE_PRESETS[key]
+    customPresets.value = {
+      marcas: [...template.marcas],
+      modelos: [...template.modelos],
+      servicos: [...template.servicos],
+    }
+  }
+}
 
 // Estado do modal de criar/editar usuário
 const showUserModal = ref(false)
@@ -46,6 +105,11 @@ const paletasPredefinidas = [
 onMounted(async () => {
   await Promise.all([configStore.loadConfig(), authStore.loadUsuarios()])
   form.value = { ...configStore.config }
+  customPresets.value = {
+    marcas: [...configStore.presets.marcas],
+    modelos: [...configStore.presets.modelos],
+    servicos: [...configStore.presets.servicos],
+  }
 })
 
 function aplicarPaleta(primaria: string, secundaria: string) {
@@ -82,6 +146,7 @@ function removerLogo() {
 async function handleSalvar() {
   isSaving.value = true
   try {
+    form.value.custom_presets = JSON.stringify(customPresets.value)
     await configStore.saveConfig(form.value)
   } finally {
     isSaving.value = false
@@ -479,6 +544,30 @@ async function handleDeleteUser(u: Usuario) {
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
             ></textarea>
           </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Termo de Responsabilidade & Guarda do Equipamento / Objeto
+            </label>
+            <textarea
+              v-model="form.termo_responsabilidade"
+              rows="2"
+              placeholder="Ex: Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda..."
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
+            ></textarea>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Observações Técnicas Padrão / Parâmetros
+            </label>
+            <textarea
+              v-model="form.obs_padrao"
+              rows="2"
+              placeholder="Ex: Aparelho recebido com marcas normais de uso. Backup de dados sob responsabilidade do cliente..."
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
+            ></textarea>
+          </div>
         </div>
 
         <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
@@ -492,6 +581,167 @@ async function handleDeleteUser(u: Usuario) {
           </button>
         </div>
       </form>
+    </div>
+
+    <!-- Card 4: Segmento de Atuação & Autocompletar Customizável -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <Sparkles class="w-5 h-5 text-opti" />
+            <h3 class="font-bold text-lg text-slate-800 dark:text-white">
+              Segmento de Atuação & Autocompletar
+            </h3>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Personalize as listas de marcas, modelos e serviços para adaptar o OptiManager ao seu nicho (Informática, Celulares, Mecânica, Confeitaria, etc.).
+          </p>
+        </div>
+
+        <!-- Seletor de Modelo de Nicho -->
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">Carregar Nicho:</span>
+          <select
+            @change="loadPresetTemplate($event)"
+            class="text-xs font-bold border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-opti"
+          >
+            <option value="" disabled selected>Escolher Modelo...</option>
+            <option value="informatica">💻 Informática / Computadores</option>
+            <option value="celulares">📱 Celulares / Smartphones</option>
+            <option value="mecanica">🚗 Oficina Mecânica</option>
+            <option value="confeitaria">🎂 Confeitaria / Doces</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Marcas / Fabricantes -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+          Marcas / Fabricantes
+        </label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            v-model="newMarca"
+            @keyup.enter.prevent="addMarca"
+            placeholder="Ex: Asus, Acer, Dell, Fiat, Apple... (Enter para adicionar)"
+            class="flex-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-opti"
+          />
+          <button
+            type="button"
+            @click="addMarca"
+            class="px-4 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition"
+          >
+            + Adicionar
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <span
+            v-for="(m, idx) in customPresets.marcas"
+            :key="idx"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600"
+          >
+            <span>{{ m }}</span>
+            <button
+              type="button"
+              @click="removeMarca(idx)"
+              class="text-slate-400 hover:text-red-500 font-bold ml-0.5"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      </div>
+
+      <!-- Modelos / Tipos / Itens -->
+      <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+        <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+          Modelos / Tipos / Categorias de Item
+        </label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            v-model="newModelo"
+            @keyup.enter.prevent="addModelo"
+            placeholder="Ex: Notebook, Desktop, Smartphone, Carro, Bolo 2kg... (Enter)"
+            class="flex-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-opti"
+          />
+          <button
+            type="button"
+            @click="addModelo"
+            class="px-4 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition"
+          >
+            + Adicionar
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <span
+            v-for="(mod, idx) in customPresets.modelos"
+            :key="idx"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600"
+          >
+            <span>{{ mod }}</span>
+            <button
+              type="button"
+              @click="removeModelo(idx)"
+              class="text-slate-400 hover:text-red-500 font-bold ml-0.5"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      </div>
+
+      <!-- Serviços Frequentes -->
+      <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+        <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+          Serviços Frequentes
+        </label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            v-model="newServico"
+            @keyup.enter.prevent="addServico"
+            placeholder="Ex: Formatação, Troca de Tela, Troca de Óleo, Encomenda..."
+            class="flex-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-opti"
+          />
+          <button
+            type="button"
+            @click="addServico"
+            class="px-4 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition"
+          >
+            + Adicionar
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <span
+            v-for="(s, idx) in customPresets.servicos"
+            :key="idx"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600"
+          >
+            <span>{{ s }}</span>
+            <button
+              type="button"
+              @click="removeServico(idx)"
+              class="text-slate-400 hover:text-red-500 font-bold ml-0.5"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+        <button
+          type="button"
+          @click="handleSalvar"
+          :disabled="isSaving"
+          class="bg-opti hover:bg-opti-dark text-white font-bold px-6 py-2.5 rounded-xl transition shadow flex items-center gap-2 text-sm"
+        >
+          <CheckCircle2 class="w-4 h-4" />
+          <span>{{ isSaving ? 'Salvando...' : 'Salvar Autocompletar' }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Modal de Criar / Editar Usuário -->

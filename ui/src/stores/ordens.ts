@@ -83,6 +83,45 @@ export const useOrdensStore = defineStore('ordens', () => {
     }
   }
 
+  async function deleteOrdem(id: number) {
+    loading.value = true
+    try {
+      await api.deleteOrdem(id)
+      ordens.value = ordens.value.filter((o) => o.id !== id)
+      toast.show(`🗑️ OS #${id} excluída com sucesso!`)
+    } catch (err: any) {
+      toast.show('Erro ao excluir OS: ' + err.message, 'error')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function duplicarOrdem(os: OrdemServico) {
+    loading.value = true
+    try {
+      const duplicada = await api.createOrdem({
+        cliente_id: os.cliente_id,
+        cliente_nome: os.cliente_nome || '',
+        equipamento: os.equipamento,
+        servico: os.servico,
+        obs_tecnicas: os.obs_tecnicas,
+        valor_total: os.valor_total,
+        status: 'Orçamento',
+        pagamento_status: 'Pendente',
+        pagamento_forma: os.pagamento_forma || 'Pix',
+      })
+      ordens.value.unshift(duplicada)
+      toast.show(`📑 OS duplicada com sucesso! Nova OS #${duplicada.id} criada.`)
+      return duplicada
+    } catch (err: any) {
+      toast.show('Erro ao duplicar OS: ' + err.message, 'error')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   function openWhatsApp(os: OrdemServico) {
     if (!os.whatsapp_url) {
       toast.show('⚠️ Cliente sem número de telefone/WhatsApp cadastrado.', 'info')
@@ -102,6 +141,8 @@ export const useOrdensStore = defineStore('ordens', () => {
     setSearch,
     createOrdem,
     updateOrdem,
+    deleteOrdem,
+    duplicarOrdem,
     liquidarOS,
     openWhatsApp,
   }

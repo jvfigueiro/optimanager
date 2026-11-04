@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useConfigStore } from '../stores/config'
 import { useToastStore } from '../stores/toast'
@@ -36,6 +36,16 @@ const email = ref('')
 const senha = ref('')
 const confirmaSenha = ref('')
 const showPassword = ref(false)
+const rememberEmail = ref(localStorage.getItem('optimanager_remember_email') === 'true')
+
+onMounted(() => {
+  if (rememberEmail.value) {
+    const saved = localStorage.getItem('optimanager_saved_email')
+    if (saved) {
+      email.value = saved
+    }
+  }
+})
 
 // Dados da Empresa (Etapa 2 do Assistente de Primeiro Uso)
 const fantasia = ref('')
@@ -118,6 +128,13 @@ async function handleSubmit() {
     isSubmitting.value = true
     try {
       await authStore.login(email.value.trim(), senha.value)
+      if (rememberEmail.value) {
+        localStorage.setItem('optimanager_remember_email', 'true')
+        localStorage.setItem('optimanager_saved_email', email.value.trim())
+      } else {
+        localStorage.removeItem('optimanager_remember_email')
+        localStorage.removeItem('optimanager_saved_email')
+      }
       emit('authenticated')
     } catch {
       // erro já exibido pelo toast da store
@@ -282,6 +299,18 @@ async function handleSubmit() {
                   <Eye v-else class="w-4 h-4" />
                 </button>
               </div>
+            </div>
+
+            <!-- Opção Lembrar E-mail no Login -->
+            <div v-if="!authStore.needsSetup" class="flex items-center justify-between text-xs pt-0.5">
+              <label class="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+                <input
+                  type="checkbox"
+                  v-model="rememberEmail"
+                  class="w-4 h-4 rounded text-opti focus:ring-opti border-slate-300 dark:border-slate-600 dark:bg-slate-700 cursor-pointer"
+                />
+                <span>Lembrar meu e-mail</span>
+              </label>
             </div>
 
             <!-- Confirmar Senha (Apenas no Primeiro Acesso) -->

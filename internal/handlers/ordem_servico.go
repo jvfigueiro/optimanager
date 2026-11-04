@@ -157,6 +157,26 @@ func (h *OrdemHandler) BaixaPagamento(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, os)
 }
 
+func (h *OrdemHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid service order ID")
+		return
+	}
+
+	if err := h.db.DeleteOrdem(id); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			respondError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Service order deleted successfully"})
+}
+
 // DownloadPDF generates and streams native A4 PDF reports, quotes, or receipts via Maroto.
 func (h *OrdemHandler) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
