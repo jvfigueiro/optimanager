@@ -92,29 +92,42 @@ export const useConfigStore = defineStore('config', () => {
     })
   }
 
-  // Inicializa tema a partir do localStorage ou preferência do sistema
+  // Inicializa tema: segue automaticamente o sistema operacional (com modo claro como padrão base)
+  // ou respeita a escolha manual salva pelo usuário no localStorage
   function initTheme() {
     const saved = localStorage.getItem('optimanager_theme')
-    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setDarkMode(true)
+    if (saved === 'dark') {
+      setDarkMode(true, false)
+    } else if (saved === 'light') {
+      setDarkMode(false, false)
+    } else if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setDarkMode(true, false)
     } else {
-      setDarkMode(false)
+      setDarkMode(false, false)
+    }
+
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('optimanager_theme')) {
+          setDarkMode(e.matches, false)
+        }
+      })
     }
   }
 
-  function setDarkMode(val: boolean) {
+  function setDarkMode(val: boolean, persist = true) {
     isDarkMode.value = val
     if (val) {
       document.documentElement.classList.add('dark')
-      localStorage.setItem('optimanager_theme', 'dark')
+      if (persist) localStorage.setItem('optimanager_theme', 'dark')
     } else {
       document.documentElement.classList.remove('dark')
-      localStorage.setItem('optimanager_theme', 'light')
+      if (persist) localStorage.setItem('optimanager_theme', 'light')
     }
   }
 
   function toggleTheme() {
-    setDarkMode(!isDarkMode.value)
+    setDarkMode(!isDarkMode.value, true)
   }
 
   // Aplica variáveis CSS no elemento raiz do documento

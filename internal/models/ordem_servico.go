@@ -11,7 +11,10 @@ import (
 type OrdemServico struct {
 	ID              int64      `json:"id"`
 	DataEmissao     string     `json:"data_emissao"`
-	Status          string     `json:"status"` // 'Avaliação', 'Orçamento', 'Em Serviço', 'Concluído'
+	HoraEmissao     string     `json:"hora_emissao"`
+	DataEntrega     string     `json:"data_entrega"`
+	HoraEntrega     string     `json:"hora_entrega"`
+	Status          string     `json:"status"`
 	ClienteID       int64      `json:"cliente_id"`
 	ClienteNome     string     `json:"cliente_nome,omitempty"`
 	ClienteDoc      string     `json:"cliente_doc,omitempty"`
@@ -21,7 +24,7 @@ type OrdemServico struct {
 	ObsTecnicas     string     `json:"obs_tecnicas"`
 	ValorTotal      float64    `json:"valor_total"`
 	PagamentoStatus string     `json:"pagamento_status"` // 'Pendente', 'Pago'
-	PagamentoForma  string     `json:"pagamento_forma"`  // 'Pix', 'Dinheiro', 'Cartão', 'Boleto'
+	PagamentoForma  string     `json:"pagamento_forma"`
 	PagoEm          *time.Time `json:"pago_em,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
 	WhatsAppURL     string     `json:"whatsapp_url,omitempty"`
@@ -30,6 +33,9 @@ type OrdemServico struct {
 // CreateOrdemRequest define os dados recebidos para criação de uma OS.
 type CreateOrdemRequest struct {
 	DataEmissao     string  `json:"data_emissao"`
+	HoraEmissao     string  `json:"hora_emissao"`
+	DataEntrega     string  `json:"data_entrega"`
+	HoraEntrega     string  `json:"hora_entrega"`
 	Status          string  `json:"status"`
 	ClienteID       int64   `json:"cliente_id"`
 	ClienteNome     string  `json:"cliente_nome"`
@@ -47,6 +53,9 @@ type CreateOrdemRequest struct {
 // UpdateOrdemRequest define os dados para atualização de uma OS.
 type UpdateOrdemRequest struct {
 	DataEmissao     string  `json:"data_emissao"`
+	HoraEmissao     string  `json:"hora_emissao"`
+	DataEntrega     string  `json:"data_entrega"`
+	HoraEntrega     string  `json:"hora_entrega"`
 	Status          string  `json:"status"`
 	ClienteID       int64   `json:"cliente_id"`
 	ClienteNome     string  `json:"cliente_nome"`

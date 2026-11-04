@@ -154,6 +154,81 @@ func (d *DB) migrate() error {
 		}
 	}
 
+	// Incremental migrations for 'ordens_servico' table
+	var osTableCount int
+	_ = d.Writer.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='ordens_servico'`).Scan(&osTableCount)
+	if osTableCount > 0 {
+		osCols, err := d.getTableColumns("ordens_servico")
+		if err != nil {
+			return fmt.Errorf("failed to get columns for ordens_servico table: %w", err)
+		}
+
+		if !osCols["hora_emissao"] {
+			if _, err := d.Writer.Exec(`ALTER TABLE ordens_servico ADD COLUMN hora_emissao TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("failed to add hora_emissao column: %w", err)
+			}
+		}
+		if !osCols["data_entrega"] {
+			if _, err := d.Writer.Exec(`ALTER TABLE ordens_servico ADD COLUMN data_entrega TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("failed to add data_entrega column: %w", err)
+			}
+		}
+		if !osCols["hora_entrega"] {
+			if _, err := d.Writer.Exec(`ALTER TABLE ordens_servico ADD COLUMN hora_entrega TEXT NOT NULL DEFAULT ''`); err != nil {
+				return fmt.Errorf("failed to add hora_entrega column: %w", err)
+			}
+		}
+
+		// Remove legacy CHECK constraints on status and pagamento_forma if present
+		var osCreateSQL string
+		_ = d.Writer.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='ordens_servico'`).Scan(&osCreateSQL)
+		if strings.Contains(osCreateSQL, "CHECK (status IN") || strings.Contains(osCreateSQL, "CHECK (pagamento_forma IN") {
+			rebuildSQL := `
+				PRAGMA foreign_keys = OFF;
+				BEGIN TRANSACTION;
+				CREATE TABLE ordens_servico_new (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					data_emissao DATE NOT NULL,
+					hora_emissao TEXT NOT NULL DEFAULT '',
+					data_entrega TEXT NOT NULL DEFAULT '',
+					hora_entrega TEXT NOT NULL DEFAULT '',
+					status TEXT NOT NULL DEFAULT 'Avaliação',
+					cliente_id INTEGER NOT NULL,
+					equipamento TEXT NOT NULL DEFAULT 'N/A',
+					servico TEXT NOT NULL,
+					obs_tecnicas TEXT NOT NULL DEFAULT '',
+					valor_total REAL NOT NULL DEFAULT 0.00,
+					pagamento_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (pagamento_status IN ('Pendente', 'Pago')),
+					pagamento_forma TEXT NOT NULL DEFAULT 'Pix',
+					pago_em DATETIME,
+					created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE RESTRICT
+				);
+				INSERT INTO ordens_servico_new (
+					id, data_emissao, hora_emissao, data_entrega, hora_entrega, status, cliente_id,
+					equipamento, servico, obs_tecnicas, valor_total,
+					pagamento_status, pagamento_forma, pago_em, created_at
+				)
+				SELECT
+					id, data_emissao, hora_emissao, data_entrega, hora_entrega, status, cliente_id,
+					equipamento, servico, obs_tecnicas, valor_total,
+					pagamento_status, pagamento_forma, pago_em, created_at
+				FROM ordens_servico;
+				DROP TABLE ordens_servico;
+				ALTER TABLE ordens_servico_new RENAME TO ordens_servico;
+				CREATE INDEX IF NOT EXISTS idx_os_data_emissao ON ordens_servico(data_emissao);
+				CREATE INDEX IF NOT EXISTS idx_os_status ON ordens_servico(status);
+				CREATE INDEX IF NOT EXISTS idx_os_pagamento_status ON ordens_servico(pagamento_status);
+				CREATE INDEX IF NOT EXISTS idx_os_cliente_id ON ordens_servico(cliente_id);
+				COMMIT;
+				PRAGMA foreign_keys = ON;
+			`
+			if _, err := d.Writer.Exec(rebuildSQL); err != nil {
+				return fmt.Errorf("failed to rebuild ordens_servico table: %w", err)
+			}
+		}
+	}
+
 	return nil
 }
 

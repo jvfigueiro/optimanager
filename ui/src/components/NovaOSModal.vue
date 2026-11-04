@@ -13,15 +13,46 @@ const clientesStore = useClientesStore()
 const configStore = useConfigStore()
 const dashboardStore = useDashboardStore()
 
+function getTodayISO() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function getCurrentTimeHHMM() {
+  const now = new Date()
+  const h = String(now.getHours()).padStart(2, '0')
+  const m = String(now.getMinutes()).padStart(2, '0')
+  return `${h}:${m}`
+}
+
 const clienteNome = ref('')
 const equipamento = ref('')
 const servico = ref('')
 const obsTecnicas = ref('')
-const status = ref('Concluído')
+const dataEmissao = ref(getTodayISO())
+const horaEmissao = ref(getCurrentTimeHHMM())
+const status = ref('Avaliação/Orçamento')
 const valorTotal = ref<number>(100)
 const pagamentoStatus = ref('Pendente')
 const pagamentoForma = ref('Pix')
 const isSubmitting = ref(false)
+
+watch(
+  () => nav.isNovaOSModalOpen,
+  (open) => {
+    if (open) {
+      dataEmissao.value = getTodayISO()
+      horaEmissao.value = getCurrentTimeHHMM()
+      const estados = configStore.presets.estados_servico
+      if (estados && estados.length > 0 && !estados.includes(status.value)) {
+        status.value = estados[0]
+      }
+    }
+  }
+)
 
 // Sugestões dinâmicas que aparecem APENAS quando o usuário digita
 const matchingEquipamentos = computed(() => {
@@ -78,6 +109,8 @@ async function handleSubmit() {
   isSubmitting.value = true
   try {
     await ordensStore.createOrdem({
+      data_emissao: dataEmissao.value,
+      hora_emissao: horaEmissao.value,
       cliente_nome: clienteNome.value.trim(),
       equipamento: equipamento.value.trim() || 'N/A',
       servico: servico.value.trim(),
@@ -100,7 +133,8 @@ async function handleSubmit() {
     equipamento.value = ''
     servico.value = ''
     obsTecnicas.value = ''
-    status.value = 'Concluído'
+    dataEmissao.value = getTodayISO()
+    horaEmissao.value = getCurrentTimeHHMM()
     valorTotal.value = 100
     pagamentoForma.value = 'Pix'
     pagamentoStatus.value = 'Pendente'
@@ -139,6 +173,32 @@ async function handleSubmit() {
 
       <!-- Formulário com scroll -->
       <form @submit.prevent="handleSubmit" class="p-5 space-y-3.5 text-sm overflow-y-auto flex-1">
+        <!-- Data e Hora de Entrada -->
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-750 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Data de Entrada *
+            </label>
+            <input
+              type="date"
+              v-model="dataEmissao"
+              required
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-opti"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Hora de Entrada *
+            </label>
+            <input
+              type="time"
+              v-model="horaEmissao"
+              required
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-1.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-opti"
+            />
+          </div>
+        </div>
+
         <!-- Cliente & Equipamento -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>

@@ -5,6 +5,8 @@ import { useNavigationStore } from '../stores/navigation'
 import { useOrdensStore } from '../stores/ordens'
 import { formatBRL, formatDate } from '../utils/formatters'
 import GerenciarAtalhosModal from '../components/GerenciarAtalhosModal.vue'
+import EditarOSModal from '../components/EditarOSModal.vue'
+import type { OrdemServico } from '../types'
 import {
   DollarSign,
   Clock,
@@ -14,6 +16,8 @@ import {
   ExternalLink,
   Wrench,
   ChevronRight,
+  Eye,
+  Trash2,
 } from 'lucide-vue-next'
 
 const dashboardStore = useDashboardStore()
@@ -21,6 +25,18 @@ const nav = useNavigationStore()
 const ordensStore = useOrdensStore()
 
 const isShortcutModalOpen = ref(false)
+const viewingOS = ref<OrdemServico | null>(null)
+const isOSModalOpen = ref(false)
+
+function openViewOS(os: OrdemServico) {
+  viewingOS.value = os
+  isOSModalOpen.value = true
+}
+
+function closeViewOS() {
+  isOSModalOpen.value = false
+  viewingOS.value = null
+}
 
 onMounted(() => {
   dashboardStore.loadDashboard()
@@ -192,19 +208,32 @@ function getStatusBadgeClass(status: string) {
               class="py-3 flex justify-between items-center gap-2"
             >
               <div class="truncate">
-                <span class="font-bold text-slate-800 dark:text-slate-200">
-                  {{ o.cliente_nome }}
-                </span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold text-opti dark:text-blue-400">#{{ o.id }}</span>
+                  <span class="font-bold text-slate-800 dark:text-slate-200 truncate">
+                    {{ o.cliente_nome }}
+                  </span>
+                </div>
                 <span class="text-xs text-slate-500 dark:text-slate-400 block truncate">
                   {{ o.equipamento }} • {{ o.servico }}
                 </span>
               </div>
-              <span
-                class="px-2.5 py-0.5 text-[11px] font-bold rounded-full border shrink-0"
-                :class="getStatusBadgeClass(o.status)"
-              >
-                {{ o.status }}
-              </span>
+              <div class="flex items-center gap-2 shrink-0">
+                <span
+                  class="px-2.5 py-0.5 text-[11px] font-bold rounded-full border"
+                  :class="getStatusBadgeClass(o.status)"
+                >
+                  {{ o.status }}
+                </span>
+                <button
+                  @click="openViewOS(o)"
+                  title="Visualizar detalhes da OS"
+                  class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-opti-light text-slate-700 dark:text-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg font-bold transition flex items-center gap-1 border border-slate-200 dark:border-slate-600"
+                >
+                  <Eye class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
+                  <span>Visualizar</span>
+                </button>
+              </div>
             </div>
           </div>
           <p v-else class="text-xs text-slate-400 dark:text-slate-500 py-6 text-center">
@@ -266,6 +295,16 @@ function getStatusBadgeClass(status: string) {
     <GerenciarAtalhosModal
       v-if="isShortcutModalOpen"
       @close="isShortcutModalOpen = false"
+    />
+
+    <!-- Modal Visualizar / Editar Ordem de Serviço -->
+    <EditarOSModal
+      :ordem="viewingOS"
+      :is-open="isOSModalOpen"
+      @close="closeViewOS"
+      @updated="() => dashboardStore.loadDashboard()"
+      @deleted="() => dashboardStore.loadDashboard()"
+      @duplicated="() => dashboardStore.loadDashboard()"
     />
   </div>
 </template>

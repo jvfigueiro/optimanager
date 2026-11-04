@@ -18,6 +18,7 @@ const nav = useNavigationStore()
 
 const editingOS = ref<OrdemServico | null>(null)
 const isEditModalOpen = ref(false)
+const isConcludingModal = ref(false)
 
 onMounted(() => {
   ordensStore.loadOrdens()
@@ -25,11 +26,19 @@ onMounted(() => {
 
 function openEditOS(os: OrdemServico) {
   editingOS.value = os
+  isConcludingModal.value = false
+  isEditModalOpen.value = true
+}
+
+function openConcludeOS(os: OrdemServico) {
+  editingOS.value = os
+  isConcludingModal.value = true
   isEditModalOpen.value = true
 }
 
 function closeEditOS() {
   isEditModalOpen.value = false
+  isConcludingModal.value = false
   editingOS.value = null
 }
 
@@ -143,7 +152,12 @@ function gerarDocumento(os: OrdemServico) {
             >
               <td class="py-3.5 px-4 whitespace-nowrap">
                 <span class="font-bold text-opti dark:text-blue-400">#{{ o.id }}</span>
-                <span class="block text-xs text-slate-400">{{ formatDate(o.data_emissao) }}</span>
+                <span class="block text-xs text-slate-400">
+                  {{ formatDate(o.data_emissao) }}<span v-if="o.hora_emissao"> às {{ o.hora_emissao }}</span>
+                </span>
+                <span v-if="o.data_entrega" class="block text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                  Entregue: {{ formatDate(o.data_entrega) }}<span v-if="o.hora_entrega"> {{ o.hora_entrega }}</span>
+                </span>
               </td>
               <td class="py-3.5 px-4 whitespace-nowrap">
                 <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full border" :class="getStatusBadgeClass(o.status)">
@@ -181,6 +195,17 @@ function gerarDocumento(os: OrdemServico) {
               </td>
               <td class="py-3.5 px-4 whitespace-nowrap text-center">
                 <div class="flex items-center justify-center gap-1.5">
+                  <!-- Concluir OS -->
+                  <button
+                    v-if="o.status !== 'Concluído'"
+                    @click="openConcludeOS(o)"
+                    title="Marcar serviço como concluído e registrar data/hora de entrega"
+                    class="px-2.5 py-1.5 text-xs bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-600 dark:hover:text-white rounded-xl font-bold transition flex items-center gap-1 border border-emerald-200 dark:border-emerald-800/70"
+                  >
+                    <CheckCircle class="w-3.5 h-3.5" />
+                    <span>Concluir</span>
+                  </button>
+
                   <!-- Editar OS -->
                   <button
                     @click="openEditOS(o)"
@@ -231,7 +256,12 @@ function gerarDocumento(os: OrdemServico) {
         >
           <div class="flex justify-between items-start">
             <div>
-              <span class="text-xs font-bold text-opti dark:text-blue-400">#{{ o.id }} • {{ formatDate(o.data_emissao) }}</span>
+              <span class="text-xs font-bold text-opti dark:text-blue-400">
+                #{{ o.id }} • {{ formatDate(o.data_emissao) }}<span v-if="o.hora_emissao"> às {{ o.hora_emissao }}</span>
+              </span>
+              <span v-if="o.data_entrega" class="block text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                Entregue: {{ formatDate(o.data_entrega) }}<span v-if="o.hora_entrega"> {{ o.hora_entrega }}</span>
+              </span>
               <h4 class="font-bold text-slate-900 dark:text-white text-base leading-tight">{{ o.cliente_nome }}</h4>
               <span class="text-xs text-slate-500 dark:text-slate-400">Equipamento: {{ o.equipamento }}</span>
             </div>
@@ -263,6 +293,16 @@ function gerarDocumento(os: OrdemServico) {
             </div>
 
             <div class="flex items-center gap-1.5 flex-wrap justify-end">
+              <!-- Concluir -->
+              <button
+                v-if="o.status !== 'Concluído'"
+                @click="openConcludeOS(o)"
+                class="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/70 rounded-xl font-bold flex items-center gap-1"
+              >
+                <CheckCircle class="w-3.5 h-3.5" />
+                <span>Concluir</span>
+              </button>
+
               <!-- Editar -->
               <button
                 @click="openEditOS(o)"
@@ -304,6 +344,7 @@ function gerarDocumento(os: OrdemServico) {
     <EditarOSModal
       :ordem="editingOS"
       :is-open="isEditModalOpen"
+      :concluding="isConcludingModal"
       @close="closeEditOS"
       @updated="() => ordensStore.loadOrdens()"
       @deleted="() => ordensStore.loadOrdens()"

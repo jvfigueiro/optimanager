@@ -185,9 +185,6 @@ async function handleSubmit() {
         <h1 class="font-black text-xl tracking-tight">
           {{ authStore.needsSetup ? (fantasia || 'OptiManager') : (configStore.config.fantasia || 'OptiManager') }}
         </h1>
-        <p class="text-xs text-blue-100 mt-0.5">
-          Sistema de Gestão de Serviços, OS e Documentos
-        </p>
 
         <!-- Indicador de Passos no Primeiro Acesso -->
         <div v-if="authStore.needsSetup" class="flex items-center justify-center gap-2 mt-4">
@@ -492,7 +489,7 @@ async function handleSubmit() {
       <div
         class="px-6 py-3.5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 text-center text-[11px] text-slate-400"
       >
-        OptiManager 3.0 • {{ (authStore.needsSetup ? cidade : configStore.config.cidade) || 'Gestão Inteligente' }}
+        OptiManager • Ver 3.0
       </div>
     </div>
 

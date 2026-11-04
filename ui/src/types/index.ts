@@ -44,13 +44,16 @@ export interface Cliente {
   created_at?: string
 }
 
-export type OSStatus = 'Avaliação' | 'Orçamento' | 'Em Serviço' | 'Concluído'
+export type OSStatus = string
 export type PagamentoStatus = 'Pendente' | 'Pago'
-export type PagamentoForma = 'Pix' | 'Dinheiro' | 'Cartão' | 'Boleto'
+export type PagamentoForma = string
 
 export interface OrdemServico {
   id: number
   data_emissao: string
+  hora_emissao?: string
+  data_entrega?: string
+  hora_entrega?: string
   status: OSStatus
   cliente_id: number
   cliente_nome?: string
@@ -69,6 +72,9 @@ export interface OrdemServico {
 
 export interface CreateOrdemPayload {
   data_emissao?: string
+  hora_emissao?: string
+  data_entrega?: string
+  hora_entrega?: string
   status?: string
   cliente_id?: number
   cliente_nome: string
@@ -85,6 +91,9 @@ export interface CreateOrdemPayload {
 
 export interface UpdateOrdemPayload {
   data_emissao?: string
+  hora_emissao?: string
+  data_entrega?: string
+  hora_entrega?: string
   status?: string
   cliente_id?: number
   cliente_nome?: string

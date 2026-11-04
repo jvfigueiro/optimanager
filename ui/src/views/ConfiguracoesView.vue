@@ -17,6 +17,7 @@ import {
   User,
   X,
   Sparkles,
+  Info,
 } from 'lucide-vue-next'
 
 const configStore = useConfigStore()
@@ -921,6 +922,73 @@ async function handleDeleteUser(u: Usuario) {
           <CheckCircle2 class="w-4 h-4" />
           <span>{{ isSaving ? 'Salvando...' : 'Salvar Autocompletar' }}</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Card 5: Sobre o Sistema & Dados da Empresa -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
+        <div class="flex items-center gap-2.5">
+          <Info class="w-5 h-5 text-opti" />
+          <div>
+            <h3 class="font-bold text-lg text-slate-800 dark:text-white leading-tight">
+              Sobre
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Informações da versão da plataforma e dados institucionais registrados
+            </p>
+          </div>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-black bg-opti-light dark:bg-slate-700 text-opti dark:text-sky-300 border border-opti/20 dark:border-slate-600">
+          OptiManager • Ver 3.0
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Aplicação & Versão</span>
+          <strong class="text-sm font-black text-opti dark:text-blue-400">OptiManager • Ver 3.0</strong>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Marca / Nome Fantasia</span>
+          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.fantasia || 'Não informado' }}</strong>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Razão Social</span>
+          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.razao_social || 'Não informado' }}</strong>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">CNPJ</span>
+          <strong class="text-sm font-mono text-slate-800 dark:text-white">{{ configStore.config.cnpj || 'Não informado' }}</strong>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Responsável / Titular</span>
+          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.responsavel || 'Não informado' }}</strong>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Telefones / WhatsApp</span>
+          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.fones || 'Não informado' }}</strong>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">E-mail de Contato</span>
+          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.email_contato || 'Não informado' }}</strong>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Endereço Comercial</span>
+          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.endereco || 'Não informado' }}</strong>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Cidade - UF</span>
+          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.cidade || 'Não informado' }}</strong>
+        </div>
       </div>
     </div>
 

@@ -15,7 +15,8 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 	filtroStatus = strings.TrimSpace(strings.ToUpper(filtroStatus))
 	busca = strings.TrimSpace(busca)
 
-	query := `SELECT os.id, os.data_emissao, os.status, os.cliente_id,
+	query := `SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
+	                 os.status, os.cliente_id,
 	                 c.nome, c.doc, c.contato,
 	                 os.equipamento, os.servico, os.obs_tecnicas, os.valor_total,
 	                 os.pagamento_status, os.pagamento_forma, os.pago_em, os.created_at
@@ -62,7 +63,8 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 		var pagoEm sql.NullTime
 
 		err := rows.Scan(
-			&os.ID, &os.DataEmissao, &os.Status, &os.ClienteID,
+			&os.ID, &os.DataEmissao, &os.HoraEmissao, &os.DataEntrega, &os.HoraEntrega,
+			&os.Status, &os.ClienteID,
 			&os.ClienteNome, &os.ClienteDoc, &os.ClienteContato,
 			&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotal,
 			&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.CreatedAt,
@@ -84,7 +86,8 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 
 // GetOrdemByID queries a single order with joined client data.
 func (d *DB) GetOrdemByID(id int64) (*models.OrdemServico, error) {
-	query := `SELECT os.id, os.data_emissao, os.status, os.cliente_id,
+	query := `SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
+	                 os.status, os.cliente_id,
 	                 c.nome, c.doc, c.contato,
 	                 os.equipamento, os.servico, os.obs_tecnicas, os.valor_total,
 	                 os.pagamento_status, os.pagamento_forma, os.pago_em, os.created_at
@@ -96,7 +99,8 @@ func (d *DB) GetOrdemByID(id int64) (*models.OrdemServico, error) {
 	var pagoEm sql.NullTime
 
 	err := d.Reader.QueryRow(query, id).Scan(
-		&os.ID, &os.DataEmissao, &os.Status, &os.ClienteID,
+		&os.ID, &os.DataEmissao, &os.HoraEmissao, &os.DataEntrega, &os.HoraEntrega,
+		&os.Status, &os.ClienteID,
 		&os.ClienteNome, &os.ClienteDoc, &os.ClienteContato,
 		&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotal,
 		&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.CreatedAt,
@@ -182,6 +186,14 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 		dataEmissao = time.Now().Format("2006-01-02")
 	}
 
+	horaEmissao := strings.TrimSpace(req.HoraEmissao)
+	if horaEmissao == "" {
+		horaEmissao = time.Now().Format("15:04")
+	}
+
+	dataEntrega := strings.TrimSpace(req.DataEntrega)
+	horaEntrega := strings.TrimSpace(req.HoraEntrega)
+
 	status := strings.TrimSpace(req.Status)
 	if status == "" {
 		status = "Avaliação"
@@ -204,12 +216,15 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 
 	// 4. Insert into database
 	query := `INSERT INTO ordens_servico (
-		data_emissao, status, cliente_id, equipamento, servico, 
+		data_emissao, hora_emissao, data_entrega, hora_entrega, status, cliente_id, equipamento, servico, 
 		obs_tecnicas, valor_total, pagamento_status, pagamento_forma, pago_em
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	res, err := tx.Exec(query,
 		dataEmissao,
+		horaEmissao,
+		dataEntrega,
+		horaEntrega,
 		status,
 		cliente.ID,
 		equipamento,
@@ -239,6 +254,9 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 	novaOS := &models.OrdemServico{
 		ID:              id,
 		DataEmissao:     dataEmissao,
+		HoraEmissao:     horaEmissao,
+		DataEntrega:     dataEntrega,
+		HoraEntrega:     horaEntrega,
 		Status:          status,
 		ClienteID:       cliente.ID,
 		ClienteNome:     cliente.Nome,
@@ -326,14 +344,22 @@ func (d *DB) UpdateOrdem(id int64, req *models.UpdateOrdemRequest) (*models.Orde
 		dataEmissao = time.Now().Format("2006-01-02")
 	}
 
+	horaEmissao := strings.TrimSpace(req.HoraEmissao)
+	dataEntrega := strings.TrimSpace(req.DataEntrega)
+	horaEntrega := strings.TrimSpace(req.HoraEntrega)
+
 	updateQuery := `UPDATE ordens_servico SET 
-		data_emissao = ?, status = ?, cliente_id = ?, equipamento = ?, 
+		data_emissao = ?, hora_emissao = ?, data_entrega = ?, hora_entrega = ?,
+		status = ?, cliente_id = ?, equipamento = ?, 
 		servico = ?, obs_tecnicas = ?, valor_total = ?, pagamento_status = ?, 
 		pagamento_forma = ?, pago_em = ?
 		WHERE id = ?`
 
 	_, err = tx.Exec(updateQuery,
 		dataEmissao,
+		horaEmissao,
+		dataEntrega,
+		horaEntrega,
 		status,
 		clienteID,
 		equipamento,

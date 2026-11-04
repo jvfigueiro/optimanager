@@ -36,7 +36,8 @@ func (d *DB) GetDashboardData() (*models.DashboardData, error) {
 
 	// 2. Open service orders (limited to 10 latest)
 	abertosQuery := `
-		SELECT os.id, os.data_emissao, os.status, os.cliente_id,
+		SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
+		       os.status, os.cliente_id,
 		       c.nome, c.doc, c.contato,
 		       os.equipamento, os.servico, os.obs_tecnicas, os.valor_total,
 		       os.pagamento_status, os.pagamento_forma, os.pago_em, os.created_at
@@ -53,7 +54,8 @@ func (d *DB) GetDashboardData() (*models.DashboardData, error) {
 
 	// 3. Pending payments (concluded orders awaiting payment)
 	pendentesQuery := `
-		SELECT os.id, os.data_emissao, os.status, os.cliente_id,
+		SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
+		       os.status, os.cliente_id,
 		       c.nome, c.doc, c.contato,
 		       os.equipamento, os.servico, os.obs_tecnicas, os.valor_total,
 		       os.pagamento_status, os.pagamento_forma, os.pago_em, os.created_at
@@ -98,7 +100,8 @@ func (d *DB) fetchOrdens(query string, args ...interface{}) ([]models.OrdemServi
 		var pagoEm sql.NullTime
 
 		err := rows.Scan(
-			&os.ID, &os.DataEmissao, &os.Status, &os.ClienteID,
+			&os.ID, &os.DataEmissao, &os.HoraEmissao, &os.DataEntrega, &os.HoraEntrega,
+			&os.Status, &os.ClienteID,
 			&os.ClienteNome, &os.ClienteDoc, &os.ClienteContato,
 			&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotal,
 			&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.CreatedAt,

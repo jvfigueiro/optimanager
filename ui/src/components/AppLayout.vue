@@ -43,15 +43,15 @@ const pageMeta: Record<ViewType, { title: string; sub: string }> = {
     sub: 'Visão geral do faturamento, pendências e atalhos rápidos',
   },
   orders: {
-    title: 'Ordens de Serviço',
+    title: 'Serviços',
     sub: 'Relação de atendimentos em aberto na bancada e serviços já concluídos',
   },
   clients: {
-    title: 'Base de Clientes',
+    title: 'Clientes',
     sub: 'Cadastro rápido para autocompletar em Ordens de Serviço e Relatórios',
   },
   reports: {
-    title: 'Central de Relatórios & PDFs',
+    title: 'Relatórios de Serviço',
     sub: 'Emita Relatórios Técnicos, Orçamentos ou Recibos prontos para impressão',
   },
   settings: {
@@ -219,7 +219,7 @@ const abertosCount = computed(
             "
           >
             <FileText class="w-5 h-5 shrink-0" />
-            <span>Relatórios & PDFs</span>
+            <span>Relatórios de Serviço</span>
           </button>
 
           <button

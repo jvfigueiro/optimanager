@@ -11,11 +11,13 @@ import {
   Copy,
   Calendar,
   DollarSign,
+  CheckCircle2,
 } from 'lucide-vue-next'
 
 const props = defineProps<{
   ordem: OrdemServico | null
   isOpen: boolean
+  concluding?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -29,12 +31,30 @@ const ordensStore = useOrdensStore()
 const clientesStore = useClientesStore()
 const configStore = useConfigStore()
 
+function getTodayISO() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function getCurrentTimeHHMM() {
+  const now = new Date()
+  const h = String(now.getHours()).padStart(2, '0')
+  const m = String(now.getMinutes()).padStart(2, '0')
+  return `${h}:${m}`
+}
+
 const clienteNome = ref('')
 const equipamento = ref('')
 const servico = ref('')
 const obsTecnicas = ref('')
 const status = ref<string>('Avaliação')
 const dataEmissao = ref('')
+const horaEmissao = ref('')
+const dataEntrega = ref('')
+const horaEntrega = ref('')
 const valorTotal = ref<number>(0)
 const pagamentoStatus = ref<PagamentoStatus>('Pendente')
 const pagamentoForma = ref<string>('Pix')
@@ -68,22 +88,39 @@ const matchingServicos = computed(() => {
 })
 
 watch(
-  () => props.ordem,
-  (o) => {
-    if (o) {
+  () => [props.ordem, props.isOpen, props.concluding] as const,
+  ([o, open, isConcluding]) => {
+    if (o && open) {
       clienteNome.value = o.cliente_nome || ''
       equipamento.value = o.equipamento || ''
       servico.value = o.servico || ''
       obsTecnicas.value = o.obs_tecnicas || ''
-      status.value = o.status
-      dataEmissao.value = o.data_emissao ? o.data_emissao.substring(0, 10) : ''
+      dataEmissao.value = o.data_emissao ? o.data_emissao.substring(0, 10) : getTodayISO()
+      horaEmissao.value = o.hora_emissao || ''
+      dataEntrega.value = o.data_entrega || ''
+      horaEntrega.value = o.hora_entrega || ''
       valorTotal.value = o.valor_total || 0
       pagamentoStatus.value = o.pagamento_status
       pagamentoForma.value = o.pagamento_forma
+
+      if (isConcluding) {
+        status.value = 'Concluído'
+        if (!dataEntrega.value) dataEntrega.value = getTodayISO()
+        if (!horaEntrega.value) horaEntrega.value = getCurrentTimeHHMM()
+      } else {
+        status.value = o.status
+      }
     }
   },
   { immediate: true }
 )
+
+watch(status, (novoStatus) => {
+  if (novoStatus === 'Concluído') {
+    if (!dataEntrega.value) dataEntrega.value = getTodayISO()
+    if (!horaEntrega.value) horaEntrega.value = getCurrentTimeHHMM()
+  }
+})
 
 function appendItem(item: string) {
   if (!equipamento.value) {
@@ -113,6 +150,9 @@ async function handleUpdate() {
       obs_tecnicas: obsTecnicas.value.trim(),
       status: status.value,
       data_emissao: dataEmissao.value,
+      hora_emissao: horaEmissao.value,
+      data_entrega: dataEntrega.value,
+      hora_entrega: horaEntrega.value,
       valor_total: Number(valorTotal.value) || 0,
       pagamento_status: pagamentoStatus.value,
       pagamento_forma: pagamentoForma.value,
@@ -171,9 +211,10 @@ async function handleDelete() {
       <!-- Header do Modal -->
       <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-2">
-          <Edit2 class="w-5 h-5" />
+          <CheckCircle2 v-if="concluding" class="w-5 h-5 text-emerald-300" />
+          <Edit2 v-else class="w-5 h-5" />
           <h3 class="font-bold text-sm sm:text-base">
-            Editar Ordem de Serviço #{{ ordem.id }}
+            {{ concluding ? `Concluir Serviço & Registrar Entrega — OS #${ordem.id}` : `Editar Serviço #${ordem.id}` }}
           </h3>
         </div>
         <button
@@ -186,37 +227,86 @@ async function handleDelete() {
 
       <!-- Formulário com Scroll -->
       <form @submit.prevent="handleUpdate" class="p-5 space-y-4 text-sm overflow-y-auto flex-1">
-        <!-- Linha 1: Status & Data de Emissão -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-750 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Situação / Status *
-            </label>
-            <select
-              v-model="status"
-              required
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-opti"
-            >
-              <option
-                v-for="st in (configStore.presets.estados_servico && configStore.presets.estados_servico.length ? configStore.presets.estados_servico : ['Avaliação/Orçamento', 'Em Serviço', 'Aguardando', 'Concluído'])"
-                :key="st"
-                :value="st"
+        <!-- Banner informativo quando concluindo OS -->
+        <div
+          v-if="concluding"
+          class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2.5"
+        >
+          <CheckCircle2 class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>
+            Confirme a <strong>data e hora de entrega</strong> do equipamento ao cliente e ajuste o <strong>valor final</strong> ou forma de pagamento, se necessário.
+          </span>
+        </div>
+
+        <!-- Linha 1: Status, Data/Hora de Entrada e Data/Hora de Entrega -->
+        <div class="space-y-3 bg-slate-50 dark:bg-slate-750 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                Situação / Status *
+              </label>
+              <select
+                v-model="status"
+                required
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-opti"
               >
-                {{ st }}
-              </option>
-            </select>
+                <option
+                  v-for="st in (configStore.presets.estados_servico && configStore.presets.estados_servico.length ? configStore.presets.estados_servico : ['Avaliação/Orçamento', 'Em Serviço', 'Aguardando', 'Concluído'])"
+                  :key="st"
+                  :value="st"
+                >
+                  {{ st }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                Data de Entrada
+              </label>
+              <div class="relative">
+                <Calendar class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="date"
+                  v-model="dataEmissao"
+                  class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-opti"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                Hora de Entrada
+              </label>
+              <input
+                type="time"
+                v-model="horaEmissao"
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-opti"
+              />
+            </div>
           </div>
 
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Data de Emissão
-            </label>
-            <div class="relative">
-              <Calendar class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <!-- Data e Hora de Entrega (Visível sempre, e destacada quando Concluído) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+            <div>
+              <label class="block text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400 mb-1">
+                Data de Entrega / Saída
+              </label>
               <input
                 type="date"
-                v-model="dataEmissao"
-                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-opti"
+                v-model="dataEntrega"
+                class="w-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400 mb-1">
+                Hora de Entrega / Saída
+              </label>
+              <input
+                type="time"
+                v-model="horaEntrega"
+                class="w-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
