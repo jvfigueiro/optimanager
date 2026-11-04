@@ -56,7 +56,7 @@ const pageMeta: Record<ViewType, { title: string; sub: string }> = {
   },
   settings: {
     title: 'Configurações do Sistema',
-    sub: 'Personalização visual, dados do MEI, termos de garantia e gestão de usuários',
+    sub: 'Personalização visual, dados da empresa, termos de garantia e gestão de usuários',
   },
 }
 
@@ -132,14 +132,23 @@ const abertosCount = computed(
           </button>
         </div>
 
-        <!-- Botão Principal de Ação -->
-        <div class="p-4">
+        <!-- Botão Principal de Ação e Copiar CNPJ -->
+        <div class="p-4 space-y-2">
           <button
             @click="nav.openNovaOS()"
             class="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm"
           >
             <Plus class="w-5 h-5" />
-            <span>Novo Serviço / OS</span>
+            <span>Novo Serviço</span>
+          </button>
+
+          <!-- Botão Copiar CNPJ (Movido para a barra lateral) -->
+          <button
+            @click="dashboardStore.copyCNPJ()"
+            class="w-full bg-white/10 hover:bg-white/20 active:bg-white/25 text-blue-100 hover:text-white text-xs font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-2"
+          >
+            <Copy class="w-3.5 h-3.5" />
+            <span>Copiar CNPJ</span>
           </button>
         </div>
 
@@ -291,23 +300,14 @@ const abertosCount = computed(
             <Moon v-else class="w-4 h-4 text-slate-600" />
           </button>
 
-          <!-- Botão Copiar CNPJ -->
-          <button
-            @click="dashboardStore.copyCNPJ()"
-            class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium px-3 py-2 rounded-xl transition flex items-center gap-1.5"
-          >
-            <Copy class="w-3.5 h-3.5" />
-            <span class="hidden sm:inline">Copiar CNPJ</span>
-          </button>
-
-          <!-- Botão Nova OS (Visível no mobile ou quando a sidebar desktop está recolhida) -->
+          <!-- Botão Novo Serviço (Visível no mobile ou quando a sidebar desktop está recolhida) -->
           <button
             @click="nav.openNovaOS()"
             :class="nav.isDesktopSidebarOpen ? 'lg:hidden' : 'flex'"
             class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 transition"
           >
             <Plus class="w-3.5 h-3.5" />
-            <span>Nova OS</span>
+            <span>Novo Serviço</span>
           </button>
 
           <!-- Botão Sair Rápido -->

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useNavigationStore } from '../stores/navigation'
 import { useOrdensStore } from '../stores/ordens'
 import { useClientesStore } from '../stores/clientes'
@@ -23,26 +23,42 @@ const pagamentoStatus = ref('Pendente')
 const pagamentoForma = ref('Pix')
 const isSubmitting = ref(false)
 
-function appendMarca(m: string) {
-  if (!equipamento.value) {
-    equipamento.value = m
-  } else if (!equipamento.value.includes(m)) {
-    equipamento.value = `${equipamento.value} ${m}`.trim()
+// Sugestões dinâmicas que aparecem APENAS quando o usuário digita
+const matchingEquipamentos = computed(() => {
+  const query = equipamento.value.trim().toLowerCase()
+  if (!query) return []
+  const pool: string[] = []
+  if (configStore.presets.modelos_visivel !== false) {
+    pool.push(...configStore.presets.modelos)
   }
-}
+  if (configStore.presets.marcas_visivel !== false) {
+    pool.push(...configStore.presets.marcas)
+  }
+  return pool
+    .filter((item) => item.toLowerCase().includes(query))
+    .slice(0, 8)
+})
 
-function appendModelo(mod: string) {
+const matchingServicos = computed(() => {
+  const query = servico.value.trim().toLowerCase()
+  if (!query || configStore.presets.servicos_visivel === false) return []
+  return configStore.presets.servicos
+    .filter((s) => s.toLowerCase().includes(query))
+    .slice(0, 6)
+})
+
+function appendItem(item: string) {
   if (!equipamento.value) {
-    equipamento.value = mod
-  } else if (!equipamento.value.includes(mod)) {
-    equipamento.value = `${mod} ${equipamento.value}`.trim()
+    equipamento.value = item
+  } else if (!equipamento.value.includes(item)) {
+    equipamento.value = `${equipamento.value} ${item}`.trim()
   }
 }
 
 function selectServico(s: string) {
   if (!servico.value) {
     servico.value = s
-  } else {
+  } else if (!servico.value.includes(s)) {
     servico.value = `${servico.value} + ${s}`
   }
 }
@@ -150,55 +166,40 @@ async function handleSubmit() {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Equipamento / Objeto
+              {{ configStore.presets.modelos_titulo || 'Equipamento / Objeto' }}
             </label>
             <input
               type="text"
               v-model="equipamento"
+              list="equipamentos-datalist"
               placeholder="Ex: Notebook Dell Inspiron"
               class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
             />
-          </div>
-        </div>
+            <datalist id="equipamentos-datalist">
+              <option v-for="mod in configStore.presets.modelos" :key="mod" :value="mod" />
+              <option v-for="m in configStore.presets.marcas" :key="m" :value="m" />
+            </datalist>
 
-        <!-- Sugestões de Autocompletar: Modelos & Marcas -->
-        <div class="bg-blue-50/50 dark:bg-slate-750/70 p-3 rounded-xl border border-blue-100 dark:border-slate-700 text-xs space-y-2">
-          <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">
-            <span>Sugestões Rápidas: Modelos & Marcas</span>
-            <span class="font-normal text-slate-400">Clique para preencher</span>
-          </div>
-
-          <!-- Chips Modelos -->
-          <div class="flex flex-wrap gap-1.5">
-            <button
-              v-for="mod in configStore.presets.modelos"
-              :key="mod"
-              type="button"
-              @click="appendModelo(mod)"
-              class="px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-opti hover:text-opti transition text-[11px]"
-            >
-              + {{ mod }}
-            </button>
-          </div>
-
-          <!-- Chips Marcas -->
-          <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-            <button
-              v-for="m in configStore.presets.marcas"
-              :key="m"
-              type="button"
-              @click="appendMarca(m)"
-              class="px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-opti hover:text-opti transition text-[11px]"
-            >
-              + {{ m }}
-            </button>
+            <!-- Sugestões que aparecem apenas ao digitar -->
+            <div v-if="matchingEquipamentos.length > 0" class="flex flex-wrap items-center gap-1.5 mt-1.5">
+              <span class="text-[10px] text-slate-400 font-semibold">Sugestões:</span>
+              <button
+                v-for="item in matchingEquipamentos"
+                :key="item"
+                type="button"
+                @click="appendItem(item)"
+                class="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-700 text-opti dark:text-blue-300 border border-blue-200 dark:border-slate-600 hover:bg-opti hover:text-white transition text-[11px]"
+              >
+                + {{ item }}
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Descrição do Serviço -->
         <div>
           <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-            Descrição do Serviço / Problema *
+            Descrição do Serviço *
           </label>
           <textarea
             v-model="servico"
@@ -208,14 +209,15 @@ async function handleSubmit() {
             class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
           ></textarea>
 
-          <!-- Sugestões de Serviços Frequentes -->
-          <div class="flex flex-wrap gap-1.5 mt-1.5">
+          <!-- Sugestões de Serviços Frequentes (Aparecem apenas ao digitar) -->
+          <div v-if="matchingServicos.length > 0" class="flex flex-wrap items-center gap-1.5 mt-1.5">
+            <span class="text-[10px] text-slate-400 font-semibold">Sugestões:</span>
             <button
-              v-for="s in configStore.presets.servicos"
+              v-for="s in matchingServicos"
               :key="s"
               type="button"
               @click="selectServico(s)"
-              class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-opti-light hover:text-opti transition text-[11px] truncate max-w-xs"
+              class="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-700 text-opti dark:text-blue-300 border border-blue-200 dark:border-slate-600 hover:bg-opti hover:text-white transition text-[11px] truncate max-w-xs"
               :title="s"
             >
               + {{ s }}
@@ -223,15 +225,15 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <!-- Parâmetros Técnicos / Obs -->
+        <!-- Observações Adicionais -->
         <div>
           <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-            Parâmetros / Credenciais (Opcional)
+            Observações Adicionais
           </label>
           <input
             type="text"
             v-model="obsTecnicas"
-            placeholder="Ex: IP: 192.168.70.1 | Wi-Fi: Escritorio | Senha: 123"
+            placeholder="Ex: Senha de acesso, detalhes específicos, prazos..."
             class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-opti"
           />
         </div>
@@ -246,10 +248,13 @@ async function handleSubmit() {
               v-model="status"
               class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-2 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-opti"
             >
-              <option value="Concluído">Concluído</option>
-              <option value="Em Serviço">Em Serviço</option>
-              <option value="Avaliação">Avaliação</option>
-              <option value="Orçamento">Orçamento</option>
+              <option
+                v-for="st in (configStore.presets.estados_servico && configStore.presets.estados_servico.length ? configStore.presets.estados_servico : ['Avaliação/Orçamento', 'Em Serviço', 'Aguardando', 'Concluído'])"
+                :key="st"
+                :value="st"
+              >
+                {{ st }}
+              </option>
             </select>
           </div>
 
@@ -273,11 +278,13 @@ async function handleSubmit() {
               v-model="pagamentoForma"
               class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-2 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-opti"
             >
-              <option value="Pendente">⏳ Pendente</option>
-              <option value="Pix">Pix (Quitado)</option>
-              <option value="Dinheiro">Dinheiro</option>
-              <option value="Cartão">Cartão</option>
-              <option value="Boleto">Boleto</option>
+              <option
+                v-for="forma in (configStore.presets.formas_pagamento && configStore.presets.formas_pagamento.length ? configStore.presets.formas_pagamento : ['Pendente', 'Dinheiro', 'Cartão', 'Boleto', 'Pix'])"
+                :key="forma"
+                :value="forma"
+              >
+                {{ forma }}
+              </option>
             </select>
           </div>
         </div>

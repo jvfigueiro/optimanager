@@ -11,8 +11,6 @@ import {
   MessageCircle,
   CheckCircle,
   Edit2,
-  Trash2,
-  Copy,
 } from 'lucide-vue-next'
 
 const ordensStore = useOrdensStore()
@@ -33,16 +31,6 @@ function openEditOS(os: OrdemServico) {
 function closeEditOS() {
   isEditModalOpen.value = false
   editingOS.value = null
-}
-
-async function handleDeleteQuick(os: OrdemServico) {
-  if (confirm(`Deseja realmente excluir a OS #${os.id} do cliente "${os.cliente_nome}"?`)) {
-    await ordensStore.deleteOrdem(os.id)
-  }
-}
-
-async function handleDuplicateQuick(os: OrdemServico) {
-  await ordensStore.duplicarOrdem(os)
 }
 
 function getStatusBadgeClass(status: string) {
@@ -192,24 +180,15 @@ function gerarDocumento(os: OrdemServico) {
                 </span>
               </td>
               <td class="py-3.5 px-4 whitespace-nowrap text-center">
-                <div class="flex items-center justify-center gap-1">
+                <div class="flex items-center justify-center gap-1.5">
                   <!-- Editar OS -->
                   <button
                     @click="openEditOS(o)"
-                    title="Editar detalhes da OS"
+                    title="Editar detalhes da OS (inclui Duplicar e Excluir)"
                     class="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-opti-light text-slate-700 dark:text-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl font-bold transition flex items-center gap-1 border border-slate-200 dark:border-slate-600"
                   >
                     <Edit2 class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
                     <span>Editar</span>
-                  </button>
-
-                  <!-- Duplicar OS -->
-                  <button
-                    @click="handleDuplicateQuick(o)"
-                    title="Duplicar esta OS"
-                    class="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
-                  >
-                    <Copy class="w-4 h-4" />
                   </button>
 
                   <!-- Gerar Documento / Impressão -->
@@ -230,15 +209,6 @@ function gerarDocumento(os: OrdemServico) {
                     class="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg transition"
                   >
                     <MessageCircle class="w-4 h-4" />
-                  </button>
-
-                  <!-- Excluir OS -->
-                  <button
-                    @click="handleDeleteQuick(o)"
-                    title="Excluir OS"
-                    class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
-                  >
-                    <Trash2 class="w-4 h-4" />
                   </button>
                 </div>
               </td>
@@ -302,13 +272,13 @@ function gerarDocumento(os: OrdemServico) {
                 <span>Editar</span>
               </button>
 
-              <!-- Duplicar -->
+              <!-- Gerar Doc -->
               <button
-                @click="handleDuplicateQuick(o)"
-                title="Duplicar OS"
-                class="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 rounded-lg"
+                @click="gerarDocumento(o)"
+                class="px-2.5 py-1.5 bg-opti text-white rounded-xl font-bold flex items-center gap-1 shadow-xs"
               >
-                <Copy class="w-4 h-4" />
+                <FileText class="w-3.5 h-3.5" />
+                <span>Doc</span>
               </button>
 
               <!-- WhatsApp -->
@@ -319,24 +289,6 @@ function gerarDocumento(os: OrdemServico) {
                 class="p-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-slate-700 rounded-lg"
               >
                 <MessageCircle class="w-4 h-4" />
-              </button>
-
-              <!-- Gerar Doc -->
-              <button
-                @click="gerarDocumento(o)"
-                class="px-2.5 py-1.5 bg-opti text-white rounded-xl font-bold flex items-center gap-1 shadow-xs"
-              >
-                <FileText class="w-3.5 h-3.5" />
-                <span>Doc</span>
-              </button>
-
-              <!-- Excluir -->
-              <button
-                @click="handleDeleteQuick(o)"
-                title="Excluir OS"
-                class="p-1.5 text-slate-400 hover:text-red-600 bg-slate-100 dark:bg-slate-700 rounded-lg"
-              >
-                <Trash2 class="w-4 h-4" />
               </button>
             </div>
           </div>

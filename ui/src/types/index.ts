@@ -19,9 +19,20 @@ export interface Config {
 }
 
 export interface AutocompletePresets {
+  marcas_titulo?: string
+  marcas_visivel?: boolean
   marcas: string[]
+
+  modelos_titulo?: string
+  modelos_visivel?: boolean
   modelos: string[]
+
+  servicos_titulo?: string
+  servicos_visivel?: boolean
   servicos: string[]
+
+  estados_servico?: string[]
+  formas_pagamento?: string[]
 }
 
 export interface Cliente {

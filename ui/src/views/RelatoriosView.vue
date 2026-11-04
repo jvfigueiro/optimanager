@@ -708,7 +708,7 @@ function imprimirDocumento() {
         <form @submit.prevent="aplicarTermos" class="p-5 space-y-4 text-xs sm:text-sm overflow-y-auto flex-1">
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Termos de Garantia (Exibido em Relatórios e Orçamentos)
+              Informação adicional de garantia (opcional)
             </label>
             <textarea
               v-model="tempGarantia"
@@ -719,7 +719,7 @@ function imprimirDocumento() {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Termo de Responsabilidade & Guarda (Exibido na OS / Canhoto Duplicado)
+              Observações adicionais 1 (ex. Termo de responsabilidade)
             </label>
             <textarea
               v-model="tempResponsabilidade"
@@ -730,7 +730,7 @@ function imprimirDocumento() {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Observações Técnicas / Parâmetros do Documento
+              Informações Adicionais
             </label>
             <textarea
               v-model="tempObs"

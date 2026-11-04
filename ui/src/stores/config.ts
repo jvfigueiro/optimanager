@@ -4,54 +4,31 @@ import type { Config, AutocompletePresets } from '../types'
 import { api } from '../api'
 import { useToastStore } from './toast'
 
-export const DEFAULT_AUTOCOMPLETE_PRESETS: Record<string, AutocompletePresets> = {
-  informatica: {
-    marcas: ['Asus', 'Acer', 'Dell', 'Lenovo', 'HP', 'Apple', 'Samsung', 'LG', 'Positivo'],
-    modelos: ['Notebook', 'Computador Desktop', 'All-in-One', 'Servidor', 'Monitor', 'N/A'],
-    servicos: [
-      'Formatação e Instalação de Sistema Operacional',
-      'Limpeza Preventiva e Troca de Pasta Térmica',
-      'Troca de SSD / Upgrade de Memória RAM',
-      'Reparo de Placa-Mãe / Troca de Conector DC Jack',
-      'Troca de Tela / Display',
-      'Remoção de Vírus e Otimização de Desempenho',
-    ],
-  },
-  celulares: {
-    marcas: ['Apple (iPhone)', 'Samsung', 'Motorola', 'Xiaomi', 'LG', 'Realme'],
-    modelos: ['Smartphone', 'Tablet', 'Smartwatch', 'iPad', 'Outro'],
-    servicos: [
-      'Troca de Tela / Display Frontal',
-      'Substituição de Bateria',
-      'Troca de Conector de Carga (Sub-placa)',
-      'Desoxidação / Limpeza após contato com água',
-      'Reparo de Alto-falante / Microfone',
-      'Restauração de Software e Backup',
-    ],
-  },
-  mecanica: {
-    marcas: ['Chevrolet', 'Fiat', 'Ford', 'Honda', 'Hyundai', 'Renault', 'Toyota', 'Volkswagen'],
-    modelos: ['Carro Passeio', 'SUV', 'Caminhonete', 'Utilitário', 'Moto'],
-    servicos: [
-      'Troca de Óleo e Filtros',
-      'Revisão do Sistema de Freios (Pastilhas/Discos)',
-      'Alinhamento e Balanceamento',
-      'Suspensão e Amortecedores',
-      'Diagnóstico Eletrônico via Scanner (Injeção)',
-      'Substituição de Correia Dentada e Tensor',
-    ],
-  },
-  confeitaria: {
-    marcas: ['Artesanal / Própria', 'Tradicional', 'Diet / Zero Açúcar', 'Vegana'],
-    modelos: ['Bolo de Aniversário (2kg)', 'Bolo de Casamento', 'Cento de Salgados', 'Cento de Doces Finos', 'Torta Holandesa', 'Kit Festa'],
-    servicos: [
-      'Confecção de Bolo Decorado Personalizado',
-      'Produção de Doces Gourmet',
-      'Kit Festa Completo com Entrega',
-      'Degustação de Sabores',
-      'Serviço de Buffet e Mesa de Doces',
-    ],
-  },
+export const DEFAULT_ESTADOS_SERVICO = ['Avaliação/Orçamento', 'Em Serviço', 'Aguardando', 'Concluído']
+export const DEFAULT_FORMAS_PAGAMENTO = ['Pendente', 'Dinheiro', 'Cartão', 'Boleto', 'Pix']
+
+export const DEFAULT_AUTOCOMPLETE_PRESETS: AutocompletePresets = {
+  marcas_titulo: 'Marcas / Fabricantes',
+  marcas_visivel: true,
+  marcas: ['Asus', 'Acer', 'Dell', 'Lenovo', 'HP', 'Apple', 'Samsung', 'LG', 'Positivo'],
+
+  modelos_titulo: 'Modelos / Tipos / Categorias de Item',
+  modelos_visivel: true,
+  modelos: ['Notebook', 'Computador Desktop', 'All-in-One', 'Servidor', 'Monitor', 'N/A'],
+
+  servicos_titulo: 'Serviços Frequentes',
+  servicos_visivel: true,
+  servicos: [
+    'Formatação e Instalação de Sistema Operacional',
+    'Limpeza Preventiva e Troca de Pasta Térmica',
+    'Troca de SSD / Upgrade de Memória RAM',
+    'Reparo de Placa-Mãe / Troca de Conector DC Jack',
+    'Troca de Tela / Display',
+    'Remoção de Vírus e Otimização de Desempenho',
+  ],
+
+  estados_servico: DEFAULT_ESTADOS_SERVICO,
+  formas_pagamento: DEFAULT_FORMAS_PAGAMENTO,
 }
 
 export const useConfigStore = defineStore('config', () => {
@@ -70,7 +47,7 @@ export const useConfigStore = defineStore('config', () => {
     termo_garantia: 'Garantia legal de 90 dias para serviços executados e peças aplicadas.',
     termo_responsabilidade: 'Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda.',
     obs_padrao: 'Aparelho recebido com marcas normais de uso. Backup de dados sob responsabilidade do cliente.',
-    custom_presets: JSON.stringify(DEFAULT_AUTOCOMPLETE_PRESETS.informatica),
+    custom_presets: JSON.stringify(DEFAULT_AUTOCOMPLETE_PRESETS),
     logo_base64: '',
     cor_primaria: '#0B5694',
     cor_secundaria: '#083f6e',
@@ -80,16 +57,32 @@ export const useConfigStore = defineStore('config', () => {
   const loading = ref(false)
 
   const presets = computed<AutocompletePresets>(() => {
-    if (!config.value.custom_presets) return DEFAULT_AUTOCOMPLETE_PRESETS.informatica
+    if (!config.value.custom_presets) return DEFAULT_AUTOCOMPLETE_PRESETS
     try {
       const parsed = JSON.parse(config.value.custom_presets)
       return {
-        marcas: Array.isArray(parsed.marcas) ? parsed.marcas : DEFAULT_AUTOCOMPLETE_PRESETS.informatica.marcas,
-        modelos: Array.isArray(parsed.modelos) ? parsed.modelos : DEFAULT_AUTOCOMPLETE_PRESETS.informatica.modelos,
-        servicos: Array.isArray(parsed.servicos) ? parsed.servicos : DEFAULT_AUTOCOMPLETE_PRESETS.informatica.servicos,
+        marcas_titulo: typeof parsed.marcas_titulo === 'string' && parsed.marcas_titulo.trim() ? parsed.marcas_titulo : 'Marcas / Fabricantes',
+        marcas_visivel: parsed.marcas_visivel !== false,
+        marcas: Array.isArray(parsed.marcas) ? parsed.marcas : DEFAULT_AUTOCOMPLETE_PRESETS.marcas,
+
+        modelos_titulo: typeof parsed.modelos_titulo === 'string' && parsed.modelos_titulo.trim() ? parsed.modelos_titulo : 'Modelos / Tipos / Categorias de Item',
+        modelos_visivel: parsed.modelos_visivel !== false,
+        modelos: Array.isArray(parsed.modelos) ? parsed.modelos : DEFAULT_AUTOCOMPLETE_PRESETS.modelos,
+
+        servicos_titulo: typeof parsed.servicos_titulo === 'string' && parsed.servicos_titulo.trim() ? parsed.servicos_titulo : 'Serviços Frequentes',
+        servicos_visivel: parsed.servicos_visivel !== false,
+        servicos: Array.isArray(parsed.servicos) ? parsed.servicos : DEFAULT_AUTOCOMPLETE_PRESETS.servicos,
+
+        estados_servico: Array.isArray(parsed.estados_servico) && parsed.estados_servico.length > 0
+          ? parsed.estados_servico
+          : DEFAULT_ESTADOS_SERVICO,
+
+        formas_pagamento: Array.isArray(parsed.formas_pagamento) && parsed.formas_pagamento.length > 0
+          ? parsed.formas_pagamento
+          : DEFAULT_FORMAS_PAGAMENTO,
       }
     } catch {
-      return DEFAULT_AUTOCOMPLETE_PRESETS.informatica
+      return DEFAULT_AUTOCOMPLETE_PRESETS
     }
   })
 

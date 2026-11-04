@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useClientesStore } from '../stores/clientes'
+import { useConfigStore } from '../stores/config'
 import type { Cliente } from '../types'
 import {
   Users,
@@ -11,10 +12,11 @@ import {
   Calendar,
   Edit2,
   X,
-  Check,
+  MessageCircle,
 } from 'lucide-vue-next'
 
 const clientesStore = useClientesStore()
+const configStore = useConfigStore()
 
 const nome = ref('')
 const doc = ref('')
@@ -31,6 +33,15 @@ const isUpdating = ref(false)
 onMounted(() => {
   clientesStore.loadClientes()
 })
+
+function openClientWhatsApp(c: Cliente) {
+  if (!c.contato) return
+  const digits = c.contato.replace(/\D/g, '')
+  if (!digits) return
+  const phone = digits.length <= 11 ? `55${digits}` : digits
+  const text = encodeURIComponent(`Olá ${c.nome}, tudo bem? Entramos em contato da ${configStore.config.fantasia || 'OptiManager'}.`)
+  window.open(`https://wa.me/${phone}?text=${text}`, '_blank')
+}
 
 async function handleAddClient() {
   if (!nome.value.trim()) return
@@ -155,51 +166,142 @@ async function handleDeleteClient(c: Cliente) {
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+      <!-- VISÃO DESKTOP: Layout de Lista (Tabela Limpa) -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-slate-750 text-slate-500 dark:text-slate-400 text-xs uppercase border-b border-slate-200 dark:border-slate-700">
+              <th class="py-3 px-4">#ID</th>
+              <th class="py-3 px-4">Cliente / Nome</th>
+              <th class="py-3 px-4">CPF / CNPJ</th>
+              <th class="py-3 px-4">Contato / WhatsApp</th>
+              <th class="py-3 px-4">Cliente Desde</th>
+              <th class="py-3 px-4 text-center">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 dark:divide-slate-700/60">
+            <tr
+              v-for="c in clientesStore.clientes"
+              :key="c.id"
+              class="hover:bg-slate-50/80 dark:hover:bg-slate-750 transition"
+            >
+              <td class="py-3 px-4 font-mono text-xs text-opti dark:text-blue-400 font-bold">
+                #{{ c.id }}
+              </td>
+              <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
+                {{ c.nome }}
+              </td>
+              <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-300">
+                {{ c.doc || 'Não informado' }}
+              </td>
+              <td class="py-3 px-4 text-slate-600 dark:text-slate-300">
+                <span v-if="c.contato" class="flex items-center gap-1.5 text-xs">
+                  <Phone class="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>{{ c.contato }}</span>
+                </span>
+                <span v-else class="text-xs text-slate-400">Sem telefone</span>
+              </td>
+              <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">
+                <span class="flex items-center gap-1">
+                  <Calendar class="w-3.5 h-3.5 text-slate-400" />
+                  <span>Desde {{ c.desde_ano }}</span>
+                </span>
+              </td>
+              <td class="py-3 px-4 text-center whitespace-nowrap">
+                <div class="flex items-center justify-center gap-1">
+                  <!-- Botão WhatsApp (Do lado do botão de editar) -->
+                  <button
+                    v-if="c.contato"
+                    @click="openClientWhatsApp(c)"
+                    title="Enviar mensagem via WhatsApp"
+                    class="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition"
+                  >
+                    <MessageCircle class="w-4 h-4" />
+                  </button>
+                  <span v-else class="w-7 h-7 inline-block"></span>
+
+                  <!-- Botão Editar -->
+                  <button
+                    @click="openEdit(c)"
+                    title="Editar cadastro do cliente"
+                    class="p-1.5 text-slate-500 hover:text-opti dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
+                  >
+                    <Edit2 class="w-4 h-4" />
+                  </button>
+
+                  <!-- Botão Excluir -->
+                  <button
+                    @click="handleDeleteClient(c)"
+                    title="Remover cliente"
+                    class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="!clientesStore.clientes.length">
+              <td colspan="6" class="py-10 text-center text-slate-400">
+                Nenhum cliente cadastrado no momento.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- VISÃO MOBILE: Lista Vertical com Linhas -->
+      <div class="md:hidden divide-y divide-slate-200 dark:divide-slate-700">
         <div
           v-for="c in clientesStore.clientes"
           :key="c.id"
-          class="group p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-750 flex flex-col justify-between hover:border-blue-300 dark:hover:border-slate-600 transition"
+          class="py-3.5 flex items-center justify-between gap-3"
         >
-          <div>
-            <div class="flex justify-between items-start gap-2">
-              <h4 class="font-bold text-slate-800 dark:text-white text-base truncate">{{ c.nome }}</h4>
-              <div class="flex items-center gap-1 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition">
-                <button
-                  @click="openEdit(c)"
-                  title="Editar cliente"
-                  class="text-slate-400 hover:text-opti dark:hover:text-blue-400 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-                >
-                  <Edit2 class="w-4 h-4" />
-                </button>
-                <button
-                  @click="handleDeleteClient(c)"
-                  title="Excluir cliente"
-                  class="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-                >
-                  <Trash2 class="w-4 h-4" />
-                </button>
-              </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-mono font-bold text-opti dark:text-blue-400">#{{ c.id }}</span>
+              <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">{{ c.nome }}</h4>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              CPF/CNPJ: <span class="font-mono">{{ c.doc || 'Não informado' }}</span>
+            <p v-if="c.doc" class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+              {{ c.doc }}
             </p>
-            <div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 mt-1">
-              <Phone class="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              <span>{{ c.contato || 'Sem telefone' }}</span>
-            </div>
+            <p v-if="c.contato" class="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1 mt-0.5">
+              <Phone class="w-3 h-3 text-emerald-500" />
+              <span>{{ c.contato }}</span>
+            </p>
           </div>
 
-          <div class="flex justify-between items-center pt-3 mt-3 border-t border-slate-200/80 dark:border-slate-700 text-[11px] text-slate-400">
-            <span class="flex items-center gap-1">
-              <Calendar class="w-3 h-3" />
-              <span>Desde {{ c.desde_ano }}</span>
-            </span>
-            <span class="text-opti font-bold text-xs">#{{ c.id }}</span>
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- Botão WhatsApp -->
+            <button
+              v-if="c.contato"
+              @click="openClientWhatsApp(c)"
+              title="WhatsApp"
+              class="p-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl"
+            >
+              <MessageCircle class="w-4 h-4" />
+            </button>
+
+            <!-- Botão Editar -->
+            <button
+              @click="openEdit(c)"
+              title="Editar"
+              class="p-2 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-xl"
+            >
+              <Edit2 class="w-4 h-4" />
+            </button>
+
+            <!-- Botão Excluir -->
+            <button
+              @click="handleDeleteClient(c)"
+              title="Excluir"
+              class="p-2 text-slate-400 hover:text-red-500 bg-slate-100 dark:bg-slate-700 rounded-xl"
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        <div v-if="!clientesStore.clientes.length" class="col-span-full py-12 text-center text-slate-400">
+        <div v-if="!clientesStore.clientes.length" class="py-10 text-center text-slate-400 text-xs">
           Nenhum cliente cadastrado no momento.
         </div>
       </div>

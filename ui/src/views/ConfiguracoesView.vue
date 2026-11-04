@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useConfigStore, DEFAULT_AUTOCOMPLETE_PRESETS } from '../stores/config'
+import { useConfigStore } from '../stores/config'
 import { useAuthStore } from '../stores/auth'
 import type { Usuario, AutocompletePresets } from '../types'
 import {
@@ -26,14 +26,27 @@ const form = ref({ ...configStore.config })
 const isSaving = ref(false)
 
 const customPresets = ref<AutocompletePresets>({
+  marcas_titulo: configStore.presets.marcas_titulo || 'Marcas / Fabricantes',
+  marcas_visivel: configStore.presets.marcas_visivel !== false,
   marcas: [...configStore.presets.marcas],
+
+  modelos_titulo: configStore.presets.modelos_titulo || 'Modelos / Tipos / Categorias de Item',
+  modelos_visivel: configStore.presets.modelos_visivel !== false,
   modelos: [...configStore.presets.modelos],
+
+  servicos_titulo: configStore.presets.servicos_titulo || 'Serviços Frequentes',
+  servicos_visivel: configStore.presets.servicos_visivel !== false,
   servicos: [...configStore.presets.servicos],
+
+  estados_servico: [...(configStore.presets.estados_servico || ['Avaliação/Orçamento', 'Em Serviço', 'Aguardando', 'Concluído'])],
+  formas_pagamento: [...(configStore.presets.formas_pagamento || ['Pendente', 'Dinheiro', 'Cartão', 'Boleto', 'Pix'])],
 })
 
 const newMarca = ref('')
 const newModelo = ref('')
 const newServico = ref('')
+const newEstado = ref('')
+const newFormaPagamento = ref('')
 
 function addMarca() {
   const val = newMarca.value.trim()
@@ -71,16 +84,34 @@ function removeServico(idx: number) {
   customPresets.value.servicos.splice(idx, 1)
 }
 
-function loadPresetTemplate(event: Event) {
-  const key = (event.target as HTMLSelectElement).value
-  if (DEFAULT_AUTOCOMPLETE_PRESETS[key]) {
-    const template = DEFAULT_AUTOCOMPLETE_PRESETS[key]
-    customPresets.value = {
-      marcas: [...template.marcas],
-      modelos: [...template.modelos],
-      servicos: [...template.servicos],
+function addEstado() {
+  const val = newEstado.value.trim()
+  if (val) {
+    if (!customPresets.value.estados_servico) customPresets.value.estados_servico = []
+    if (!customPresets.value.estados_servico.includes(val)) {
+      customPresets.value.estados_servico.push(val)
+      newEstado.value = ''
     }
   }
+}
+
+function removeEstado(idx: number) {
+  customPresets.value.estados_servico?.splice(idx, 1)
+}
+
+function addFormaPagamento() {
+  const val = newFormaPagamento.value.trim()
+  if (val) {
+    if (!customPresets.value.formas_pagamento) customPresets.value.formas_pagamento = []
+    if (!customPresets.value.formas_pagamento.includes(val)) {
+      customPresets.value.formas_pagamento.push(val)
+      newFormaPagamento.value = ''
+    }
+  }
+}
+
+function removeFormaPagamento(idx: number) {
+  customPresets.value.formas_pagamento?.splice(idx, 1)
 }
 
 // Estado do modal de criar/editar usuário
@@ -106,9 +137,20 @@ onMounted(async () => {
   await Promise.all([configStore.loadConfig(), authStore.loadUsuarios()])
   form.value = { ...configStore.config }
   customPresets.value = {
+    marcas_titulo: configStore.presets.marcas_titulo || 'Marcas / Fabricantes',
+    marcas_visivel: configStore.presets.marcas_visivel !== false,
     marcas: [...configStore.presets.marcas],
+
+    modelos_titulo: configStore.presets.modelos_titulo || 'Modelos / Tipos / Categorias de Item',
+    modelos_visivel: configStore.presets.modelos_visivel !== false,
     modelos: [...configStore.presets.modelos],
+
+    servicos_titulo: configStore.presets.servicos_titulo || 'Serviços Frequentes',
+    servicos_visivel: configStore.presets.servicos_visivel !== false,
     servicos: [...configStore.presets.servicos],
+
+    estados_servico: [...(configStore.presets.estados_servico || ['Avaliação/Orçamento', 'Em Serviço', 'Aguardando', 'Concluído'])],
+    formas_pagamento: [...(configStore.presets.formas_pagamento || ['Pendente', 'Dinheiro', 'Cartão', 'Boleto', 'Pix'])],
   }
 })
 
@@ -536,7 +578,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Termo de Garantia Padrão (Rodapé dos Relatórios)
+              Informação adicional de garantia (opcional)
             </label>
             <textarea
               v-model="form.termo_garantia"
@@ -547,7 +589,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Termo de Responsabilidade & Guarda do Equipamento / Objeto
+              Observações adicionais 1 (ex. Termo de responsabilidade)
             </label>
             <textarea
               v-model="form.termo_responsabilidade"
@@ -559,7 +601,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Observações Técnicas Padrão / Parâmetros
+              Informações Adicionais
             </label>
             <textarea
               v-model="form.obs_padrao"
@@ -584,47 +626,47 @@ async function handleDeleteUser(u: Usuario) {
     </div>
 
     <!-- Card 4: Segmento de Atuação & Autocompletar Customizável -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-5">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
-        <div>
-          <div class="flex items-center gap-2.5">
-            <Sparkles class="w-5 h-5 text-opti" />
-            <h3 class="font-bold text-lg text-slate-800 dark:text-white">
-              Segmento de Atuação & Autocompletar
-            </h3>
-          </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Personalize as listas de marcas, modelos e serviços para adaptar o OptiManager ao seu nicho (Informática, Celulares, Mecânica, Confeitaria, etc.).
-          </p>
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-6">
+      <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
+        <div class="flex items-center gap-2.5">
+          <Sparkles class="w-5 h-5 text-opti" />
+          <h3 class="font-bold text-lg text-slate-800 dark:text-white">
+            Segmento de Atuação & Autocompletar
+          </h3>
         </div>
-
-        <!-- Seletor de Modelo de Nicho -->
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap">Carregar Nicho:</span>
-          <select
-            @change="loadPresetTemplate($event)"
-            class="text-xs font-bold border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-opti"
-          >
-            <option value="" disabled selected>Escolher Modelo...</option>
-            <option value="informatica">💻 Informática / Computadores</option>
-            <option value="celulares">📱 Celulares / Smartphones</option>
-            <option value="mecanica">🚗 Oficina Mecânica</option>
-            <option value="confeitaria">🎂 Confeitaria / Doces</option>
-          </select>
-        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          Personalize as categorias, renomeie os títulos, oculte ou exiba seções, defina estados de serviço e formas de pagamento conforme a necessidade do seu negócio.
+        </p>
       </div>
 
-      <!-- Marcas / Fabricantes -->
-      <div class="space-y-2">
-        <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
-          Marcas / Fabricantes
-        </label>
+      <!-- 1. Marcas / Fabricantes -->
+      <div class="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex-1 max-w-sm">
+            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Título da Categoria</label>
+            <input
+              type="text"
+              v-model="customPresets.marcas_titulo"
+              placeholder="Ex: Marcas / Fabricantes"
+              class="w-full text-xs font-bold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-opti"
+            />
+          </div>
+          <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer self-start sm:self-end pb-1.5">
+            <input
+              type="checkbox"
+              v-model="customPresets.marcas_visivel"
+              class="rounded text-opti focus:ring-opti w-4 h-4"
+            />
+            <span>Exibir esta categoria</span>
+          </label>
+        </div>
+
         <div class="flex gap-2">
           <input
             type="text"
             v-model="newMarca"
             @keyup.enter.prevent="addMarca"
-            placeholder="Ex: Asus, Acer, Dell, Fiat, Apple... (Enter para adicionar)"
+            placeholder="Adicionar novo item... (Enter)"
             class="flex-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-opti"
           />
           <button
@@ -635,11 +677,12 @@ async function handleDeleteUser(u: Usuario) {
             + Adicionar
           </button>
         </div>
+
         <div class="flex flex-wrap gap-1.5 pt-1">
           <span
             v-for="(m, idx) in customPresets.marcas"
             :key="idx"
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-2xs"
           >
             <span>{{ m }}</span>
             <button
@@ -650,20 +693,40 @@ async function handleDeleteUser(u: Usuario) {
               ×
             </button>
           </span>
+          <span v-if="!customPresets.marcas.length" class="text-xs text-slate-400 italic">
+            Nenhum item cadastrado nesta categoria.
+          </span>
         </div>
       </div>
 
-      <!-- Modelos / Tipos / Itens -->
-      <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-        <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
-          Modelos / Tipos / Categorias de Item
-        </label>
+      <!-- 2. Modelos / Tipos / Categorias de Item -->
+      <div class="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex-1 max-w-sm">
+            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Título da Categoria</label>
+            <input
+              type="text"
+              v-model="customPresets.modelos_titulo"
+              placeholder="Ex: Modelos / Tipos / Categorias de Item"
+              class="w-full text-xs font-bold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-opti"
+            />
+          </div>
+          <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer self-start sm:self-end pb-1.5">
+            <input
+              type="checkbox"
+              v-model="customPresets.modelos_visivel"
+              class="rounded text-opti focus:ring-opti w-4 h-4"
+            />
+            <span>Exibir esta categoria</span>
+          </label>
+        </div>
+
         <div class="flex gap-2">
           <input
             type="text"
             v-model="newModelo"
             @keyup.enter.prevent="addModelo"
-            placeholder="Ex: Notebook, Desktop, Smartphone, Carro, Bolo 2kg... (Enter)"
+            placeholder="Adicionar novo modelo ou categoria... (Enter)"
             class="flex-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-opti"
           />
           <button
@@ -674,11 +737,12 @@ async function handleDeleteUser(u: Usuario) {
             + Adicionar
           </button>
         </div>
+
         <div class="flex flex-wrap gap-1.5 pt-1">
           <span
             v-for="(mod, idx) in customPresets.modelos"
             :key="idx"
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-2xs"
           >
             <span>{{ mod }}</span>
             <button
@@ -689,20 +753,40 @@ async function handleDeleteUser(u: Usuario) {
               ×
             </button>
           </span>
+          <span v-if="!customPresets.modelos.length" class="text-xs text-slate-400 italic">
+            Nenhum item cadastrado nesta categoria.
+          </span>
         </div>
       </div>
 
-      <!-- Serviços Frequentes -->
-      <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-        <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
-          Serviços Frequentes
-        </label>
+      <!-- 3. Serviços Frequentes -->
+      <div class="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex-1 max-w-sm">
+            <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">Título da Categoria</label>
+            <input
+              type="text"
+              v-model="customPresets.servicos_titulo"
+              placeholder="Ex: Serviços Frequentes"
+              class="w-full text-xs font-bold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-opti"
+            />
+          </div>
+          <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer self-start sm:self-end pb-1.5">
+            <input
+              type="checkbox"
+              v-model="customPresets.servicos_visivel"
+              class="rounded text-opti focus:ring-opti w-4 h-4"
+            />
+            <span>Exibir esta categoria</span>
+          </label>
+        </div>
+
         <div class="flex gap-2">
           <input
             type="text"
             v-model="newServico"
             @keyup.enter.prevent="addServico"
-            placeholder="Ex: Formatação, Troca de Tela, Troca de Óleo, Encomenda..."
+            placeholder="Adicionar novo serviço frequente... (Enter)"
             class="flex-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-opti"
           />
           <button
@@ -713,16 +797,112 @@ async function handleDeleteUser(u: Usuario) {
             + Adicionar
           </button>
         </div>
+
         <div class="flex flex-wrap gap-1.5 pt-1">
           <span
             v-for="(s, idx) in customPresets.servicos"
             :key="idx"
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-2xs"
           >
             <span>{{ s }}</span>
             <button
               type="button"
               @click="removeServico(idx)"
+              class="text-slate-400 hover:text-red-500 font-bold ml-0.5"
+            >
+              ×
+            </button>
+          </span>
+          <span v-if="!customPresets.servicos.length" class="text-xs text-slate-400 italic">
+            Nenhum serviço cadastrado nesta categoria.
+          </span>
+        </div>
+      </div>
+
+      <!-- 4. Estados de Serviço (Status da OS) -->
+      <div class="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+            Estados de Serviço (Status da OS)
+          </label>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            Situações disponíveis para as Ordens de Serviço (ex: Avaliação/Orçamento, Em Serviço, Aguardando, Concluído).
+          </p>
+        </div>
+
+        <div class="flex gap-2">
+          <input
+            type="text"
+            v-model="newEstado"
+            @keyup.enter.prevent="addEstado"
+            placeholder="Ex: Em Espera, Aguardando Peça, Entregue... (Enter)"
+            class="flex-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-opti"
+          />
+          <button
+            type="button"
+            @click="addEstado"
+            class="px-4 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition"
+          >
+            + Adicionar
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <span
+            v-for="(st, idx) in (customPresets.estados_servico || [])"
+            :key="idx"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-2xs"
+          >
+            <span>{{ st }}</span>
+            <button
+              type="button"
+              @click="removeEstado(idx)"
+              class="text-slate-400 hover:text-red-500 font-bold ml-0.5"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      </div>
+
+      <!-- 5. Formas de Pagamento -->
+      <div class="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+            Formas de Pagamento
+          </label>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            Opções de pagamento permitidas (ex: Pendente, Dinheiro, Cartão, Boleto, Pix).
+          </p>
+        </div>
+
+        <div class="flex gap-2">
+          <input
+            type="text"
+            v-model="newFormaPagamento"
+            @keyup.enter.prevent="addFormaPagamento"
+            placeholder="Ex: Carnê, Transferência Bancária, Vale... (Enter)"
+            class="flex-1 text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-opti"
+          />
+          <button
+            type="button"
+            @click="addFormaPagamento"
+            class="px-4 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition"
+          >
+            + Adicionar
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <span
+            v-for="(fp, idx) in (customPresets.formas_pagamento || [])"
+            :key="idx"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-2xs"
+          >
+            <span>{{ fp }}</span>
+            <button
+              type="button"
+              @click="removeFormaPagamento(idx)"
               class="text-slate-400 hover:text-red-500 font-bold ml-0.5"
             >
               ×
