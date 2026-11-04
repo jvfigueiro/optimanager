@@ -7,6 +7,7 @@ import type {
   Atalho,
   DashboardData,
   Usuario,
+  SetupAdminPayload,
   AuthStatusResponse,
   AuthResponse,
   CreateUsuarioPayload,
@@ -67,7 +68,7 @@ export const api = {
 
   // Auth
   getAuthStatus: () => request<AuthStatusResponse>('/auth/status'),
-  setupAdmin: (payload: { nome: string; email: string; senha: string }) =>
+  setupAdmin: (payload: SetupAdminPayload) =>
     request<AuthResponse>('/auth/setup', {
       method: 'POST',
       body: JSON.stringify(payload),

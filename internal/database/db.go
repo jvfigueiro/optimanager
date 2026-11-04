@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -88,8 +89,25 @@ func New(customPath string) (*DB, error) {
 }
 
 func (d *DB) migrate() error {
-	_, err := d.Writer.Exec(initialSchemaSQL)
-	return err
+	if _, err := d.Writer.Exec(initialSchemaSQL); err != nil {
+		return err
+	}
+
+	// Migrações incrementais seguras para bancos de dados já existentes
+	alterStatements := []string{
+		`ALTER TABLE config ADD COLUMN email_contato TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE config ADD COLUMN endereco TEXT NOT NULL DEFAULT '';`,
+	}
+	for _, stmt := range alterStatements {
+		if _, err := d.Writer.Exec(stmt); err != nil {
+			// Ignora erro caso a coluna já exista na tabela
+			if !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (d *DB) Close() {
@@ -100,4 +118,3 @@ func (d *DB) Close() {
 		d.Reader.Close()
 	}
 }
-

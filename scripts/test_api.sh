@@ -37,10 +37,21 @@ echo "Auth Status: $AUTH_STATUS"
 echo "$AUTH_STATUS" | grep -q '"needs_setup":true' || { echo "ERRO: needs_setup deveria ser true"; exit 1; }
 
 echo ""
-echo "=== 3.1. Configurando Administrador Inicial (/api/auth/setup) ==="
+echo "=== 3.1. Configurando Administrador e Dados da Empresa (/api/auth/setup) ==="
 SETUP_RESP=$(curl -s -X POST "$BASE_URL/auth/setup" \
   -H "Content-Type: application/json" \
-  -d '{"nome":"João Administrador","email":"admin@optimanager.com.br","senha":"password123"}')
+  -d '{
+    "nome":"João Administrador",
+    "email":"admin@optimanager.com.br",
+    "senha":"password123",
+    "fantasia":"Opti Tecnologia",
+    "razao_social":"João Vítor Streb Figueiró",
+    "cnpj":"38.136.905/0001-66",
+    "fones":"(55) 99127-2332 | (55) 99674-5762",
+    "email_contato":"contato@optitecnologia.com.br",
+    "endereco":"Av. Rio Branco, 500 - Centro",
+    "cidade":"Santa Maria - RS"
+  }')
 echo "Setup Admin: $SETUP_RESP"
 TOKEN=$(echo "$SETUP_RESP" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
 if [ -z "$TOKEN" ]; then

@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS config (
     cnpj TEXT NOT NULL DEFAULT '38.136.905/0001-66',
     responsavel TEXT NOT NULL DEFAULT 'João Figueiró',
     fones TEXT NOT NULL DEFAULT '(55) 99127-2332 | (55) 99674-5762',
+    email_contato TEXT NOT NULL DEFAULT '',
+    endereco TEXT NOT NULL DEFAULT '',
     cidade TEXT NOT NULL DEFAULT 'Santa Maria - RS',
     vt_valor_padrao REAL NOT NULL DEFAULT 80.00,
     termo_garantia TEXT NOT NULL DEFAULT 'Garantia de 90 dias para serviços prestados e peças substituídas.',
@@ -16,7 +18,7 @@ CREATE TABLE IF NOT EXISTS config (
 );
 
 -- Insere configuração padrão caso não exista
-INSERT OR IGNORE INTO config (id, fantasia, razao_social, cnpj, responsavel, fones, cidade, vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria)
+INSERT OR IGNORE INTO config (id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria)
 VALUES (
     1,
     'Opti Tecnologia',
@@ -24,6 +26,8 @@ VALUES (
     '38.136.905/0001-66',
     'João Figueiró',
     '(55) 99127-2332 | (55) 99674-5762',
+    '',
+    '',
     'Santa Maria - RS',
     80.00,
     'Garantia legal de 90 dias para serviços executados e peças aplicadas.',
@@ -93,5 +97,3 @@ CREATE TABLE IF NOT EXISTS usuarios (
 );
 
 CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
-
-

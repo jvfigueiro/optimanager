@@ -12,9 +12,19 @@ type Usuario struct {
 }
 
 type SetupAdminRequest struct {
+	// Dados do Administrador
 	Nome  string `json:"nome"`
 	Email string `json:"email"`
 	Senha string `json:"senha"`
+
+	// Dados da Empresa (Configurados no Assistente de Primeiro Acesso)
+	Fantasia     string `json:"fantasia"`
+	RazaoSocial  string `json:"razao_social"`
+	CNPJ         string `json:"cnpj"`
+	Fones        string `json:"fones"`
+	EmailContato string `json:"email_contato"`
+	Endereco     string `json:"endereco"`
+	Cidade       string `json:"cidade"`
 }
 
 type LoginRequest struct {
@@ -46,4 +56,3 @@ type AuthResponse struct {
 	Token   string   `json:"token"`
 	Usuario *Usuario `json:"usuario"`
 }
-

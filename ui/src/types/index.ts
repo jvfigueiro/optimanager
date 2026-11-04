@@ -5,6 +5,8 @@ export interface Config {
   cnpj: string
   responsavel: string
   fones: string
+  email_contato: string
+  endereco: string
   cidade: string
   vt_valor_padrao: number
   termo_garantia: string
@@ -108,6 +110,19 @@ export interface Usuario {
   created_at: string
 }
 
+export interface SetupAdminPayload {
+  nome: string
+  email: string
+  senha: string
+  fantasia?: string
+  razao_social?: string
+  cnpj?: string
+  fones?: string
+  email_contato?: string
+  endereco?: string
+  cidade?: string
+}
+
 export interface AuthStatusResponse {
   needs_setup: boolean
   authenticated: boolean
@@ -132,5 +147,3 @@ export interface UpdateUsuarioPayload {
   senha?: string
   role: 'admin' | 'operador'
 }
-
-

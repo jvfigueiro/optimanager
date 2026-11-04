@@ -8,6 +8,10 @@
   --color-primary-light: #e6f0f9;
 }
 
+.dark {
+  color-scheme: dark;
+}
+
 /* Scrollbar invisível onde necessário */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
@@ -48,4 +52,3 @@
     display: none !important;
   }
 }
-

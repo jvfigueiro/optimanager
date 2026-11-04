@@ -7,6 +7,8 @@ type Config struct {
 	CNPJ          string  `json:"cnpj"`
 	Responsavel   string  `json:"responsavel"`
 	Fones         string  `json:"fones"`
+	EmailContato  string  `json:"email_contato"`
+	Endereco      string  `json:"endereco"`
 	Cidade        string  `json:"cidade"`
 	VTValorPadrao float64 `json:"vt_valor_padrao"`
 	TermoGarantia string  `json:"termo_garantia"`
@@ -14,4 +16,3 @@ type Config struct {
 	CorPrimaria   string  `json:"cor_primaria"`
 	CorSecundaria string  `json:"cor_secundaria"`
 }
-

@@ -13,6 +13,8 @@ export const useConfigStore = defineStore('config', () => {
     cnpj: '38.136.905/0001-66',
     responsavel: 'João Figueiró',
     fones: '(55) 99127-2332 | (55) 99674-5762',
+    email_contato: '',
+    endereco: '',
     cidade: 'Santa Maria - RS',
     vt_valor_padrao: 80,
     termo_garantia: 'Garantia legal de 90 dias para serviços executados e peças aplicadas.',
@@ -105,4 +107,3 @@ export const useConfigStore = defineStore('config', () => {
     saveConfig,
   }
 })
-

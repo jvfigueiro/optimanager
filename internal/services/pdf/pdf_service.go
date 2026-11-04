@@ -86,6 +86,16 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 	}
 
 	// 1. Cabeçalho Institucional
+	linhaContato := fmt.Sprintf("CNPJ: %s | Fones: %s", cfg.CNPJ, cfg.Fones)
+	if strings.TrimSpace(cfg.EmailContato) != "" {
+		linhaContato += fmt.Sprintf(" | %s", strings.TrimSpace(cfg.EmailContato))
+	}
+
+	linhaLocal := fmt.Sprintf("Responsável: %s | %s", cfg.Responsavel, cfg.Cidade)
+	if strings.TrimSpace(cfg.Endereco) != "" {
+		linhaLocal = fmt.Sprintf("Responsável: %s | %s • %s", cfg.Responsavel, strings.TrimSpace(cfg.Endereco), cfg.Cidade)
+	}
+
 	m.AddRows(
 		row.New(9).Add(
 			col.New(8).Add(
@@ -106,7 +116,7 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 		),
 		row.New(5).Add(
 			col.New(8).Add(
-				text.New(fmt.Sprintf("CNPJ: %s | Fones: %s", cfg.CNPJ, cfg.Fones), props.Text{
+				text.New(linhaContato, props.Text{
 					Size:  8,
 					Color: slate700,
 				}),
@@ -122,7 +132,7 @@ func GenerateDocument(cfg *models.Config, os *models.OrdemServico, docType strin
 		),
 		row.New(4).Add(
 			col.New(12).Add(
-				text.New(fmt.Sprintf("Responsável: %s | %s", cfg.Responsavel, cfg.Cidade), props.Text{
+				text.New(linhaLocal, props.Text{
 					Size:  8,
 					Color: slate500,
 				}),

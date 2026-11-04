@@ -12,10 +12,12 @@ export default {
           DEFAULT: 'var(--color-primary, #0B5694)',
           dark: 'var(--color-primary-dark, #083f6e)',
           light: 'var(--color-primary-light, #e6f0f9)'
+        },
+        slate: {
+          750: '#243044',
         }
       }
     },
   },
   plugins: [],
 }
-

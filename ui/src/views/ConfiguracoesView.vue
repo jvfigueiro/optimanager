@@ -185,7 +185,7 @@ async function handleDeleteUser(u: Usuario) {
               class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
               :class="
                 u.role === 'admin'
-                  ? 'bg-opti/10 text-opti dark:bg-opti/20'
+                  ? 'bg-opti/10 text-opti dark:bg-opti/20 dark:text-sky-300'
                   : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
               "
             >
@@ -323,7 +323,7 @@ async function handleDeleteUser(u: Usuario) {
                 :key="p.nome"
                 type="button"
                 @click="aplicarPaleta(p.primaria, p.secundaria)"
-                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-700 hover:border-slate-400 transition"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition"
               >
                 <span class="w-3.5 h-3.5 rounded-full" :style="{ backgroundColor: p.primaria }"></span>
                 <span class="text-slate-700 dark:text-slate-200">{{ p.nome }}</span>
@@ -333,37 +333,37 @@ async function handleDeleteUser(u: Usuario) {
             <!-- Seletores Hex Manuais -->
             <div class="grid grid-cols-2 gap-3 pt-2">
               <div>
-                <label class="block text-[11px] font-bold text-slate-500 mb-1">Cor Primária (Hex)</label>
+                <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">Cor Primária (Hex)</label>
                 <div class="flex items-center gap-2">
                   <input
                     type="color"
                     v-model="form.cor_primaria"
                     @input="handleColorChange"
-                    class="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                    class="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent"
                   />
                   <input
                     type="text"
                     v-model="form.cor_primaria"
                     @input="handleColorChange"
-                    class="text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg px-2.5 py-1.5 font-mono w-28 uppercase"
+                    class="text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 font-mono w-28 uppercase"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-[11px] font-bold text-slate-500 mb-1">Cor Secundária (Escura)</label>
+                <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">Cor Secundária (Escura)</label>
                 <div class="flex items-center gap-2">
                   <input
                     type="color"
                     v-model="form.cor_secundaria"
                     @input="handleColorChange"
-                    class="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                    class="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent"
                   />
                   <input
                     type="text"
                     v-model="form.cor_secundaria"
                     @input="handleColorChange"
-                    class="text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-lg px-2.5 py-1.5 font-mono w-28 uppercase"
+                    class="text-xs border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 font-mono w-28 uppercase"
                   />
                 </div>
               </div>
@@ -371,7 +371,7 @@ async function handleDeleteUser(u: Usuario) {
           </div>
         </div>
 
-        <!-- 2. Dados Cadastrais do MEI/Empresa -->
+        <!-- 2. Dados Cadastrais da Empresa -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
@@ -381,31 +381,31 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.fantasia"
               required
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Razão Social / Titular MEI
+              Razão Social / Titular
             </label>
             <input
               type="text"
               v-model="form.razao_social"
               required
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              CNPJ
+              CNPJ (ou CPF)
             </label>
             <input
               type="text"
               v-model="form.cnpj"
               required
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 font-mono focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-mono focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
@@ -417,7 +417,7 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.responsavel"
               required
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
@@ -429,7 +429,31 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.fones"
               required
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              E-mail Comercial / Contato
+            </label>
+            <input
+              type="email"
+              v-model="form.email_contato"
+              placeholder="contato@empresa.com.br"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Endereço Comercial
+            </label>
+            <input
+              type="text"
+              v-model="form.endereco"
+              placeholder="Rua, Número, Bairro"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
@@ -441,7 +465,7 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.cidade"
               required
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
@@ -454,7 +478,7 @@ async function handleDeleteUser(u: Usuario) {
               step="0.01"
               v-model.number="form.vt_valor_padrao"
               required
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 font-bold focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-bold focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
@@ -465,7 +489,7 @@ async function handleDeleteUser(u: Usuario) {
             <textarea
               v-model="form.termo_garantia"
               rows="2"
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
             ></textarea>
           </div>
         </div>
@@ -514,7 +538,7 @@ async function handleDeleteUser(u: Usuario) {
               v-model="userForm.nome"
               required
               placeholder="Ex: Maria Oliveira"
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
@@ -527,7 +551,7 @@ async function handleDeleteUser(u: Usuario) {
               v-model="userForm.email"
               required
               placeholder="usuario@empresa.com.br"
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 
@@ -537,7 +561,7 @@ async function handleDeleteUser(u: Usuario) {
             </label>
             <select
               v-model="userForm.role"
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             >
               <option value="operador">Operador</option>
               <option value="admin">Administrador</option>
@@ -554,7 +578,7 @@ async function handleDeleteUser(u: Usuario) {
               :required="!editingUserId"
               minlength="6"
               placeholder="••••••••"
-              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
 

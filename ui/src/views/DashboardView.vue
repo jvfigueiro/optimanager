@@ -130,7 +130,7 @@ function getStatusBadgeClass(status: string) {
         </div>
         <button
           @click="isShortcutModalOpen = true"
-          class="text-xs bg-opti-light text-opti hover:bg-opti hover:text-white font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs"
+          class="text-xs bg-opti-light dark:bg-slate-700 text-opti dark:text-sky-300 hover:bg-opti dark:hover:bg-opti hover:text-white dark:hover:text-white border border-transparent dark:border-slate-600 font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs"
         >
           <Plus class="w-3.5 h-3.5" />
           <span>Novo Atalho</span>
@@ -270,4 +270,3 @@ function getStatusBadgeClass(status: string) {
     />
   </div>
 </template>
-

@@ -223,6 +223,33 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Se dados da empresa foram informados no assistente de primeiro uso, atualiza a tabela config
+	if cfg, err := h.db.GetConfig(); err == nil && cfg != nil {
+		cfg.Responsavel = strings.TrimSpace(req.Nome)
+		if strings.TrimSpace(req.Fantasia) != "" {
+			cfg.Fantasia = strings.TrimSpace(req.Fantasia)
+		}
+		if strings.TrimSpace(req.RazaoSocial) != "" {
+			cfg.RazaoSocial = strings.TrimSpace(req.RazaoSocial)
+		}
+		if strings.TrimSpace(req.CNPJ) != "" {
+			cfg.CNPJ = strings.TrimSpace(req.CNPJ)
+		}
+		if strings.TrimSpace(req.Fones) != "" {
+			cfg.Fones = strings.TrimSpace(req.Fones)
+		}
+		if strings.TrimSpace(req.EmailContato) != "" {
+			cfg.EmailContato = strings.TrimSpace(req.EmailContato)
+		}
+		if strings.TrimSpace(req.Endereco) != "" {
+			cfg.Endereco = strings.TrimSpace(req.Endereco)
+		}
+		if strings.TrimSpace(req.Cidade) != "" {
+			cfg.Cidade = strings.TrimSpace(req.Cidade)
+		}
+		_ = h.db.UpdateConfig(cfg)
+	}
+
 	token, err := h.generateToken(u)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Erro ao gerar sessão")

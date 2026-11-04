@@ -56,19 +56,19 @@ async function handleAddClient() {
           v-model="nome"
           required
           placeholder="Nome / Empresa *"
-          class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 lg:col-span-2 focus:outline-none focus:ring-2 focus:ring-opti"
+          class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 lg:col-span-2 focus:outline-none focus:ring-2 focus:ring-opti"
         />
         <input
           type="text"
           v-model="doc"
           placeholder="CPF ou CNPJ (opcional)"
-          class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
+          class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
         />
         <input
           type="text"
           v-model="contato"
           placeholder="WhatsApp / Telefone"
-          class="border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
+          class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
         />
         <button
           type="submit"

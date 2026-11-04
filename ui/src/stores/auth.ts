@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Usuario, CreateUsuarioPayload, UpdateUsuarioPayload } from '../types'
+import type { Usuario, SetupAdminPayload, CreateUsuarioPayload, UpdateUsuarioPayload } from '../types'
 import { api, TOKEN_STORAGE_KEY } from '../api'
 import { useToastStore } from './toast'
+import { useConfigStore } from './config'
 
 export const useAuthStore = defineStore('auth', () => {
   const toast = useToastStore()
+  const configStore = useConfigStore()
 
   const user = ref<Usuario | null>(null)
   const needsSetup = ref(false)
@@ -38,15 +40,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function setupAdmin(nome: string, email: string, senha: string) {
+  async function setupAdmin(payload: SetupAdminPayload) {
     loading.value = true
     try {
-      const res = await api.setupAdmin({ nome, email, senha })
+      const res = await api.setupAdmin(payload)
       localStorage.setItem(TOKEN_STORAGE_KEY, res.token)
       user.value = res.usuario
       needsSetup.value = false
       isAuthenticated.value = true
-      toast.show(`🎉 Bem-vindo(a), ${res.usuario.nome}! Administrador configurado com sucesso.`)
+      await configStore.loadConfig()
+      toast.show(`🎉 Bem-vindo(a), ${res.usuario.nome}! Empresa e administrador configurados.`)
       return res.usuario
     } catch (err: any) {
       toast.show(err.message || 'Erro ao configurar administrador', 'error')
@@ -152,4 +155,3 @@ export const useAuthStore = defineStore('auth', () => {
     removeUsuario,
   }
 })
-

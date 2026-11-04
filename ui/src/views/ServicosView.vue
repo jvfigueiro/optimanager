@@ -176,7 +176,7 @@ function gerarDocumento(os: OrdemServico) {
                   </button>
                   <button
                     @click="gerarDocumento(o)"
-                    class="px-3 py-1.5 text-xs bg-opti-light text-opti hover:bg-opti hover:text-white rounded-xl font-bold transition flex items-center gap-1"
+                    class="px-3 py-1.5 text-xs bg-opti-light dark:bg-slate-700 text-opti dark:text-sky-300 hover:bg-opti dark:hover:bg-opti hover:text-white dark:hover:text-white border border-transparent dark:border-slate-600 rounded-xl font-bold transition flex items-center gap-1"
                   >
                     <FileText class="w-3.5 h-3.5" />
                     <span>Gerar Doc</span>

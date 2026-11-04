@@ -292,8 +292,14 @@ function baixarPDFNativo() {
                   {{ configStore.config.fantasia }}
                 </h2>
                 <p class="text-xs text-slate-600">CNPJ: {{ configStore.config.cnpj }}</p>
-                <p class="text-xs text-slate-600">Fones: {{ configStore.config.fones }}</p>
-                <p class="text-xs text-slate-600">Responsável: {{ configStore.config.responsavel }}</p>
+                <p class="text-xs text-slate-600">
+                  Fones: {{ configStore.config.fones }}
+                  <span v-if="configStore.config.email_contato"> • {{ configStore.config.email_contato }}</span>
+                </p>
+                <p class="text-xs text-slate-600">
+                  Responsável: {{ configStore.config.responsavel }}
+                  <span v-if="configStore.config.endereco"> • {{ configStore.config.endereco }}</span>
+                </p>
               </div>
             </div>
 
