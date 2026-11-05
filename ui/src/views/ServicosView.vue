@@ -11,7 +11,8 @@ import {
   FileText,
   MessageCircle,
   CheckCircle,
-  Edit2,
+  Eye,
+  Clock,
 } from 'lucide-vue-next'
 
 const ordensStore = useOrdensStore()
@@ -174,7 +175,7 @@ function gerarDocumento(os: OrdemServico) {
                   {{ formatDate(o.data_emissao) }}<span v-if="o.hora_emissao"> às {{ o.hora_emissao }}</span>
                 </span>
                 <span v-if="o.data_entrega" class="block text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
-                  Entregue: {{ formatDate(o.data_entrega) }}<span v-if="o.hora_entrega"> {{ o.hora_entrega }}</span>
+                  Entregue: {{ formatDate(o.data_entrega) }}<span v-if="o.hora_entrega">&nbsp;às {{ o.hora_entrega }}</span>
                 </span>
               </td>
               <td class="py-3.5 px-4 whitespace-nowrap">
@@ -198,15 +199,13 @@ function gerarDocumento(os: OrdemServico) {
                 {{ o.valor_total > 0 ? formatBRL(o.valor_total) : 'A definir' }}
               </td>
               <td class="py-3.5 px-4 whitespace-nowrap">
-                <button
+                <span
                   v-if="o.pagamento_status === 'Pendente'"
-                  @click="ordensStore.liquidarOS(o.id)"
-                  class="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-emerald-600 hover:text-white transition flex items-center gap-1"
-                  title="Clique para dar baixa no caixa"
+                  class="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 inline-flex items-center gap-1"
                 >
-                  <CheckCircle class="w-3.5 h-3.5" />
-                  <span>Pendente (Baixar)</span>
-                </button>
+                  <Clock class="w-3.5 h-3.5" />
+                  <span>Pendente</span>
+                </span>
                 <span v-else class="text-xs font-semibold text-slate-600 dark:text-slate-300">
                   {{ o.pagamento_forma }} (Pago)
                 </span>
@@ -224,14 +223,14 @@ function gerarDocumento(os: OrdemServico) {
                     <span>Concluir</span>
                   </button>
 
-                  <!-- Editar OS -->
+                  <!-- Visualizar OS -->
                   <button
                     @click="openEditOS(o)"
-                    title="Editar detalhes da OS (inclui Duplicar e Excluir)"
+                    title="Visualizar e editar detalhes da OS"
                     class="px-2.5 py-1.5 text-xs bg-slate-100 hover:bg-opti-light text-slate-700 dark:text-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl font-bold transition flex items-center gap-1 border border-slate-200 dark:border-slate-600"
                   >
-                    <Edit2 class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
-                    <span>Editar</span>
+                    <Eye class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
+                    <span>Visualizar</span>
                   </button>
 
                   <!-- Gerar Documento / Impressão -->
@@ -278,7 +277,7 @@ function gerarDocumento(os: OrdemServico) {
                 {{ o.id }} • {{ formatDate(o.data_emissao) }}<span v-if="o.hora_emissao"> às {{ o.hora_emissao }}</span>
               </span>
               <span v-if="o.data_entrega" class="block text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                Entregue: {{ formatDate(o.data_entrega) }}<span v-if="o.hora_entrega"> {{ o.hora_entrega }}</span>
+                Entregue: {{ formatDate(o.data_entrega) }}<span v-if="o.hora_entrega">&nbsp;às {{ o.hora_entrega }}</span>
               </span>
               <h4 class="font-bold text-slate-900 dark:text-white text-base leading-tight">{{ o.cliente_nome }}</h4>
               <span class="text-xs text-slate-500 dark:text-slate-400">Equipamento: {{ o.equipamento }}</span>
@@ -300,14 +299,13 @@ function gerarDocumento(os: OrdemServico) {
           <div class="flex justify-between items-center pt-1 text-xs">
             <div>
               <span class="text-slate-500 dark:text-slate-400">Pgto: </span>
-              <button
+              <span
                 v-if="o.pagamento_status === 'Pendente'"
-                @click="ordensStore.liquidarOS(o.id)"
-                class="font-bold text-amber-600 dark:text-amber-400 underline hover:text-emerald-600"
+                class="font-bold text-amber-600 dark:text-amber-400"
               >
-                Pendente (Clique para Baixar)
-              </button>
-              <strong v-else class="text-slate-800 dark:text-slate-200">{{ o.pagamento_forma }}</strong>
+                Pendente
+              </span>
+              <strong v-else class="text-slate-800 dark:text-slate-200">{{ o.pagamento_forma }} (Pago)</strong>
             </div>
 
             <div class="flex items-center gap-1.5 flex-wrap justify-end">
@@ -321,13 +319,13 @@ function gerarDocumento(os: OrdemServico) {
                 <span>Concluir</span>
               </button>
 
-              <!-- Editar -->
+              <!-- Visualizar -->
               <button
                 @click="openEditOS(o)"
                 class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-xl font-bold flex items-center gap-1"
               >
-                <Edit2 class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
-                <span>Editar</span>
+                <Eye class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
+                <span>Visualizar</span>
               </button>
 
               <!-- Gerar Doc -->

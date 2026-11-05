@@ -152,6 +152,12 @@ watch(status, (novoStatus) => {
   }
 })
 
+function finalizarServico() {
+  status.value = 'Concluído'
+  dataEntrega.value = getTodayISO()
+  horaEntrega.value = getCurrentTimeHHMM()
+}
+
 async function handleUpdate() {
   if (!props.ordem || !clienteNome.value.trim() || !servico.value.trim()) return
 
@@ -303,27 +309,45 @@ async function handleDelete() {
           </div>
 
           <!-- Data e Hora de Entrega (Visível sempre, e destacada quando Concluído) -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
-            <div>
-              <label class="block text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400 mb-1">
-                Data de Entrega / Saída
-              </label>
-              <input
-                type="date"
-                v-model="dataEntrega"
-                class="w-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
-              />
+          <div class="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <CheckCircle2 class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Data e Hora de Entrega</span>
+              </span>
+              <button
+                type="button"
+                @click="finalizarServico"
+                class="px-2.5 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                title="Autocompletar data e hora de entrega com o momento atual e marcar como Concluído"
+              >
+                <CheckCircle2 class="w-3.5 h-3.5" />
+                <span>Finalizar / Dar Baixa</span>
+              </button>
             </div>
 
-            <div>
-              <label class="block text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400 mb-1">
-                Hora de Entrega / Saída
-              </label>
-              <input
-                type="time"
-                v-model="horaEntrega"
-                class="w-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
-              />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                  Data de Entrega / Saída
+                </label>
+                <input
+                  type="date"
+                  v-model="dataEntrega"
+                  class="w-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                  Hora de Entrega / Saída
+                </label>
+                <input
+                  type="time"
+                  v-model="horaEntrega"
+                  class="w-full border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 font-semibold"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -538,8 +562,17 @@ async function handleDelete() {
             </button>
           </div>
 
-          <!-- Ações Primárias (Cancelar & Salvar) -->
+          <!-- Ações Primárias (Finalizar, Cancelar & Salvar) -->
           <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="finalizarServico"
+              class="px-3 py-2 border border-emerald-600 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+              title="Preencher data/hora de entrega com data/hora atuais e marcar como Concluído"
+            >
+              <CheckCircle2 class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Finalizar / Baixar</span>
+            </button>
             <button
               type="button"
               @click="emit('close')"

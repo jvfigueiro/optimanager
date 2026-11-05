@@ -180,8 +180,8 @@ function getStatusBadgeClass(status: string) {
       </div>
     </div>
 
-    <!-- Resumo em Duas Colunas: Bancada & Cobranças Pendentes -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Resumo em Lista: Serviços em Aberto acima e Cobranças Pendentes abaixo -->
+    <div class="space-y-6">
       <!-- Na Bancada / Em Aberto -->
       <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 flex flex-col justify-between">
         <div>

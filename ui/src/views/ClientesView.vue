@@ -171,7 +171,7 @@ async function handleDeleteClient(c: Cliente) {
         <table class="w-full text-left border-collapse text-sm">
           <thead>
             <tr class="bg-slate-50 dark:bg-slate-750 text-slate-500 dark:text-slate-400 text-xs uppercase border-b border-slate-200 dark:border-slate-700">
-              <th class="py-3 px-4">#ID</th>
+              <th class="py-3 px-4">ID</th>
               <th class="py-3 px-4">Cliente / Nome</th>
               <th class="py-3 px-4">CPF / CNPJ</th>
               <th class="py-3 px-4">Contato / WhatsApp</th>
@@ -186,7 +186,7 @@ async function handleDeleteClient(c: Cliente) {
               class="hover:bg-slate-50/80 dark:hover:bg-slate-750 transition"
             >
               <td class="py-3 px-4 font-mono text-xs text-opti dark:text-blue-400 font-bold">
-                #{{ c.id }}
+                {{ c.id }}
               </td>
               <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
                 {{ c.nome }}
@@ -258,7 +258,7 @@ async function handleDeleteClient(c: Cliente) {
         >
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <span class="text-xs font-mono font-bold text-opti dark:text-blue-400">#{{ c.id }}</span>
+              <span class="text-xs font-mono font-bold text-opti dark:text-blue-400">{{ c.id }}</span>
               <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">{{ c.nome }}</h4>
             </div>
             <p v-if="c.doc" class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
@@ -319,7 +319,7 @@ async function handleDeleteClient(c: Cliente) {
         <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center">
           <div class="flex items-center gap-2">
             <Edit2 class="w-5 h-5" />
-            <h3 class="font-bold text-sm sm:text-base">Editar Cliente #{{ editingClient.id }}</h3>
+            <h3 class="font-bold text-sm sm:text-base">Editar Cliente {{ editingClient.id }}</h3>
           </div>
           <button
             @click="closeEdit"
