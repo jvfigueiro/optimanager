@@ -41,7 +41,7 @@ export const useOrdensStore = defineStore('ordens', () => {
     try {
       const nova = await api.createOrdem(payload)
       ordens.value.unshift(nova)
-      toast.show(`✅ OS #${nova.id} registrada com sucesso!`)
+      toast.show(`✅ OS ${nova.id} registrada com sucesso!`)
       return nova
     } catch (err: any) {
       toast.show('Erro ao criar OS: ' + err.message, 'error')
@@ -59,7 +59,7 @@ export const useOrdensStore = defineStore('ordens', () => {
       if (idx !== -1) {
         ordens.value[idx] = atualizada
       }
-      toast.show(`✅ OS #${id} atualizada com sucesso!`)
+      toast.show(`✅ OS ${id} atualizada com sucesso!`)
       return atualizada
     } catch (err: any) {
       toast.show('Erro ao atualizar OS: ' + err.message, 'error')
@@ -76,7 +76,7 @@ export const useOrdensStore = defineStore('ordens', () => {
       if (idx !== -1) {
         ordens.value[idx] = res
       }
-      toast.show(`💰 Pagamento da OS #${id} baixado com sucesso!`)
+      toast.show(`💰 Pagamento da OS ${id} baixado com sucesso!`)
       return res
     } catch (err: any) {
       toast.show('Erro ao liquidar OS: ' + err.message, 'error')
@@ -89,7 +89,7 @@ export const useOrdensStore = defineStore('ordens', () => {
     try {
       await api.deleteOrdem(id)
       ordens.value = ordens.value.filter((o) => o.id !== id)
-      toast.show(`🗑️ OS #${id} excluída com sucesso!`)
+      toast.show(`🗑️ OS ${id} excluída com sucesso!`)
     } catch (err: any) {
       toast.show('Erro ao excluir OS: ' + err.message, 'error')
       throw err
@@ -113,7 +113,7 @@ export const useOrdensStore = defineStore('ordens', () => {
         pagamento_forma: os.pagamento_forma || 'Pix',
       })
       ordens.value.unshift(duplicada)
-      toast.show(`📑 OS duplicada com sucesso! Nova OS #${duplicada.id} criada.`)
+      toast.show(`📑 OS duplicada com sucesso! Nova OS ${duplicada.id} criada.`)
       return duplicada
     } catch (err: any) {
       toast.show('Erro ao duplicar OS: ' + err.message, 'error')

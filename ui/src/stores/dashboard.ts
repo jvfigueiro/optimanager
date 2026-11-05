@@ -37,12 +37,44 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
-  function copyCNPJ(showNotification = true) {
-    const cnpj = configStore.config.cnpj || ''
-    if (!cnpj) return
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(cnpj).catch(() => {})
+  async function copyCNPJ(showNotification = true) {
+    const cnpj = configStore.config.cnpj?.trim() || ''
+    if (!cnpj) {
+      if (showNotification) {
+        toast.show('Nenhum CNPJ/CPF cadastrado nas configurações da empresa.', 'info')
+      }
+      return
     }
+
+    let copied = false
+    if (navigator?.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(cnpj)
+        copied = true
+      } catch {
+        copied = false
+      }
+    }
+
+    if (!copied) {
+      try {
+        const textarea = document.createElement('textarea')
+        textarea.value = cnpj
+        textarea.setAttribute('readonly', '')
+        textarea.style.position = 'fixed'
+        textarea.style.top = '0'
+        textarea.style.left = '0'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        copied = document.execCommand('copy')
+        document.body.removeChild(textarea)
+      } catch {
+        copied = false
+      }
+    }
+
     if (showNotification) {
       toast.show(`📋 CNPJ ${cnpj} copiado para a área de transferência!`)
     }
@@ -108,7 +140,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   async function liquidarOS(id: number) {
     try {
       await api.baixaPagamento(id, 'Pix', 'Pago')
-      toast.show(`💰 Pagamento da OS #${id} baixado com sucesso!`)
+      toast.show(`💰 Pagamento da OS ${id} baixado com sucesso!`)
       await loadDashboard()
     } catch (err: any) {
       toast.show('Erro ao baixar pagamento: ' + err.message, 'error')

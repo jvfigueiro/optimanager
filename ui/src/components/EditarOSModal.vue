@@ -200,7 +200,7 @@ async function handleDuplicate() {
 async function handleDelete() {
   if (!props.ordem) return
 
-  if (confirm(`Deseja realmente EXCLUIR permanentemente a OS #${props.ordem.id} do cliente "${props.ordem.cliente_nome}"?`)) {
+  if (confirm(`Deseja realmente EXCLUIR permanentemente a OS ${props.ordem.id} do cliente "${props.ordem.cliente_nome}"?`)) {
     isDeleting.value = true
     try {
       await ordensStore.deleteOrdem(props.ordem.id)
@@ -230,7 +230,7 @@ async function handleDelete() {
           <CheckCircle2 v-if="concluding" class="w-5 h-5 text-emerald-300" />
           <Edit2 v-else class="w-5 h-5" />
           <h3 class="font-bold text-sm sm:text-base">
-            {{ concluding ? `Concluir Serviço & Registrar Entrega — OS #${ordem.id}` : `Editar Serviço #${ordem.id}` }}
+            {{ concluding ? `Concluir Serviço & Registrar Entrega — OS ${ordem.id}` : `Editar Serviço ${ordem.id}` }}
           </h3>
         </div>
         <button

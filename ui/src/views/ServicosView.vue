@@ -169,7 +169,7 @@ function gerarDocumento(os: OrdemServico) {
               class="hover:bg-slate-50 dark:hover:bg-slate-750 transition"
             >
               <td class="py-3.5 px-4 whitespace-nowrap">
-                <span class="font-bold text-opti dark:text-blue-400">#{{ o.id }}</span>
+                <span class="font-bold text-opti dark:text-blue-400">{{ o.id }}</span>
                 <span class="block text-xs text-slate-400">
                   {{ formatDate(o.data_emissao) }}<span v-if="o.hora_emissao"> às {{ o.hora_emissao }}</span>
                 </span>
@@ -275,7 +275,7 @@ function gerarDocumento(os: OrdemServico) {
           <div class="flex justify-between items-start">
             <div>
               <span class="text-xs font-bold text-opti dark:text-blue-400">
-                #{{ o.id }} • {{ formatDate(o.data_emissao) }}<span v-if="o.hora_emissao"> às {{ o.hora_emissao }}</span>
+                {{ o.id }} • {{ formatDate(o.data_emissao) }}<span v-if="o.hora_emissao"> às {{ o.hora_emissao }}</span>
               </span>
               <span v-if="o.data_entrega" class="block text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
                 Entregue: {{ formatDate(o.data_entrega) }}<span v-if="o.hora_entrega"> {{ o.hora_entrega }}</span>

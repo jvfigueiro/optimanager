@@ -37,6 +37,7 @@ const docData = ref('')
 const docHora = ref('')
 const docEntrega = ref('')
 const docContato = ref('')
+const docStatus = ref('Aberto')
 
 // Cláusula de garantia e observações legais
 const docTermoGarantia = ref('')
@@ -112,6 +113,7 @@ function carregarOSNoGerador(id: number) {
     ? `${formatDate(os.data_entrega)}${os.hora_entrega ? ' às ' + os.hora_entrega : ''}`
     : ''
   docContato.value = os.cliente_contato || ''
+  docStatus.value = os.status || 'Aberto'
 }
 
 function openPersonalizarModal() {
@@ -146,13 +148,48 @@ const docTitulo = computed(() => {
     case 'os':
       return 'Ordem de Serviço (OS)'
     case 'orcamento':
-      return 'Orçamento Técnico'
+      return 'Orçamento'
     case 'relatorio':
       return 'Relatório de Serviço'
     case 'recibo':
       return 'Recibo de Pagamento'
   }
 })
+
+function formatDataExtenso(dateStr?: string): string {
+  const meses = [
+    'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+  ]
+  const hoje = new Date()
+  if (dateStr) {
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/')
+      if (parts.length === 3) {
+        const dia = parseInt(parts[0], 10)
+        const mes = parseInt(parts[1], 10) - 1
+        const ano = parseInt(parts[2], 10)
+        if (!isNaN(dia) && !isNaN(mes) && !isNaN(ano) && mes >= 0 && mes < 12) {
+          const diaFmt = String(dia).padStart(2, '0')
+          return `${diaFmt} do ${meses[mes]} de ${ano}`
+        }
+      }
+    } else if (dateStr.includes('-')) {
+      const parts = dateStr.split('-')
+      if (parts.length === 3) {
+        const ano = parseInt(parts[0], 10)
+        const mes = parseInt(parts[1], 10) - 1
+        const dia = parseInt(parts[2], 10)
+        if (!isNaN(dia) && !isNaN(mes) && !isNaN(ano) && mes >= 0 && mes < 12) {
+          const diaFmt = String(dia).padStart(2, '0')
+          return `${diaFmt} do ${meses[mes]} de ${ano}`
+        }
+      }
+    }
+  }
+  const diaFmt = String(hoje.getDate()).padStart(2, '0')
+  return `${diaFmt} do ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`
+}
 
 function dispararWhatsApp() {
   const cleanPhone = docContato.value.replace(/\D+/g, '')
@@ -162,12 +199,15 @@ function dispararWhatsApp() {
   }
   const fone = (cleanPhone.length === 10 || cleanPhone.length === 11) ? '55' + cleanPhone : cleanPhone
 
-  const msg = `*${configStore.config.fantasia}* - ${docTitulo.value}\nRef: OS #${selectedOSId.value || 'N/A'}\n\n` +
-    `*Cliente:* ${docCliente.value}\n` +
-    `*Equipamento:* ${docEquipamento.value}\n` +
-    `*Serviço:* ${docServico.value}\n` +
-    `*Valor:* ${formatBRL(docValor.value)}\n\n` +
-    `Chave Pix (CNPJ): ${configStore.config.cnpj}\n\n` +
+  const numOS = selectedOSId.value ? `${selectedOSId.value}` : ''
+  const statusStr = docStatus.value || 'Aberto'
+  const msg = `${configStore.config.fantasia} - ${docTitulo.value}\n` +
+    `OS/Código ${numOS}\n\n` +
+    `Cliente: ${docCliente.value}\n` +
+    `Item: ${docEquipamento.value}\n` +
+    `Serviço: ${docServico.value}\n` +
+    `Situação: ${statusStr}\n` +
+    `Valor: ${formatBRL(docValor.value)}\n\n` +
     `Qualquer dúvida estamos à disposição!`
 
   window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -206,7 +246,7 @@ function imprimirDocumento() {
             :key="o.id"
             :value="o.id"
           >
-            OS #{{ o.id }} - {{ o.cliente_nome }} ({{ formatDate(o.data_emissao) }})
+            OS {{ o.id }} - {{ o.cliente_nome }} ({{ formatDate(o.data_emissao) }})
           </option>
         </select>
       </div>
@@ -371,7 +411,7 @@ function imprimirDocumento() {
         <!-- LAYOUT DUPLICADO NA MESMA FOLHA: ORDEM DE SERVIÇO (OS) -->
         <div v-if="docType === 'os'" class="space-y-4">
           <!-- 1ª VIA -->
-          <div class="border border-slate-400 rounded-xl p-4 bg-white space-y-2.5">
+          <div class="p-2 bg-white space-y-2.5">
             <div class="flex justify-between items-start border-b border-opti pb-2">
               <div class="flex items-center gap-2.5">
                 <img
@@ -403,7 +443,7 @@ function imprimirDocumento() {
                   </span>
                 </div>
                 <p class="text-xs text-slate-800 mt-0.5 font-bold">
-                  OS #{{ selectedOSId || '---' }} • <span class="text-slate-600 font-normal">{{ docData }}<span v-if="docHora"> às {{ docHora }}</span></span>
+                  OS {{ selectedOSId || '---' }} • <span class="text-slate-600 font-normal">{{ docData }}<span v-if="docHora"> às {{ docHora }}</span></span>
                 </p>
               </div>
             </div>
@@ -449,7 +489,7 @@ function imprimirDocumento() {
             <div class="pt-1">
               <div class="grid grid-cols-2 gap-6 text-[10px] text-center text-slate-700 mb-1">
                 <div class="border-t border-slate-500 pt-1">
-                  {{ responsavelAtual }} (Responsável)
+                  {{ responsavelAtual }} ({{ configStore.config.fantasia || 'Empresa' }})
                 </div>
                 <div class="border-t border-slate-500 pt-1">
                   {{ docCliente || 'Assinatura do Cliente' }}
@@ -467,7 +507,7 @@ function imprimirDocumento() {
           </div>
 
           <!-- 2ª VIA -->
-          <div class="border border-slate-400 rounded-xl p-4 bg-white space-y-2.5">
+          <div class="p-2 bg-white space-y-2.5">
             <div class="flex justify-between items-start border-b border-opti pb-2">
               <div class="flex items-center gap-2.5">
                 <img
@@ -499,7 +539,7 @@ function imprimirDocumento() {
                   </span>
                 </div>
                 <p class="text-xs text-slate-800 mt-0.5 font-bold">
-                  OS #{{ selectedOSId || '---' }} • <span class="text-slate-600 font-normal">{{ docData }}<span v-if="docHora"> às {{ docHora }}</span></span>
+                  OS {{ selectedOSId || '---' }} • <span class="text-slate-600 font-normal">{{ docData }}<span v-if="docHora"> às {{ docHora }}</span></span>
                 </p>
               </div>
             </div>
@@ -545,7 +585,7 @@ function imprimirDocumento() {
             <div class="pt-1">
               <div class="grid grid-cols-2 gap-6 text-[10px] text-center text-slate-700 mb-1">
                 <div class="border-t border-slate-500 pt-1">
-                  {{ responsavelAtual }} (Responsável)
+                  {{ responsavelAtual }} ({{ configStore.config.fantasia || 'Empresa' }})
                 </div>
                 <div class="border-t border-slate-500 pt-1">
                   {{ docCliente || 'Assinatura do Cliente' }}
@@ -593,7 +633,7 @@ function imprimirDocumento() {
                   {{ docTitulo }}
                 </span>
                 <p class="text-xs text-slate-700 mt-2 font-bold">
-                  Cód. #{{ selectedOSId || '---' }}
+                  Cód. {{ selectedOSId || '---' }}
                 </p>
               </div>
             </div>
@@ -666,15 +706,11 @@ function imprimirDocumento() {
               </div>
 
               <p class="text-justify leading-loose text-sm text-slate-900">
-                Eu, <strong>{{ configStore.config.razao_social }}</strong>, inscrito sob o CNPJ <strong>{{ configStore.config.cnpj }}</strong>,
-                recebi de <strong>{{ docCliente }}</strong>
-                <span v-if="docCpfCnpj"> (CPF/CNPJ: {{ docCpfCnpj }})</span>, a importância de
-                <strong>{{ formatBRL(docValor) }}</strong>, referente a:
-                <em>{{ docServico }}</em>, e para clareza e fins legais firmo o presente recibo.
+                <strong>{{ configStore.config.fantasia }}</strong>, inscrito sob o CPF/CNPJ <strong>{{ configStore.config.cnpj }}</strong>, recebi de <strong>{{ docCliente }}</strong>, a importância de <strong>{{ formatBRL(docValor) }}</strong>, referente a: <em>{{ docServico }}</em>, e para clareza e fins legais firmo o presente recibo.
               </p>
 
               <p class="text-right text-xs text-slate-700">
-                {{ configStore.config.cidade }}, {{ docData }}.
+                {{ configStore.config.cidade }}, {{ formatDataExtenso(docData) }}
               </p>
             </div>
           </div>
@@ -690,7 +726,7 @@ function imprimirDocumento() {
               </div>
             </div>
             <p class="text-center text-[10px] font-bold text-opti border-t border-slate-300 pt-2 tracking-wide">
-              Emitido via OptiManager • {{ configStore.config.fantasia }} • {{ configStore.config.cidade }}
+              Emitido via OptiManager • {{ configStore.config.fantasia }}
             </p>
           </div>
         </div>

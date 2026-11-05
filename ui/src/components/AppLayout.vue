@@ -110,6 +110,12 @@ const abertosCount = computed(
               <span class="text-[11px] text-blue-200 block truncate">
                 {{ configStore.config.razao_social }}
               </span>
+              <span
+                v-if="configStore.config.cnpj"
+                class="text-[11px] text-blue-200/80 font-mono block truncate"
+              >
+                {{ configStore.config.cnpj }}
+              </span>
             </div>
           </div>
 

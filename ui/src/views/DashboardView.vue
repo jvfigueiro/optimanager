@@ -210,7 +210,7 @@ function getStatusBadgeClass(status: string) {
             >
               <div class="truncate">
                 <div class="flex items-center gap-1.5">
-                  <span class="text-xs font-bold text-opti dark:text-blue-400">#{{ o.id }}</span>
+                  <span class="text-xs font-bold text-opti dark:text-blue-400">{{ o.id }}</span>
                   <span class="font-bold text-slate-800 dark:text-slate-200 truncate">
                     {{ o.cliente_nome }}
                   </span>
