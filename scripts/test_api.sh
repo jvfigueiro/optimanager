@@ -41,16 +41,16 @@ echo "=== 3.1. Configurando Administrador e Dados da Empresa (/api/auth/setup) =
 SETUP_RESP=$(curl -s -X POST "$BASE_URL/auth/setup" \
   -H "Content-Type: application/json" \
   -d '{
-    "nome":"João Administrador",
+    "nome":"Administrador de Teste",
     "email":"admin@optimanager.com.br",
     "senha":"password123",
-    "fantasia":"Opti Tecnologia",
-    "razao_social":"João Vítor Streb Figueiró",
-    "cnpj":"38.136.905/0001-66",
-    "fones":"(55) 99127-2332 | (55) 99674-5762",
-    "email_contato":"contato@optitecnologia.com.br",
-    "endereco":"Av. Rio Branco, 500 - Centro",
-    "cidade":"Santa Maria - RS"
+    "fantasia":"Tech Soluções & Serviços",
+    "razao_social":"Soluções em Tecnologia & Serviços Ltda",
+    "cnpj":"00.000.000/0001-00",
+    "fones":"(11) 98765-4321",
+    "email_contato":"contato@empresa.com.br",
+    "endereco":"Av. Paulista, 1000 - Bela Vista",
+    "cidade":"São Paulo - SP"
   }')
 echo "Setup Admin: $SETUP_RESP"
 TOKEN=$(echo "$SETUP_RESP" | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
@@ -78,7 +78,7 @@ echo ""
 echo "=== 4. Consultando Configuração Padrão ==="
 CONFIG=$(curl -s "$BASE_URL/config")
 echo "Config: $CONFIG"
-echo "$CONFIG" | grep -q "38.136.905/0001-66" || { echo "Falha na config inicial"; exit 1; }
+echo "$CONFIG" | grep -q "00.000.000/0001-00" || { echo "Falha na config inicial"; exit 1; }
 
 echo ""
 echo "=== 5. Métricas Iniciais do Dashboard ==="

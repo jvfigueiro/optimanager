@@ -235,7 +235,7 @@ function imprimirDocumento() {
       <!-- 1. Seletor de OS -->
       <div>
         <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-          1. Puxar dados da Ordem de Serviço
+          Selecione a Ordem de Serviço
         </label>
         <select
           v-model="selectedOSId"

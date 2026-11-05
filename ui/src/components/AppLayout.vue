@@ -133,15 +133,6 @@ const abertosCount = computed(
           >
             <X class="w-6 h-6" />
           </button>
-
-          <!-- Botão Ocultar Barra Lateral (Desktop) -->
-          <button
-            @click="nav.toggleDesktopSidebar()"
-            class="hidden lg:flex text-blue-200 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition"
-            title="Ocultar barra lateral"
-          >
-            <PanelLeftClose class="w-5 h-5" />
-          </button>
         </div>
 
         <!-- Botão Principal de Ação e Copiar CNPJ -->

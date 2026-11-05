@@ -249,7 +249,7 @@ async function handleSubmit() {
                   type="text"
                   v-model="nome"
                   required
-                  placeholder="Ex: João Figueiró"
+                  placeholder="Ex: Carlos Eduardo Silva"
                   class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl pl-10 pr-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-opti"
                 />
               </div>
@@ -360,7 +360,7 @@ async function handleSubmit() {
                     type="text"
                     v-model="fantasia"
                     required
-                    placeholder="Ex: Opti Tecnologia"
+                    placeholder="Ex: Tech Soluções & Serviços"
                     class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl pl-10 pr-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
                   />
                 </div>
@@ -377,7 +377,7 @@ async function handleSubmit() {
                     type="text"
                     v-model="razaoSocial"
                     required
-                    placeholder="Ex: João Vítor Figueiró MEI"
+                    placeholder="Ex: Silva & Santos Serviços Ltda"
                     class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl pl-10 pr-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
                   />
                 </div>
@@ -408,7 +408,7 @@ async function handleSubmit() {
                     type="text"
                     v-model="fones"
                     required
-                    placeholder="(55) 99999-9999"
+                    placeholder="(11) 98765-4321"
                     class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl pl-10 pr-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
                   />
                 </div>
@@ -440,7 +440,7 @@ async function handleSubmit() {
                   <input
                     type="text"
                     v-model="endereco"
-                    placeholder="Rua, Número, Bairro"
+                    placeholder="Ex: Av. Paulista, 1000 - Bela Vista"
                     class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl pl-10 pr-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
                   />
                 </div>
@@ -455,7 +455,7 @@ async function handleSubmit() {
                   type="text"
                   v-model="cidade"
                   required
-                  placeholder="Ex: Santa Maria - RS"
+                  placeholder="Ex: São Paulo - SP"
                   class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
                 />
               </div>

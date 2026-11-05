@@ -90,12 +90,12 @@ func (os *OrdemServico) BuildWhatsAppURL(cnpj, empresa string) string {
 		cleanPhone = "55" + cleanPhone
 	}
 
-	empresaNome := "Opti Tecnologia"
+	empresaNome := "Minha Empresa Tech"
 	if empresa != "" {
 		empresaNome = empresa
 	}
 
-	pixKey := "38.136.905/0001-66"
+	pixKey := "00.000.000/0001-00"
 	if cnpj != "" {
 		pixKey = cnpj
 	}

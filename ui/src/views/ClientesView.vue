@@ -107,7 +107,7 @@ async function handleDeleteClient(c: Cliente) {
       <div class="flex items-center gap-2 mb-1">
         <UserPlus class="w-5 h-5 text-opti" />
         <h3 class="font-bold text-base text-slate-800 dark:text-white">
-          Adicionar Cliente à Base de Autocompletar
+          Adicionar Cliente
         </h3>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
@@ -119,19 +119,19 @@ async function handleDeleteClient(c: Cliente) {
           type="text"
           v-model="nome"
           required
-          placeholder="Nome / Empresa *"
+          placeholder="Ex: Mariana Silva ou Mercado Central"
           class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 lg:col-span-2 focus:outline-none focus:ring-2 focus:ring-opti"
         />
         <input
           type="text"
           v-model="doc"
-          placeholder="CPF ou CNPJ (opcional)"
+          placeholder="000.000.000-00 ou CNPJ"
           class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
         />
         <input
           type="text"
           v-model="contato"
-          placeholder="WhatsApp / Telefone"
+          placeholder="(11) 98765-4321"
           class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
         />
         <button
@@ -349,7 +349,7 @@ async function handleDeleteClient(c: Cliente) {
             <input
               type="text"
               v-model="editDoc"
-              placeholder="CPF ou CNPJ (opcional)"
+              placeholder="000.000.000-00 ou CNPJ"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
             />
           </div>
@@ -361,7 +361,7 @@ async function handleDeleteClient(c: Cliente) {
             <input
               type="text"
               v-model="editContato"
-              placeholder="WhatsApp / Telefone"
+              placeholder="(11) 98765-4321"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
             />
           </div>

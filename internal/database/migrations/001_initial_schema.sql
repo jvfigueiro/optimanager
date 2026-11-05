@@ -2,14 +2,14 @@
 
 CREATE TABLE IF NOT EXISTS config (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    fantasia TEXT NOT NULL DEFAULT 'Opti Tecnologia',
-    razao_social TEXT NOT NULL DEFAULT 'João Vítor Streb Figueiró',
-    cnpj TEXT NOT NULL DEFAULT '38.136.905/0001-66',
-    responsavel TEXT NOT NULL DEFAULT 'João Figueiró',
-    fones TEXT NOT NULL DEFAULT '(55) 99127-2332 | (55) 99674-5762',
-    email_contato TEXT NOT NULL DEFAULT '',
-    endereco TEXT NOT NULL DEFAULT '',
-    cidade TEXT NOT NULL DEFAULT 'Santa Maria - RS',
+    fantasia TEXT NOT NULL DEFAULT 'Minha Empresa Tech',
+    razao_social TEXT NOT NULL DEFAULT 'Soluções em Tecnologia & Serviços Ltda',
+    cnpj TEXT NOT NULL DEFAULT '00.000.000/0001-00',
+    responsavel TEXT NOT NULL DEFAULT 'Administrador',
+    fones TEXT NOT NULL DEFAULT '(11) 98765-4321',
+    email_contato TEXT NOT NULL DEFAULT 'contato@empresa.com.br',
+    endereco TEXT NOT NULL DEFAULT 'Av. Paulista, 1000 - Bela Vista',
+    cidade TEXT NOT NULL DEFAULT 'São Paulo - SP',
     vt_valor_padrao REAL NOT NULL DEFAULT 80.00,
     termo_garantia TEXT NOT NULL DEFAULT 'Garantia de 90 dias para serviços prestados e peças substituídas.',
     termo_responsabilidade TEXT NOT NULL DEFAULT 'Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda.',
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS atalhos (
 -- Insert default quick shortcuts if table is empty
 INSERT OR IGNORE INTO atalhos (id, titulo, descricao, url, ordem) VALUES
 (1, 'PGMEI - Guia DAS', 'Gerador de DAS do MEI', 'http://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao', 1),
-(2, 'ISSNet Santa Maria', 'Nota Fiscal Eletrônica Municipal', 'https://www.issnetonline.com.br/santamaria/online/login/login.aspx', 2),
+(2, 'Portal da Nota Fiscal (NFS-e)', 'Emissão de NFS-e Nacional / Municipal', 'https://www.gov.br/nfse/pt-br', 2),
 (3, 'Portal do Empreendedor', 'Serviços e Declaração Anual (DASN)', 'https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei', 3),
 (4, 'Consulta Cartão CNPJ', 'Comprovante de Inscrição Receita', 'https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp', 4);
 

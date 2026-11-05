@@ -500,6 +500,7 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.fantasia"
               required
+              placeholder="Ex: Tech Soluções & Serviços"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
@@ -512,6 +513,7 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.razao_social"
               required
+              placeholder="Ex: Soluções em Tecnologia & Serviços Ltda"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
@@ -524,6 +526,7 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.cnpj"
               required
+              placeholder="00.000.000/0001-00"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-mono focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
@@ -536,6 +539,7 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.fones"
               required
+              placeholder="(11) 98765-4321"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
@@ -559,7 +563,7 @@ async function handleDeleteUser(u: Usuario) {
             <input
               type="text"
               v-model="form.endereco"
-              placeholder="Rua, Número, Bairro"
+              placeholder="Ex: Av. Paulista, 1000 - Bela Vista"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
@@ -572,6 +576,7 @@ async function handleDeleteUser(u: Usuario) {
               type="text"
               v-model="form.cidade"
               required
+              placeholder="Ex: São Paulo - SP"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>

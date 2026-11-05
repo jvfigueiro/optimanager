@@ -147,7 +147,7 @@ func (d *DB) migrate() error {
 		_ = d.Writer.QueryRow(`SELECT COUNT(*) FROM config WHERE id = 1`).Scan(&configRowCount)
 		if configRowCount == 0 {
 			insertQuery := `INSERT OR IGNORE INTO config (id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria)
-			VALUES (1, 'Opti Tecnologia', 'João Vítor Streb Figueiró', '38.136.905/0001-66', 'João Figueiró', '(55) 99127-2332 | (55) 99674-5762', '', '', 'Santa Maria - RS', 80.00, 'Garantia legal de 90 dias para serviços executados e peças aplicadas.', '', '#0B5694', '#083f6e')`
+			VALUES (1, 'Minha Empresa Tech', 'Soluções em Tecnologia & Serviços Ltda', '00.000.000/0001-00', 'Administrador', '(11) 98765-4321', 'contato@empresa.com.br', 'Av. Paulista, 1000 - Bela Vista', 'São Paulo - SP', 80.00, 'Garantia legal de 90 dias para serviços executados e peças aplicadas.', '', '#0B5694', '#083f6e')`
 			if _, err := d.Writer.Exec(insertQuery); err != nil {
 				return fmt.Errorf("failed to insert default config record: %w", err)
 			}

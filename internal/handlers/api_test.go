@@ -93,16 +93,16 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 func setupAdminAndGetToken(t *testing.T, r *chi.Mux) string {
 	t.Helper()
 	setupPayload := models.SetupAdminRequest{
-		Nome:         "João Figueiró",
-		Email:        "admin@optimanager.com",
+		Nome:         "Administrador de Teste",
+		Email:        "admin@empresa.com.br",
 		Senha:        "password123",
-		Fantasia:     "Opti Tecnologia",
-		RazaoSocial:  "João Vítor Streb Figueiró",
-		CNPJ:         "38.136.905/0001-66",
-		Fones:        "(55) 99127-2332",
-		EmailContato: "contato@optitecnologia.com.br",
-		Endereco:     "Rua dos Andradas, 1000",
-		Cidade:       "Santa Maria - RS",
+		Fantasia:     "Tech Soluções de Teste",
+		RazaoSocial:  "Tech Soluções & Serviços Ltda",
+		CNPJ:         "00.000.000/0001-00",
+		Fones:        "(11) 98765-4321",
+		EmailContato: "contato@empresa.com.br",
+		Endereco:     "Av. Paulista, 1000 - Bela Vista",
+		Cidade:       "São Paulo - SP",
 	}
 	body, _ := json.Marshal(setupPayload)
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/setup", bytes.NewReader(body))
