@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useNavigationStore, type ViewType } from '../stores/navigation'
 import { useConfigStore } from '../stores/config'
 import { useDashboardStore } from '../stores/dashboard'
@@ -22,6 +22,7 @@ import {
   PanelLeftOpen,
   LogOut,
   UserCheck,
+  Download,
 } from 'lucide-vue-next'
 
 import DashboardView from '../views/DashboardView.vue'
@@ -71,6 +72,28 @@ const currentMeta = computed(() => pageMeta[nav.currentView])
 const abertosCount = computed(
   () => dashboardStore.data.metricas.qtd_abertos || 0
 )
+
+// PWA Install Prompt
+const deferredPrompt = ref<any>(null)
+const canInstallPwa = ref(false)
+
+onMounted(() => {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault()
+    deferredPrompt.value = e
+    canInstallPwa.value = true
+  })
+})
+
+async function instalarPwa() {
+  if (!deferredPrompt.value) return
+  deferredPrompt.value.prompt()
+  const { outcome } = await deferredPrompt.value.userChoice
+  if (outcome === 'accepted') {
+    canInstallPwa.value = false
+  }
+  deferredPrompt.value = null
+}
 </script>
 
 <template>
@@ -101,14 +124,14 @@ const abertosCount = computed(
               v-if="configStore.config.logo_base64"
               :src="configStore.config.logo_base64"
               alt="Logo"
-              class="w-10 h-10 object-contain rounded-lg bg-white p-0.5 shrink-0"
+              class="w-10 h-10 object-contain rounded-lg bg-white p-0.5 shrink-0 shadow-xs"
             />
-            <div
+            <img
               v-else
-              class="bg-white text-opti font-black px-2.5 py-1.5 rounded-lg text-lg tracking-tight shadow shrink-0"
-            >
-              OPTI
-            </div>
+              src="/icon.png"
+              alt="OptiManager"
+              class="w-10 h-10 object-contain rounded-lg bg-white/95 p-0.5 shrink-0 shadow-xs"
+            />
             <div class="truncate">
               <h1 class="font-bold text-base leading-tight truncate">
                 {{ configStore.config.fantasia }}
@@ -250,6 +273,20 @@ const abertosCount = computed(
             <Settings class="w-5 h-5 shrink-0" />
             <span>Configurações</span>
           </button>
+
+          <!-- Botão Instalar App PWA (na Barra Lateral) -->
+          <button
+            v-if="canInstallPwa"
+            @click="instalarPwa"
+            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition font-medium bg-white/15 hover:bg-white/25 text-white border border-white/20 text-xs shadow-xs mt-2"
+            title="Instalar aplicativo no computador ou smartphone"
+          >
+            <div class="flex items-center gap-2.5">
+              <Download class="w-4 h-4 text-emerald-300 shrink-0" />
+              <span>Instalar Aplicativo</span>
+            </div>
+            <span class="text-[10px] bg-emerald-400 text-slate-900 px-1.5 py-0.5 rounded font-black">PWA</span>
+          </button>
         </nav>
       </div>
 
@@ -306,6 +343,17 @@ const abertosCount = computed(
         </div>
 
         <div class="flex items-center gap-2">
+          <!-- Botão Instalar App (PWA) no Topo -->
+          <button
+            v-if="canInstallPwa"
+            @click="instalarPwa"
+            class="hidden sm:flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-opti dark:text-blue-400 border border-blue-200 dark:border-blue-800 text-xs font-bold px-3 py-1.5 rounded-xl transition"
+            title="Instalar o OptiManager como aplicativo"
+          >
+            <Download class="w-3.5 h-3.5" />
+            <span>Instalar App</span>
+          </button>
+
           <!-- Alternador de Tema Claro/Escuro -->
           <button
             @click="configStore.toggleTheme()"

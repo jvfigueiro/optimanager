@@ -6,7 +6,6 @@ import type { Usuario, AutocompletePresets } from '../types'
 import {
   Settings,
   Upload,
-  Image,
   Palette,
   CheckCircle2,
   Users,
@@ -396,7 +395,13 @@ async function handleDeleteUser(u: Usuario) {
                 alt="Logo Preview"
                 class="w-full h-full object-contain"
               />
-              <Image v-else class="w-8 h-8 text-slate-400" />
+              <img
+                v-else
+                src="/icon.png"
+                alt="Ícone Padrão"
+                class="w-full h-full object-contain p-2 opacity-70"
+                title="Ícone padrão da aplicação"
+              />
             </div>
 
             <div class="space-y-2">

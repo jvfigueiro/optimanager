@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS config (
     cor_secundaria TEXT NOT NULL DEFAULT '#083f6e'
 );
 
+INSERT OR IGNORE INTO config (id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria)
+VALUES (1, 'Minha Empresa Tech', 'Soluções em Tecnologia & Serviços Ltda', '00.000.000/0001-00', 'Administrador', '(11) 98765-4321', 'contato@empresa.com.br', 'Av. Paulista, 1000 - Bela Vista', 'São Paulo - SP', 80.00, 'Garantia legal de 90 dias para serviços executados e peças aplicadas.', '', '#0B5694', '#083f6e');
+
 CREATE TABLE IF NOT EXISTS clientes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL UNIQUE COLLATE NOCASE,

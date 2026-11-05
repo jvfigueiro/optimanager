@@ -40,16 +40,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function setupAdmin(payload: SetupAdminPayload) {
+  async function setupAdmin(payload: SetupAdminPayload, autoAuthenticate = true) {
     loading.value = true
     try {
       const res = await api.setupAdmin(payload)
       localStorage.setItem(TOKEN_STORAGE_KEY, res.token)
       user.value = res.usuario
-      needsSetup.value = false
-      isAuthenticated.value = true
+      if (autoAuthenticate) {
+        needsSetup.value = false
+        isAuthenticated.value = true
+        toast.show(`🎉 Bem-vindo(a), ${res.usuario.nome}! Empresa e administrador configurados.`)
+      }
       await configStore.loadConfig()
-      toast.show(`🎉 Bem-vindo(a), ${res.usuario.nome}! Empresa e administrador configurados.`)
       return res.usuario
     } catch (err: any) {
       toast.show(err.message || 'Erro ao configurar administrador', 'error')
@@ -57,6 +59,12 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  function completeSetup() {
+    needsSetup.value = false
+    isAuthenticated.value = true
+    toast.show(`🎉 Bem-vindo(a), ${user.value?.nome || 'Administrador'}!`)
   }
 
   async function login(email: string, senha: string) {
@@ -147,6 +155,7 @@ export const useAuthStore = defineStore('auth', () => {
     usuarios,
     checkStatus,
     setupAdmin,
+    completeSetup,
     login,
     logout,
     loadUsuarios,

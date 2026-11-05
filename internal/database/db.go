@@ -8,18 +8,34 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
 
 //go:embed migrations/001_initial_schema.sql
-var initialSchemaSQL string
+var migration001SQL string
 
-// DB holds the SQLite database connection pools.
+//go:embed migrations/002_backup_and_audit.sql
+var migration002SQL string
+
+type Migration struct {
+	Version int
+	Name    string
+	SQL     string
+}
+
+var migrations = []Migration{
+	{Version: 1, Name: "001_initial_schema", SQL: migration001SQL},
+	{Version: 2, Name: "002_backup_and_audit", SQL: migration002SQL},
+}
+
+// DB holds the SQLite database connection pools and metadata.
 type DB struct {
-	Writer *sql.DB
-	Reader *sql.DB
-	Path   string
+	Writer           *sql.DB
+	Reader           *sql.DB
+	Path             string
+	PreMigrationHook func() error // Used in tests to simulate pre-migration backup failure
 }
 
 // New initializes the SQLite database with WAL mode and dedicated writer/reader pools.
@@ -78,7 +94,7 @@ func New(customPath string) (*DB, error) {
 		Path:   dbPath,
 	}
 
-	// Run initial schema creation and incremental migrations
+	// Run initial schema creation and sequential incremental migrations
 	if err := instance.migrate(); err != nil {
 		instance.Close()
 		return nil, fmt.Errorf("failed to run database migrations: %w", err)
@@ -88,13 +104,140 @@ func New(customPath string) (*DB, error) {
 	return instance, nil
 }
 
+// GetUserVersion reads the current PRAGMA user_version from SQLite.
+func (d *DB) GetUserVersion() (int, error) {
+	var ver int
+	err := d.Writer.QueryRow("PRAGMA user_version").Scan(&ver)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read PRAGMA user_version: %w", err)
+	}
+	return ver, nil
+}
+
 func (d *DB) migrate() error {
-	// Execute schema creation with IF NOT EXISTS
-	if _, err := d.Writer.Exec(initialSchemaSQL); err != nil {
+	currentVersion, err := d.GetUserVersion()
+	if err != nil {
 		return err
 	}
 
-	// Incremental migrations: check existing table columns in 'config' table before inserting or altering
+	// If currentVersion == 0, check if this is an existing database from before user_version tracking
+	if currentVersion == 0 {
+		var tableCount int
+		_ = d.Writer.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='config'`).Scan(&tableCount)
+		if tableCount > 0 {
+			// Legacy unversioned database: bring to v1 baseline and set user_version = 1
+			if err := d.applyLegacyBaseline(); err != nil {
+				return fmt.Errorf("failed to apply legacy baseline: %w", err)
+			}
+			if _, err := d.Writer.Exec("PRAGMA user_version = 1"); err != nil {
+				return fmt.Errorf("failed to set baseline user_version = 1: %w", err)
+			}
+			currentVersion = 1
+		}
+	}
+
+	targetVersion := migrations[len(migrations)-1].Version
+
+	// If there are migrations to apply on an existing database (currentVersion >= 1),
+	// create an automatic pre-migration backup before applying any new migrations.
+	if currentVersion > 0 && currentVersion < targetVersion {
+		if err := d.createPreMigrationBackup(); err != nil {
+			return fmt.Errorf("pre-migration backup failed: %w; migrations aborted to protect database", err)
+		}
+	}
+
+	// Sequentially execute pending migrations
+	for _, m := range migrations {
+		if m.Version > currentVersion {
+			if err := d.applyMigration(m); err != nil {
+				return err
+			}
+			currentVersion = m.Version
+		}
+	}
+
+	return nil
+}
+
+func (d *DB) applyMigration(m Migration) error {
+	tx, err := d.Writer.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction for migration %d (%s): %w", m.Version, m.Name, err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(m.SQL); err != nil {
+		return fmt.Errorf("failed to execute SQL for migration %d (%s): %w", m.Version, m.Name, err)
+	}
+
+	if _, err := tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", m.Version)); err != nil {
+		return fmt.Errorf("failed to set user_version to %d for migration (%s): %w", m.Version, m.Name, err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit migration %d (%s): %w", m.Version, m.Name, err)
+	}
+
+	log.Printf("[DB] Successfully applied migration %03d_%s (user_version = %d)", m.Version, m.Name, m.Version)
+	return nil
+}
+
+func (d *DB) createPreMigrationBackup() error {
+	if d.PreMigrationHook != nil {
+		if err := d.PreMigrationHook(); err != nil {
+			return err
+		}
+	}
+
+	// Skip if memory database
+	if d.Path == "" || d.Path == ":memory:" {
+		return nil
+	}
+
+	backupDir := filepath.Join(filepath.Dir(d.Path), "backups")
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		return fmt.Errorf("failed to create backup directory (%s): %w", backupDir, err)
+	}
+
+	now := time.Now().Format("2006-01-02_15-04-05")
+	filename := fmt.Sprintf("optimanager_backup_%s_premigration.db", now)
+	tmpPath := filepath.Join(backupDir, filename+".tmp")
+	finalPath := filepath.Join(backupDir, filename)
+
+	defer func() {
+		if _, err := os.Stat(tmpPath); err == nil {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	if _, err := d.Writer.Exec(fmt.Sprintf("VACUUM INTO '%s'", tmpPath)); err != nil {
+		return fmt.Errorf("pre-migration VACUUM INTO failed: %w", err)
+	}
+
+	checkDB, err := sql.Open("sqlite", fmt.Sprintf("%s?_pragma=query_only(1)", tmpPath))
+	if err != nil {
+		return fmt.Errorf("failed to open pre-migration snapshot for integrity check: %w", err)
+	}
+	var checkResult string
+	err = checkDB.QueryRow("PRAGMA integrity_check").Scan(&checkResult)
+	checkDB.Close()
+	if err != nil {
+		return fmt.Errorf("pre-migration integrity check query failed: %w", err)
+	}
+	if checkResult != "ok" {
+		return fmt.Errorf("pre-migration integrity check failed with result: %s", checkResult)
+	}
+
+	if err := os.Rename(tmpPath, finalPath); err != nil {
+		return fmt.Errorf("failed to rename pre-migration backup to final: %w", err)
+	}
+
+	log.Printf("[DB] Successfully created pre-migration backup: %s", finalPath)
+	return nil
+}
+
+func (d *DB) applyLegacyBaseline() error {
+	// Incremental migrations for legacy databases
 	var tableCount int
 	err := d.Writer.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='config'`).Scan(&tableCount)
 	if err != nil {
@@ -107,37 +250,30 @@ func (d *DB) migrate() error {
 			return fmt.Errorf("failed to get columns for config table: %w", err)
 		}
 
-		// Add missing columns dynamically if upgrading from an older schema version
 		if !columns["email_contato"] {
 			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN email_contato TEXT NOT NULL DEFAULT ''`); err != nil {
 				return fmt.Errorf("failed to add email_contato column: %w", err)
 			}
-			columns["email_contato"] = true
 		}
 		if !columns["endereco"] {
 			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN endereco TEXT NOT NULL DEFAULT ''`); err != nil {
 				return fmt.Errorf("failed to add endereco column: %w", err)
 			}
-			columns["endereco"] = true
 		}
 		if !columns["termo_responsabilidade"] {
 			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN termo_responsabilidade TEXT NOT NULL DEFAULT 'Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda.'`); err != nil {
 				return fmt.Errorf("failed to add termo_responsabilidade column: %w", err)
 			}
-			columns["termo_responsabilidade"] = true
 		}
 		if !columns["obs_padrao"] {
 			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN obs_padrao TEXT NOT NULL DEFAULT 'Aparelho recebido com marcas normais de uso. Backup de dados sob responsabilidade do cliente.'`); err != nil {
 				return fmt.Errorf("failed to add obs_padrao column: %w", err)
 			}
-			columns["obs_padrao"] = true
 		}
 		if !columns["custom_presets"] {
 			if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN custom_presets TEXT NOT NULL DEFAULT ''`); err != nil {
 				return fmt.Errorf("failed to add custom_presets column: %w", err)
 			}
-			columns["custom_presets"] = true
-
 			defaultPresets := `{"marcas":["Asus","Acer","Dell","Lenovo","HP","Apple","Samsung","LG","Positivo"],"modelos":["Notebook","Computador Desktop","All-in-One","Servidor","Monitor","Smartphone","Tablet","Outro"],"servicos":["Formatação e Instalação de Sistema","Limpeza Preventiva e Troca de Pasta Térmica","Troca de SSD / Upgrade de Memória RAM","Reparo de Placa-Mãe / Conector","Troca de Tela / Display","Remoção de Vírus e Otimização"]}`
 			_, _ = d.Writer.Exec(`UPDATE config SET custom_presets = ? WHERE custom_presets = '' OR custom_presets IS NULL`, defaultPresets)
 		}

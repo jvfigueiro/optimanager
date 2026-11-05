@@ -30,8 +30,13 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 
 	r := chi.NewRouter()
 
+	t.Setenv("JWT_SECRET", "test-secret-at-least-32-characters-long-1234567890")
+
 	healthH := handlers.NewHealthHandler(db)
-	authH := handlers.NewAuthHandler(db)
+	authH, err := handlers.NewAuthHandler(db)
+	if err != nil {
+		t.Fatalf("failed to initialize auth handler: %v", err)
+	}
 	dashH := handlers.NewDashboardHandler(db)
 	cliH := handlers.NewClienteHandler(db)
 	osH := handlers.NewOrdemHandler(db)

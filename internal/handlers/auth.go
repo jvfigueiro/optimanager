@@ -3,11 +3,13 @@ package handlers
 import (
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -26,6 +28,12 @@ type contextKey string
 const UserContextKey contextKey = "auth_user"
 const CookieName = "optimanager_token"
 
+const (
+	OldInsecureFallbackSecret = "optimanager-default-secret-key-2026-hmac-sha256"
+	ExampleEnvPlaceholder     = "CONFIGURE_UMA_CHAVE_COM_PELO_MENOS_32_CHARS_AQUI"
+	MinSecretLength           = 32
+)
+
 type tokenPayload struct {
 	UserID int64  `json:"uid"`
 	Email  string `json:"email"`
@@ -38,14 +46,56 @@ type AuthHandler struct {
 	secret []byte
 }
 
-func NewAuthHandler(db *database.DB) *AuthHandler {
-	sec := os.Getenv("JWT_SECRET")
+// ResolveJWTSecret validates and returns the HMAC secret for signing JWT/session tokens.
+// It strictly verifies that the secret is set, has at least 32 characters, and is not
+// a deprecated or example placeholder key. If APP_ENV=dev and JWT_SECRET is unset,
+// it generates an ephemeral 32-byte cryptographic secret and logs a prominent warning.
+func ResolveJWTSecret() ([]byte, error) {
+	sec := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	appEnv := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
+
 	if sec == "" {
-		sec = "optimanager-default-secret-key-2026-hmac-sha256"
+		if appEnv == "dev" {
+			randomBytes := make([]byte, 32)
+			if _, err := rand.Read(randomBytes); err != nil {
+				return nil, fmt.Errorf("failed to generate secure ephemeral secret in APP_ENV=dev: %w", err)
+			}
+			log.Println("[SECURITY WARNING] APP_ENV=dev: JWT_SECRET not configured. Generated ephemeral 32-byte secret. All active sessions will be invalidated upon restart!")
+			return randomBytes, nil
+		}
+		return nil, errors.New("JWT_SECRET environment variable is missing (minimum 32 characters required). For development only, set APP_ENV=dev")
+	}
+
+	if len(sec) < MinSecretLength {
+		return nil, fmt.Errorf("JWT_SECRET must be at least %d characters long (got %d)", MinSecretLength, len(sec))
+	}
+
+	if sec == OldInsecureFallbackSecret {
+		return nil, errors.New("JWT_SECRET cannot use the deprecated insecure default fallback key")
+	}
+
+	if sec == ExampleEnvPlaceholder || strings.Contains(strings.ToUpper(sec), "CONFIGURE_") {
+		return nil, errors.New("JWT_SECRET cannot use placeholder example key from .env.example")
+	}
+
+	return []byte(sec), nil
+}
+
+func NewAuthHandler(db *database.DB) (*AuthHandler, error) {
+	sec, err := ResolveJWTSecret()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize auth handler: %w", err)
 	}
 	return &AuthHandler{
 		db:     db,
-		secret: []byte(sec),
+		secret: sec,
+	}, nil
+}
+
+func NewAuthHandlerWithSecret(db *database.DB, secret []byte) *AuthHandler {
+	return &AuthHandler{
+		db:     db,
+		secret: secret,
 	}
 }
 

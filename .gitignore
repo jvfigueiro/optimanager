@@ -1,4 +1,4 @@
-# Binaries
+# Binaries & Executables
 bin/
 *.exe
 *.exe~
@@ -6,19 +6,42 @@ bin/
 *.so
 *.dylib
 server
+optimanager
 
-# Database files
+# Environment & Secrets (NEVER COMMIT SENSITIVE DATA)
+.env
+.env.*
+!.env.example
+
+# Database files & SQLite Snapshots
 data/
 *.db
 *.db-shm
 *.db-wal
+*.db.tmp
+*.sqlite
+*.sqlite3
 
-# Node / Frontend
+# Logs & Audit
+*.log
+restore_audit.log
+
+# Node / Frontend Build Outputs
 node_modules/
 dist/
+ui/node_modules/
+ui/dist/
+.vite/
 
-# OS / Editor
+# Temporary & Swap files
+*.tmp
+*.swp
+*.swo
+
+# OS & Editor configurations
 .DS_Store
+Thumbs.db
 .vscode/
 .idea/
-
+*.sublime-project
+*.sublime-workspace
