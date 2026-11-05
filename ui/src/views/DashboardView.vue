@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useDashboardStore } from '../stores/dashboard'
 import { useNavigationStore } from '../stores/navigation'
 import { useOrdensStore } from '../stores/ordens'
+import { useAuthStore } from '../stores/auth'
 import { formatBRL, formatDate } from '../utils/formatters'
 import GerenciarAtalhosModal from '../components/GerenciarAtalhosModal.vue'
 import EditarOSModal from '../components/EditarOSModal.vue'
@@ -23,6 +24,7 @@ import {
 const dashboardStore = useDashboardStore()
 const nav = useNavigationStore()
 const ordensStore = useOrdensStore()
+const authStore = useAuthStore()
 
 const isShortcutModalOpen = ref(false)
 const viewingOS = ref<OrdemServico | null>(null)
@@ -132,18 +134,16 @@ function getStatusBadgeClass(status: string) {
       </div>
     </div>
 
-    <!-- Atalhos Rápidos & Portais -->
+    <!-- Atalhos Rápidos -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-5">
       <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
         <div>
           <h3 class="font-bold text-base text-slate-800 dark:text-white">
-            Atalhos Rápidos & Portais do MEI
+            Atalhos Rápidos
           </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400">
-            Ao clicar, o seu CNPJ é copiado automaticamente para agilizar o login
-          </p>
         </div>
         <button
+          v-if="authStore.user?.role === 'admin'"
           @click="isShortcutModalOpen = true"
           class="text-xs bg-opti-light dark:bg-slate-700 text-opti dark:text-sky-300 hover:bg-opti dark:hover:bg-opti hover:text-white dark:hover:text-white border border-transparent dark:border-slate-600 font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-xs"
         >
@@ -160,6 +160,7 @@ function getStatusBadgeClass(status: string) {
           @click="dashboardStore.openShortcut(a)"
         >
           <button
+            v-if="authStore.user?.role === 'admin'"
             @click.stop="dashboardStore.removeShortcut(a.id)"
             title="Remover atalho"
             class="opacity-0 group-hover:opacity-100 absolute top-2 right-2 text-slate-400 hover:text-red-500 p-1 transition"

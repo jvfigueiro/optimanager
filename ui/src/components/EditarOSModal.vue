@@ -47,7 +47,8 @@ function getCurrentTimeHHMM() {
 }
 
 const clienteNome = ref('')
-const equipamento = ref('')
+const marca = ref('')
+const modelo = ref('')
 const servico = ref('')
 const obsTecnicas = ref('')
 const status = ref<string>('Avaliação')
@@ -64,18 +65,19 @@ const isDeleting = ref(false)
 const isDuplicating = ref(false)
 
 // Sugestões dinâmicas que aparecem APENAS quando o usuário digita
-const matchingEquipamentos = computed(() => {
-  const query = equipamento.value.trim().toLowerCase()
-  if (!query) return []
-  const pool: string[] = []
-  if (configStore.presets.modelos_visivel !== false) {
-    pool.push(...configStore.presets.modelos)
-  }
-  if (configStore.presets.marcas_visivel !== false) {
-    pool.push(...configStore.presets.marcas)
-  }
-  return pool
-    .filter((item) => item.toLowerCase().includes(query))
+const matchingMarcas = computed(() => {
+  const query = marca.value.trim().toLowerCase()
+  if (!query || configStore.presets.marcas_visivel === false) return []
+  return configStore.presets.marcas
+    .filter((m) => m.toLowerCase().includes(query))
+    .slice(0, 8)
+})
+
+const matchingModelos = computed(() => {
+  const query = modelo.value.trim().toLowerCase()
+  if (!query || configStore.presets.modelos_visivel === false) return []
+  return configStore.presets.modelos
+    .filter((mod) => mod.toLowerCase().includes(query))
     .slice(0, 8)
 })
 
@@ -87,12 +89,40 @@ const matchingServicos = computed(() => {
     .slice(0, 6)
 })
 
+function selectMarca(m: string) {
+  marca.value = m
+}
+
+function selectModelo(mod: string) {
+  modelo.value = mod
+}
+
+function selectServico(s: string) {
+  if (!servico.value) {
+    servico.value = s
+  } else if (!servico.value.includes(s)) {
+    servico.value = `${servico.value} + ${s}`
+  }
+}
+
 watch(
   () => [props.ordem, props.isOpen, props.concluding] as const,
   ([o, open, isConcluding]) => {
     if (o && open) {
       clienteNome.value = o.cliente_nome || ''
-      equipamento.value = o.equipamento || ''
+      const rawEq = o.equipamento || ''
+      // Tenta separar em marca e modelo se houver lista conhecida
+      let foundMarca = ''
+      let foundModelo = rawEq
+      for (const m of configStore.presets.marcas) {
+        if (rawEq.toLowerCase().startsWith(m.toLowerCase())) {
+          foundMarca = m
+          foundModelo = rawEq.substring(m.length).trim()
+          break
+        }
+      }
+      marca.value = foundMarca
+      modelo.value = foundModelo
       servico.value = o.servico || ''
       obsTecnicas.value = o.obs_tecnicas || ''
       dataEmissao.value = o.data_emissao ? o.data_emissao.substring(0, 10) : getTodayISO()
@@ -122,30 +152,16 @@ watch(status, (novoStatus) => {
   }
 })
 
-function appendItem(item: string) {
-  if (!equipamento.value) {
-    equipamento.value = item
-  } else if (!equipamento.value.includes(item)) {
-    equipamento.value = `${equipamento.value} ${item}`.trim()
-  }
-}
-
-function selectServico(s: string) {
-  if (!servico.value) {
-    servico.value = s
-  } else if (!servico.value.includes(s)) {
-    servico.value = `${servico.value} + ${s}`
-  }
-}
-
 async function handleUpdate() {
   if (!props.ordem || !clienteNome.value.trim() || !servico.value.trim()) return
 
   isSubmitting.value = true
   try {
+    const equipFinal = [marca.value.trim(), modelo.value.trim()].filter(Boolean).join(' ') || 'N/A'
+
     const atualizada = await ordensStore.updateOrdem(props.ordem.id, {
       cliente_nome: clienteNome.value.trim(),
-      equipamento: equipamento.value.trim() || 'N/A',
+      equipamento: equipFinal,
       servico: servico.value.trim(),
       obs_tecnicas: obsTecnicas.value.trim(),
       status: status.value,
@@ -312,8 +328,8 @@ async function handleDelete() {
           </div>
         </div>
 
-        <!-- Linha 2: Cliente & Equipamento -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <!-- Linha 2: Cliente, Marca & Modelo/Equipamento -->
+        <div class="space-y-3">
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
               Cliente *
@@ -336,34 +352,70 @@ async function handleDelete() {
             </datalist>
           </div>
 
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              {{ configStore.presets.modelos_titulo || 'Equipamento / Objeto' }}
-            </label>
-            <input
-              type="text"
-              v-model="equipamento"
-              list="edit-equipamentos-datalist"
-              placeholder="Ex: Notebook Dell Inspiron"
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-opti"
-            />
-            <datalist id="edit-equipamentos-datalist">
-              <option v-for="mod in configStore.presets.modelos" :key="mod" :value="mod" />
-              <option v-for="m in configStore.presets.marcas" :key="m" :value="m" />
-            </datalist>
+          <div
+            v-if="configStore.presets.marcas_visivel !== false || configStore.presets.modelos_visivel !== false"
+            class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+          >
+            <!-- Caixa Marcas / Fabricantes -->
+            <div v-if="configStore.presets.marcas_visivel !== false">
+              <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                {{ configStore.presets.marcas_titulo || 'Marcas / Fabricantes' }}
+              </label>
+              <input
+                type="text"
+                v-model="marca"
+                list="edit-marcas-datalist"
+                placeholder="Ex: Asus, Dell, Honda, Apple..."
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-opti"
+              />
+              <datalist id="edit-marcas-datalist">
+                <option v-for="m in configStore.presets.marcas" :key="m" :value="m" />
+              </datalist>
 
-            <!-- Sugestões que aparecem apenas ao digitar -->
-            <div v-if="matchingEquipamentos.length > 0" class="flex flex-wrap items-center gap-1.5 mt-1.5">
-              <span class="text-[10px] text-slate-400 font-semibold">Sugestões:</span>
-              <button
-                v-for="item in matchingEquipamentos"
-                :key="item"
-                type="button"
-                @click="appendItem(item)"
-                class="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-700 text-opti dark:text-blue-300 border border-blue-200 dark:border-slate-600 hover:bg-opti hover:text-white transition text-[11px]"
-              >
-                + {{ item }}
-              </button>
+              <!-- Sugestões de Marcas que aparecem apenas ao digitar -->
+              <div v-if="matchingMarcas.length > 0" class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                <span class="text-[10px] text-slate-400 font-semibold">Sugestões:</span>
+                <button
+                  v-for="m in matchingMarcas"
+                  :key="m"
+                  type="button"
+                  @click="selectMarca(m)"
+                  class="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-700 text-opti dark:text-blue-300 border border-blue-200 dark:border-slate-600 hover:bg-opti hover:text-white transition text-[11px]"
+                >
+                  {{ m }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Caixa Modelos / Tipos / Categorias de Item -->
+            <div v-if="configStore.presets.modelos_visivel !== false" :class="{ 'sm:col-span-2': configStore.presets.marcas_visivel === false }">
+              <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                {{ configStore.presets.modelos_titulo || 'Modelos / Tipos / Categorias de Item' }}
+              </label>
+              <input
+                type="text"
+                v-model="modelo"
+                list="edit-modelos-datalist"
+                placeholder="Ex: Notebook, Celular, Motor, Bolo..."
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-opti"
+              />
+              <datalist id="edit-modelos-datalist">
+                <option v-for="mod in configStore.presets.modelos" :key="mod" :value="mod" />
+              </datalist>
+
+              <!-- Sugestões de Modelos que aparecem apenas ao digitar -->
+              <div v-if="matchingModelos.length > 0" class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                <span class="text-[10px] text-slate-400 font-semibold">Sugestões:</span>
+                <button
+                  v-for="mod in matchingModelos"
+                  :key="mod"
+                  type="button"
+                  @click="selectModelo(mod)"
+                  class="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-700 text-opti dark:text-blue-300 border border-blue-200 dark:border-slate-600 hover:bg-opti hover:text-white transition text-[11px]"
+                >
+                  {{ mod }}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useOrdensStore } from '../stores/ordens'
 import { useNavigationStore } from '../stores/navigation'
+import { useConfigStore } from '../stores/config'
 import { formatBRL, formatDate } from '../utils/formatters'
 import type { OrdemServico } from '../types'
 import EditarOSModal from '../components/EditarOSModal.vue'
@@ -15,6 +16,7 @@ import {
 
 const ordensStore = useOrdensStore()
 const nav = useNavigationStore()
+const configStore = useConfigStore()
 
 const editingOS = ref<OrdemServico | null>(null)
 const isEditModalOpen = ref(false)
@@ -114,6 +116,22 @@ function gerarDocumento(os: OrdemServico) {
           >
             Pagamento Pendente
           </button>
+
+          <!-- Chips dinâmicos para cada Estado de Serviço personalizado -->
+          <template v-for="st in (configStore.presets.estados_servico || [])" :key="st">
+            <button
+              v-if="st !== 'Concluído'"
+              @click="ordensStore.setFiltro(st)"
+              class="px-3.5 py-2 rounded-xl transition whitespace-nowrap"
+              :class="
+                ordensStore.currentFiltro === st
+                  ? 'bg-opti text-white shadow-xs'
+                  : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600'
+              "
+            >
+              {{ st }}
+            </button>
+          </template>
         </div>
 
         <!-- Barra de Busca Instantânea -->

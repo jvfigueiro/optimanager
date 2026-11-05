@@ -272,6 +272,7 @@ async function handleDeleteUser(u: Usuario) {
         </div>
 
         <button
+          v-if="authStore.user?.role === 'admin'"
           type="button"
           @click="openCreateUserModal"
           class="bg-opti hover:bg-opti-dark text-white font-bold px-4 py-2 rounded-xl transition shadow-xs flex items-center gap-2 text-xs self-start sm:self-auto"
@@ -279,6 +280,14 @@ async function handleDeleteUser(u: Usuario) {
           <UserPlus class="w-4 h-4" />
           <span>Adicionar Usuário</span>
         </button>
+      </div>
+
+      <!-- Aviso para operador -->
+      <div
+        v-if="authStore.user?.role !== 'admin'"
+        class="mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200"
+      >
+        🔒 Você está autenticado como <strong>Operador</strong>. Apenas usuários Administradores podem adicionar, editar ou remover usuários e alterar configurações da empresa.
       </div>
 
       <!-- Lista de Usuários -->
@@ -329,7 +338,7 @@ async function handleDeleteUser(u: Usuario) {
             </div>
           </div>
 
-          <div class="flex items-center gap-2 self-end sm:self-auto">
+          <div v-if="authStore.user?.role === 'admin'" class="flex items-center gap-2 self-end sm:self-auto">
             <button
               type="button"
               @click="openEditUserModal(u)"
@@ -519,18 +528,6 @@ async function handleDeleteUser(u: Usuario) {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Responsável Técnico
-            </label>
-            <input
-              type="text"
-              v-model="form.responsavel"
-              required
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
-            />
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
               Telefones / WhatsApp
             </label>
             <input
@@ -565,7 +562,7 @@ async function handleDeleteUser(u: Usuario) {
             />
           </div>
 
-          <div>
+          <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
               Cidade - UF
             </label>
@@ -579,23 +576,11 @@ async function handleDeleteUser(u: Usuario) {
 
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Informação adicional de garantia (opcional)
+              Informações de Garantia e Observações Legais
             </label>
             <textarea
               v-model="form.termo_garantia"
               rows="2"
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
-            ></textarea>
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Observações adicionais 1 (ex. Termo de responsabilidade)
-            </label>
-            <textarea
-              v-model="form.termo_responsabilidade"
-              rows="2"
-              placeholder="Ex: Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda..."
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
             ></textarea>
           </div>
@@ -615,6 +600,7 @@ async function handleDeleteUser(u: Usuario) {
 
         <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
           <button
+            v-if="authStore.user?.role === 'admin'"
             type="submit"
             :disabled="isSaving"
             class="bg-opti hover:bg-opti-dark text-white font-bold px-6 py-2.5 rounded-xl transition shadow flex items-center gap-2 text-sm"
@@ -622,6 +608,9 @@ async function handleDeleteUser(u: Usuario) {
             <CheckCircle2 class="w-4 h-4" />
             <span>{{ isSaving ? 'Salvando...' : 'Salvar Alterações' }}</span>
           </button>
+          <span v-else class="text-xs text-slate-400 italic">
+            Alterações restritas a administradores.
+          </span>
         </div>
       </form>
     </div>
@@ -914,6 +903,7 @@ async function handleDeleteUser(u: Usuario) {
 
       <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
         <button
+          v-if="authStore.user?.role === 'admin'"
           type="button"
           @click="handleSalvar"
           :disabled="isSaving"
@@ -922,6 +912,9 @@ async function handleDeleteUser(u: Usuario) {
           <CheckCircle2 class="w-4 h-4" />
           <span>{{ isSaving ? 'Salvando...' : 'Salvar Autocompletar' }}</span>
         </button>
+        <span v-else class="text-xs text-slate-400 italic">
+          Alterações restritas a administradores.
+        </span>
       </div>
     </div>
 
@@ -966,8 +959,8 @@ async function handleDeleteUser(u: Usuario) {
         </div>
 
         <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Responsável / Titular</span>
-          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.responsavel || 'Não informado' }}</strong>
+          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Operador Atual</span>
+          <strong class="text-sm text-slate-800 dark:text-white">{{ authStore.user?.nome || 'Não identificado' }} ({{ authStore.user?.role === 'admin' ? 'Administrador' : 'Operador' }})</strong>
         </div>
 
         <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">

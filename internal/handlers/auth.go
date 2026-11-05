@@ -162,6 +162,23 @@ func (h *AuthHandler) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
+// RequireAdmin middleware ensures the authenticated user has "admin" role.
+func (h *AuthHandler) RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		val := r.Context().Value(UserContextKey)
+		u, ok := val.(*models.Usuario)
+		if !ok || u == nil {
+			respondError(w, http.StatusUnauthorized, "Authentication required.")
+			return
+		}
+		if u.Role != "admin" {
+			respondError(w, http.StatusForbidden, "Apenas administradores podem executar esta ação.")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // Status checks if initial system setup is required (0 users) and whether current user is authenticated.
 func (h *AuthHandler) Status(w http.ResponseWriter, r *http.Request) {
 	count, err := h.db.CountUsuarios()

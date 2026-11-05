@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useOrdensStore } from '../stores/ordens'
 import { useConfigStore } from '../stores/config'
+import { useAuthStore } from '../stores/auth'
 import { formatBRL, formatDate } from '../utils/formatters'
 import {
   Printer,
@@ -15,9 +16,15 @@ import {
 
 const ordensStore = useOrdensStore()
 const configStore = useConfigStore()
+const authStore = useAuthStore()
 
-type DocType = 'relatorio' | 'os' | 'orcamento' | 'recibo'
-const docType = ref<DocType>('relatorio')
+// Nome do responsável: prioritariamente o usuário atualmente logado
+const responsavelAtual = computed(() => {
+  return authStore.user?.nome || configStore.config.responsavel || configStore.config.fantasia || 'Responsável'
+})
+
+type DocType = 'os' | 'orcamento' | 'relatorio' | 'recibo'
+const docType = ref<DocType>('os')
 
 const selectedOSId = ref<number | null>(null)
 const docCliente = ref('')
@@ -31,14 +38,12 @@ const docHora = ref('')
 const docEntrega = ref('')
 const docContato = ref('')
 
-// Cláusulas e termos customizáveis
+// Cláusula de garantia e observações legais
 const docTermoGarantia = ref('')
-const docTermoResponsabilidade = ref('')
 
 // Modal de Personalização
 const isPersonalizarModalOpen = ref(false)
 const tempGarantia = ref('')
-const tempResponsabilidade = ref('')
 const tempObs = ref('')
 const isSavingCustomTerms = ref(false)
 
@@ -49,10 +54,7 @@ onMounted(async () => {
 
   docTermoGarantia.value =
     configStore.config.termo_garantia ||
-    'Garantia legal de 90 dias para serviços executados e peças aplicadas.'
-  docTermoResponsabilidade.value =
-    configStore.config.termo_responsabilidade ||
-    'Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda.'
+    'Garantia legal de 90 dias conforme Art. 26 do CDC para serviços executados e peças aplicadas.'
 
   if (!ordensStore.ordens.length) {
     await ordensStore.loadOrdens()
@@ -114,14 +116,12 @@ function carregarOSNoGerador(id: number) {
 
 function openPersonalizarModal() {
   tempGarantia.value = docTermoGarantia.value
-  tempResponsabilidade.value = docTermoResponsabilidade.value
   tempObs.value = docObs.value
   isPersonalizarModalOpen.value = true
 }
 
 function aplicarTermos() {
   docTermoGarantia.value = tempGarantia.value
-  docTermoResponsabilidade.value = tempResponsabilidade.value
   docObs.value = tempObs.value
   isPersonalizarModalOpen.value = false
 }
@@ -131,7 +131,6 @@ async function salvarComoPadrao() {
   try {
     await configStore.saveConfig({
       termo_garantia: tempGarantia.value,
-      termo_responsabilidade: tempResponsabilidade.value,
       obs_padrao: tempObs.value,
     })
     aplicarTermos()
@@ -144,12 +143,12 @@ async function salvarComoPadrao() {
 
 const docTitulo = computed(() => {
   switch (docType.value) {
-    case 'relatorio':
-      return 'Relatório de Serviço'
     case 'os':
       return 'Ordem de Serviço (OS)'
     case 'orcamento':
       return 'Orçamento Técnico'
+    case 'relatorio':
+      return 'Relatório de Serviço'
     case 'recibo':
       return 'Recibo de Pagamento'
   }
@@ -220,18 +219,6 @@ function imprimirDocumento() {
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-bold">
           <button
             type="button"
-            @click="docType = 'relatorio'"
-            class="py-2.5 px-2 rounded-xl transition border text-center"
-            :class="
-              docType === 'relatorio'
-                ? 'bg-opti text-white border-opti shadow-xs'
-                : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:bg-slate-50'
-            "
-          >
-            Relatório
-          </button>
-          <button
-            type="button"
             @click="docType = 'os'"
             class="py-2.5 px-2 rounded-xl transition border text-center"
             :class="
@@ -256,6 +243,18 @@ function imprimirDocumento() {
           </button>
           <button
             type="button"
+            @click="docType = 'relatorio'"
+            class="py-2.5 px-2 rounded-xl transition border text-center"
+            :class="
+              docType === 'relatorio'
+                ? 'bg-opti text-white border-opti shadow-xs'
+                : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:bg-slate-50'
+            "
+          >
+            Relatório
+          </button>
+          <button
+            type="button"
             @click="docType = 'recibo'"
             class="py-2.5 px-2 rounded-xl transition border text-center"
             :class="
@@ -264,7 +263,7 @@ function imprimirDocumento() {
                 : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:bg-slate-50'
             "
           >
-            Recibo Pgto
+            Recibo
           </button>
         </div>
       </div>
@@ -450,14 +449,14 @@ function imprimirDocumento() {
             <div class="pt-1">
               <div class="grid grid-cols-2 gap-6 text-[10px] text-center text-slate-700 mb-1">
                 <div class="border-t border-slate-500 pt-1">
-                  {{ configStore.config.responsavel }} (Responsável)
+                  {{ responsavelAtual }} (Responsável)
                 </div>
                 <div class="border-t border-slate-500 pt-1">
                   {{ docCliente || 'Assinatura do Cliente' }}
                 </div>
               </div>
-              <p class="text-center text-[9px] text-slate-600 leading-tight">
-                {{ docTermoResponsabilidade }}
+              <p v-if="docTermoGarantia" class="text-center text-[9px] text-slate-600 leading-tight">
+                {{ docTermoGarantia }}
               </p>
             </div>
           </div>
@@ -546,14 +545,14 @@ function imprimirDocumento() {
             <div class="pt-1">
               <div class="grid grid-cols-2 gap-6 text-[10px] text-center text-slate-700 mb-1">
                 <div class="border-t border-slate-500 pt-1">
-                  {{ configStore.config.responsavel }} (Responsável)
+                  {{ responsavelAtual }} (Responsável)
                 </div>
                 <div class="border-t border-slate-500 pt-1">
                   {{ docCliente || 'Assinatura do Cliente' }}
                 </div>
               </div>
-              <p class="text-center text-[9px] text-slate-600 leading-tight">
-                {{ docTermoResponsabilidade }}
+              <p v-if="docTermoGarantia" class="text-center text-[9px] text-slate-600 leading-tight">
+                {{ docTermoGarantia }}
               </p>
             </div>
           </div>
@@ -684,7 +683,7 @@ function imprimirDocumento() {
           <div class="pt-8">
             <div class="grid grid-cols-2 gap-8 mb-6 text-xs text-center text-slate-700">
               <div class="border-t border-slate-500 pt-1.5">
-                {{ configStore.config.responsavel }} ({{ configStore.config.fantasia }})
+                {{ responsavelAtual }} ({{ configStore.config.fantasia }})
               </div>
               <div class="border-t border-slate-500 pt-1.5">
                 {{ docCliente || 'Assinatura do Cliente' }}
@@ -723,21 +722,10 @@ function imprimirDocumento() {
         <form @submit.prevent="aplicarTermos" class="p-5 space-y-4 text-xs sm:text-sm overflow-y-auto flex-1">
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Informação adicional de garantia (opcional)
+              Informações de Garantia e Observações Legais
             </label>
             <textarea
               v-model="tempGarantia"
-              rows="3"
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-opti leading-relaxed"
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Observações adicionais 1 (ex. Termo de responsabilidade)
-            </label>
-            <textarea
-              v-model="tempResponsabilidade"
               rows="3"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-opti leading-relaxed"
             ></textarea>

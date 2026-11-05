@@ -38,19 +38,36 @@ export const useDashboardStore = defineStore('dashboard', () => {
   }
 
   function copyCNPJ(showNotification = true) {
-    const cnpj = configStore.config.cnpj || '38.136.905/0001-66'
-    navigator.clipboard.writeText(cnpj)
+    const cnpj = configStore.config.cnpj || ''
+    if (!cnpj) return
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(cnpj).catch(() => {})
+    }
     if (showNotification) {
       toast.show(`📋 CNPJ ${cnpj} copiado para a área de transferência!`)
     }
   }
 
   function openShortcut(atalho: Atalho) {
-    copyCNPJ(false)
-    toast.show(`✅ CNPJ copiado! Abrindo ${atalho.titulo}...`)
-    setTimeout(() => {
-      window.open(atalho.url, '_blank')
-    }, 400)
+    if (!atalho?.url) return
+    let dest = atalho.url.trim()
+    if (!/^https?:\/\//i.test(dest)) {
+      dest = 'https://' + dest
+    }
+    // Abre a aba imediatamente no contexto do clique síncrono para evitar bloqueio por popup blocker
+    const win = window.open(dest, '_blank', 'noopener,noreferrer')
+    if (win) {
+      win.focus()
+    } else {
+      // Fallback via âncora caso window.open seja restrito
+      const a = document.createElement('a')
+      a.href = dest
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
   }
 
   async function addShortcut(novo: Omit<Atalho, 'id'>) {
