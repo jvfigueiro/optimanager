@@ -960,40 +960,48 @@ async function handleDeleteUser(u: Usuario) {
           </p>
         </div>
 
-        <!-- Botões de Espera Institucionais -->
+        <!-- Botões de Links Institucionais -->
         <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-600/80">
-          <button
-            type="button"
+          <a
+            href="https://github.com/jvfigueiro/optimanager"
+            target="_blank"
+            rel="noopener noreferrer"
             class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
-            title="Repositório do GitHub"
+            title="Repositório no GitHub"
           >
             <Github class="w-3.5 h-3.5" />
             <span>Repositório do GitHub</span>
-          </button>
-          <button
-            type="button"
+          </a>
+          <a
+            href="https://jvfigueiro.com/projects/optimanager"
+            target="_blank"
+            rel="noopener noreferrer"
             class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
-            title="Site oficial"
+            title="Site Oficial do OptiManager"
           >
             <Globe class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
             <span>Site oficial</span>
-          </button>
-          <button
-            type="button"
+          </a>
+          <a
+            href="https://github.com/jvfigueiro/optimanager#readme"
+            target="_blank"
+            rel="noopener noreferrer"
             class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
-            title="Documentação"
+            title="Documentação do Projeto"
           >
             <BookOpen class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Documentação</span>
-          </button>
-          <button
-            type="button"
+          </a>
+          <a
+            href="https://github.com/jvfigueiro/optimanager/blob/master/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer"
             class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
-            title="Licença de uso"
+            title="Licença GNU GPLv3"
           >
             <ShieldCheck class="w-3.5 h-3.5 text-amber-500" />
-            <span>Licença</span>
-          </button>
+            <span>Licença GNU GPLv3</span>
+          </a>
         </div>
       </div>
 

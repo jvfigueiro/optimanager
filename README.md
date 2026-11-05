@@ -10,9 +10,11 @@
 [![SQLite](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?style=flat&logo=sqlite)](https://www.sqlite.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
 [![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?style=flat&logo=pwa)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 *Uma aplicação web rápida, leve e auto-suficiente projetada para micro e pequenos empreendedores, técnicos e prestadores de serviços gerenciarem atendimentos, clientes, relatórios técnicos e faturamento com controle total dos seus próprios dados.*
+
+🌐 **Site Oficial:** [https://jvfigueiro.com/projects/optimanager](https://jvfigueiro.com/projects/optimanager)
 
 </div>
 
@@ -151,4 +153,5 @@ optimanager/
 
 ## 📄 Licença
 
-Este projeto é distribuído sob os termos da licença **MIT**. Consulte o arquivo [LICENSE](LICENSE) para obter detalhes.
+Este projeto é distribuído sob os termos da licença **GNU General Public License v3.0 (GPLv3)**. Consulte o arquivo [LICENSE](LICENSE) para obter detalhes.
+

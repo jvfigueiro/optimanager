@@ -311,7 +311,7 @@ async function handleLogin() {
             <!-- Botões Institucionais Solicitados: Site Oficial | GitHub | Docs | Licença -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
               <a
-                href="https://github.com/jvfigueiro/optimanager"
+                href="https://jvfigueiro.com/projects/optimanager"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-opti dark:hover:border-opti hover:bg-slate-50 dark:hover:bg-slate-750 transition text-center group"
@@ -353,7 +353,7 @@ async function handleLogin() {
               >
                 <FileCheck class="w-5 h-5 text-slate-500 group-hover:text-opti transition mb-1.5" />
                 <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Licença</span>
-                <span class="text-[10px] text-slate-400 mt-0.5">MIT / Termos</span>
+                <span class="text-[10px] text-slate-400 mt-0.5">GPLv3 / Termos</span>
               </button>
             </div>
 
@@ -389,13 +389,13 @@ async function handleLogin() {
             >
               <div>
                 <h3 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] mb-1">
-                  1. Licença de Uso do Software (Licença MIT)
+                  1. Licença de Uso do Software (GNU General Public License v3 - GPLv3)
                 </h3>
                 <p>
-                  O OptiManager é distribuído sob a Licença MIT. É concedida permissão, gratuitamente, a qualquer pessoa que obtenha uma cópia deste software e arquivos de documentação associados, para utilizar, copiar, modificar, mesclar, publicar e distribuir cópias do software, sem restrições comerciais ou privadas.
+                  O OptiManager é um software livre distribuído sob os termos da <strong>GNU General Public License v3 (GPLv3)</strong>. Você tem a liberdade de executar, estudar, modificar e redistribuir esta aplicação, desde que quaisquer cópias, modificações ou trabalhos derivados continuem sob os mesmos termos da licença GNU GPLv3 com o respectivo código-fonte aberto e acessível.
                 </p>
                 <p class="italic text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                  "O SOFTWARE É FORNECIDO 'NO ESTADO EM QUE SE ENCONTRA' (AS IS), SEM GARANTIA DE QUALQUER TIPO, EXPRESSA OU IMPLÍCITA, INCLUINDO, MAS NÃO SE LIMITANDO A, GARANTIAS DE COMERCIALIZAÇÃO OU ADEQUAÇÃO A UMA FINALIDADE ESPECÍFICA."
+                  "ESTE PROGRAMA É DISTRIBUÍDO NA ESPERANÇA DE QUE SEJA ÚTIL, MAS SEM QUALQUER GARANTIA; NEM MESMO A GARANTIA IMPLÍCITA DE COMERCIABILIDADE OU ADEQUAÇÃO A UM DETERMINADO PROPÓSITO."
                 </p>
               </div>
 
@@ -436,7 +436,7 @@ async function handleLogin() {
                   class="mt-0.5 w-4 h-4 rounded text-opti focus:ring-opti border-slate-300 dark:border-slate-600 dark:bg-slate-700 cursor-pointer shrink-0"
                 />
                 <span class="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                  Li e concordo com os termos da <strong>Licença de Uso do Software (Licença MIT)</strong>.
+                  Li e concordo com os termos da <strong>Licença de Uso do Software (GNU GPLv3)</strong>.
                 </span>
               </label>
 
