@@ -18,6 +18,9 @@ import {
   X,
   Sparkles,
   Info,
+  Github,
+  Globe,
+  BookOpen,
 } from 'lucide-vue-next'
 
 const configStore = useConfigStore()
@@ -243,6 +246,10 @@ async function handleSaveUser() {
 }
 
 async function handleDeleteUser(u: Usuario) {
+  if (authStore.user?.id === u.id) {
+    alert('Você não pode remover sua própria conta de usuário.')
+    return
+  }
   if (authStore.usuarios.length <= 1) {
     alert('Não é possível excluir o único usuário do sistema.')
     return
@@ -256,8 +263,11 @@ async function handleDeleteUser(u: Usuario) {
 
 <template>
   <div class="max-w-4xl space-y-6">
-    <!-- Card 1: Gestão de Usuários e Acessos -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6">
+    <!-- Card 1: Gestão de Usuários e Acessos (Apenas Administradores) -->
+    <div
+      v-if="authStore.user?.role === 'admin'"
+      class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6"
+    >
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
           <div class="flex items-center gap-2.5">
@@ -272,7 +282,6 @@ async function handleDeleteUser(u: Usuario) {
         </div>
 
         <button
-          v-if="authStore.user?.role === 'admin'"
           type="button"
           @click="openCreateUserModal"
           class="bg-opti hover:bg-opti-dark text-white font-bold px-4 py-2 rounded-xl transition shadow-xs flex items-center gap-2 text-xs self-start sm:self-auto"
@@ -280,14 +289,6 @@ async function handleDeleteUser(u: Usuario) {
           <UserPlus class="w-4 h-4" />
           <span>Adicionar Usuário</span>
         </button>
-      </div>
-
-      <!-- Aviso para operador -->
-      <div
-        v-if="authStore.user?.role !== 'admin'"
-        class="mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200"
-      >
-        🔒 Você está autenticado como <strong>Operador</strong>. Apenas usuários Administradores podem adicionar, editar ou remover usuários e alterar configurações da empresa.
       </div>
 
       <!-- Lista de Usuários -->
@@ -338,7 +339,7 @@ async function handleDeleteUser(u: Usuario) {
             </div>
           </div>
 
-          <div v-if="authStore.user?.role === 'admin'" class="flex items-center gap-2 self-end sm:self-auto">
+          <div class="flex items-center gap-2 self-end sm:self-auto">
             <button
               type="button"
               @click="openEditUserModal(u)"
@@ -349,6 +350,7 @@ async function handleDeleteUser(u: Usuario) {
               <span>Editar</span>
             </button>
             <button
+              v-if="authStore.user?.id !== u.id"
               type="button"
               @click="handleDeleteUser(u)"
               :disabled="authStore.usuarios.length <= 1"
@@ -920,7 +922,7 @@ async function handleDeleteUser(u: Usuario) {
 
     <!-- Card 5: Sobre o Sistema & Dados da Empresa -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
+      <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
         <div class="flex items-center gap-2.5">
           <Info class="w-5 h-5 text-opti" />
           <div>
@@ -928,59 +930,109 @@ async function handleDeleteUser(u: Usuario) {
               Sobre
             </h3>
             <p class="text-xs text-slate-500 dark:text-slate-400">
-              Informações da versão da plataforma e dados institucionais registrados
+              Informações da plataforma e dados cadastrais registrados
             </p>
           </div>
         </div>
-        <span class="px-3 py-1 rounded-full text-xs font-black bg-opti-light dark:bg-slate-700 text-opti dark:text-sky-300 border border-opti/20 dark:border-slate-600">
-          OptiManager • Ver 3.0
-        </span>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Aplicação & Versão</span>
-          <strong class="text-sm font-black text-opti dark:text-blue-400">OptiManager • Ver 3.0</strong>
+      <!-- Bloco Institucional da Aplicação -->
+      <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-750 dark:to-slate-700/60 border border-slate-200 dark:border-slate-700 space-y-3">
+        <div>
+          <h4 class="text-xl font-black text-opti dark:text-blue-400 tracking-tight">
+            OptiManager
+          </h4>
+          <p class="text-xs text-slate-600 dark:text-slate-300 font-semibold mt-0.5">
+            Versão 3.0.0
+          </p>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Copyright &copy; {{ new Date().getFullYear() }} João Figueiró
+          </p>
         </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Marca / Nome Fantasia</span>
-          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.fantasia || 'Não informado' }}</strong>
+        <!-- Botões de Espera Institucionais -->
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-600/80">
+          <button
+            type="button"
+            class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
+            title="Repositório do GitHub"
+          >
+            <Github class="w-3.5 h-3.5" />
+            <span>Repositório do GitHub</span>
+          </button>
+          <button
+            type="button"
+            class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
+            title="Site oficial"
+          >
+            <Globe class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
+            <span>Site oficial</span>
+          </button>
+          <button
+            type="button"
+            class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
+            title="Documentação"
+          >
+            <BookOpen class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Documentação</span>
+          </button>
+          <button
+            type="button"
+            class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
+            title="Licença de uso"
+          >
+            <ShieldCheck class="w-3.5 h-3.5 text-amber-500" />
+            <span>Licença</span>
+          </button>
         </div>
+      </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Razão Social</span>
-          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.razao_social || 'Não informado' }}</strong>
-        </div>
+      <!-- Informações da empresa definidas pelo usuário administrador -->
+      <div class="space-y-2.5 pt-2">
+        <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          Informações da empresa definidas pelo usuário administrador
+        </h5>
 
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">CNPJ</span>
-          <strong class="text-sm font-mono text-slate-800 dark:text-white">{{ configStore.config.cnpj || 'Não informado' }}</strong>
-        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Marca / Nome Fantasia</span>
+            <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.fantasia || 'Não informado' }}</strong>
+          </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Operador Atual</span>
-          <strong class="text-sm text-slate-800 dark:text-white">{{ authStore.user?.nome || 'Não identificado' }} ({{ authStore.user?.role === 'admin' ? 'Administrador' : 'Operador' }})</strong>
-        </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Razão Social</span>
+            <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.razao_social || 'Não informado' }}</strong>
+          </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Telefones / WhatsApp</span>
-          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.fones || 'Não informado' }}</strong>
-        </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">CNPJ</span>
+            <strong class="text-sm font-mono text-slate-800 dark:text-white">{{ configStore.config.cnpj || 'Não informado' }}</strong>
+          </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">E-mail de Contato</span>
-          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.email_contato || 'Não informado' }}</strong>
-        </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Operador Atual</span>
+            <strong class="text-sm text-slate-800 dark:text-white">{{ authStore.user?.nome || 'Não identificado' }} ({{ authStore.user?.role === 'admin' ? 'Administrador' : 'Operador' }})</strong>
+          </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Endereço Comercial</span>
-          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.endereco || 'Não informado' }}</strong>
-        </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Telefones / WhatsApp</span>
+            <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.fones || 'Não informado' }}</strong>
+          </div>
 
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-          <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Cidade - UF</span>
-          <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.cidade || 'Não informado' }}</strong>
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">E-mail de Contato</span>
+            <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.email_contato || 'Não informado' }}</strong>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Endereço Comercial</span>
+            <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.endereco || 'Não informado' }}</strong>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Cidade - UF</span>
+            <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.cidade || 'Não informado' }}</strong>
+          </div>
         </div>
       </div>
     </div>

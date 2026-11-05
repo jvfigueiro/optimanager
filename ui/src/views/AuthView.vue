@@ -258,7 +258,7 @@ async function handleSubmit() {
             <!-- E-mail -->
             <div>
               <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                E-mail de Acesso *
+                E-mail *
               </label>
               <div class="relative">
                 <Mail class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -275,7 +275,7 @@ async function handleSubmit() {
             <!-- Senha -->
             <div>
               <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                {{ authStore.needsSetup ? 'Definir Senha *' : 'Sua Senha *' }}
+                {{ authStore.needsSetup ? 'Definir Senha *' : 'Senha *' }}
               </label>
               <div class="relative">
                 <Lock class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -339,7 +339,7 @@ async function handleSubmit() {
               </template>
               <template v-else>
                 <LogIn class="w-5 h-5" />
-                <span>{{ isSubmitting ? 'Autenticando...' : 'Entrar no Sistema' }}</span>
+                <span>{{ isSubmitting ? 'Autenticando...' : 'Entrar' }}</span>
               </template>
             </button>
           </template>

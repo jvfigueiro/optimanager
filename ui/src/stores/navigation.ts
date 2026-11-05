@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export type ViewType = 'dashboard' | 'orders' | 'clients' | 'reports' | 'settings'
+export type ViewType = 'dashboard' | 'orders' | 'clients' | 'finance' | 'reports' | 'settings'
 
 export const useNavigationStore = defineStore('navigation', () => {
   const currentView = ref<ViewType>('dashboard')
@@ -20,10 +20,11 @@ export const useNavigationStore = defineStore('navigation', () => {
     // Backwards compatibility / alias mapping
     if (hash === 'servicos' || hash === 'serviços') hash = 'orders'
     if (hash === 'clientes') hash = 'clients'
+    if (hash === 'financeiro') hash = 'finance'
     if (hash === 'relatorios' || hash === 'relatórios') hash = 'reports'
     if (hash === 'configuracoes' || hash === 'configurações') hash = 'settings'
 
-    if (['dashboard', 'orders', 'clients', 'reports', 'settings'].includes(hash)) {
+    if (['dashboard', 'orders', 'clients', 'finance', 'reports', 'settings'].includes(hash)) {
       currentView.value = hash as ViewType
     }
   }

@@ -171,7 +171,7 @@ function formatDataExtenso(dateStr?: string): string {
         const ano = parseInt(parts[2], 10)
         if (!isNaN(dia) && !isNaN(mes) && !isNaN(ano) && mes >= 0 && mes < 12) {
           const diaFmt = String(dia).padStart(2, '0')
-          return `${diaFmt} do ${meses[mes]} de ${ano}`
+          return `${diaFmt} de ${meses[mes]} de ${ano}`
         }
       }
     } else if (dateStr.includes('-')) {
@@ -182,13 +182,13 @@ function formatDataExtenso(dateStr?: string): string {
         const dia = parseInt(parts[2], 10)
         if (!isNaN(dia) && !isNaN(mes) && !isNaN(ano) && mes >= 0 && mes < 12) {
           const diaFmt = String(dia).padStart(2, '0')
-          return `${diaFmt} do ${meses[mes]} de ${ano}`
+          return `${diaFmt} de ${meses[mes]} de ${ano}`
         }
       }
     }
   }
   const diaFmt = String(hoje.getDate()).padStart(2, '0')
-  return `${diaFmt} do ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`
+  return `${diaFmt} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`
 }
 
 function dispararWhatsApp() {

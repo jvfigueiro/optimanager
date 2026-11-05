@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Wrench,
   Users,
+  DollarSign,
   FileText,
   Settings,
   Plus,
@@ -26,6 +27,7 @@ import {
 import DashboardView from '../views/DashboardView.vue'
 import ServicosView from '../views/ServicosView.vue'
 import ClientesView from '../views/ClientesView.vue'
+import FinanceiroView from '../views/FinanceiroView.vue'
 import RelatoriosView from '../views/RelatoriosView.vue'
 import ConfiguracoesView from '../views/ConfiguracoesView.vue'
 import NovaOSModal from './NovaOSModal.vue'
@@ -49,6 +51,10 @@ const pageMeta: Record<ViewType, { title: string; sub: string }> = {
   clients: {
     title: 'Clientes',
     sub: 'Cadastro rápido para autocompletar em Ordens de Serviço e Relatórios',
+  },
+  finance: {
+    title: 'Financeiro',
+    sub: 'Métricas de faturamento, fluxo de recebimentos, pico diário e exportação de dados',
   },
   reports: {
     title: 'Relatórios de Serviço',
@@ -216,6 +222,19 @@ const abertosCount = computed(
           </button>
 
           <button
+            @click="nav.navigate('finance')"
+            class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition font-medium"
+            :class="
+              nav.currentView === 'finance'
+                ? 'bg-white text-opti font-bold shadow-xs'
+                : 'text-blue-100 hover:bg-opti-dark'
+            "
+          >
+            <DollarSign class="w-5 h-5 shrink-0" />
+            <span>Financeiro</span>
+          </button>
+
+          <button
             @click="nav.navigate('reports')"
             class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition font-medium"
             :class="
@@ -332,6 +351,7 @@ const abertosCount = computed(
         <DashboardView v-if="nav.currentView === 'dashboard'" />
         <ServicosView v-else-if="nav.currentView === 'orders'" />
         <ClientesView v-else-if="nav.currentView === 'clients'" />
+        <FinanceiroView v-else-if="nav.currentView === 'finance'" />
         <RelatoriosView v-else-if="nav.currentView === 'reports'" />
         <ConfiguracoesView v-else-if="nav.currentView === 'settings'" />
       </main>
@@ -342,7 +362,7 @@ const abertosCount = computed(
       >
         <button
           @click="nav.navigate('dashboard')"
-          class="flex flex-col items-center gap-1 px-3 py-1 transition"
+          class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
           :class="nav.currentView === 'dashboard' ? 'text-opti dark:text-blue-400 font-bold' : ''"
         >
           <LayoutDashboard class="w-5 h-5" />
@@ -351,7 +371,7 @@ const abertosCount = computed(
 
         <button
           @click="nav.navigate('orders')"
-          class="flex flex-col items-center gap-1 px-3 py-1 transition"
+          class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
           :class="nav.currentView === 'orders' ? 'text-opti dark:text-blue-400 font-bold' : ''"
         >
           <Wrench class="w-5 h-5" />
@@ -359,17 +379,17 @@ const abertosCount = computed(
         </button>
 
         <button
-          @click="nav.navigate('clients')"
-          class="flex flex-col items-center gap-1 px-3 py-1 transition"
-          :class="nav.currentView === 'clients' ? 'text-opti dark:text-blue-400 font-bold' : ''"
+          @click="nav.navigate('finance')"
+          class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
+          :class="nav.currentView === 'finance' ? 'text-opti dark:text-blue-400 font-bold' : ''"
         >
-          <Users class="w-5 h-5" />
-          <span>Clientes</span>
+          <DollarSign class="w-5 h-5" />
+          <span>Financeiro</span>
         </button>
 
         <button
           @click="nav.navigate('reports')"
-          class="flex flex-col items-center gap-1 px-3 py-1 transition"
+          class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
           :class="nav.currentView === 'reports' ? 'text-opti dark:text-blue-400 font-bold' : ''"
         >
           <FileText class="w-5 h-5" />

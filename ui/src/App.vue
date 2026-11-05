@@ -13,11 +13,39 @@ const nav = useNavigationStore()
 const clientesStore = useClientesStore()
 const authStore = useAuthStore()
 
+const viewTitles: Record<string, string> = {
+  dashboard: 'Dashboard',
+  orders: 'Serviços',
+  clients: 'Clientes',
+  finance: 'Financeiro',
+  reports: 'Relatórios de Serviço',
+  settings: 'Configurações',
+}
+
+function updateDocumentTitle() {
+  const empresa = configStore.config.fantasia || 'Empresa'
+  if (!authStore.isAuthenticated || authStore.needsSetup) {
+    document.title = `OptiManager | Acesso | ${empresa}`
+    return
+  }
+  const tela = viewTitles[nav.currentView] || 'Painel'
+  document.title = `OptiManager | ${tela} | ${empresa}`
+}
+
+watch(
+  [() => nav.currentView, () => configStore.config.fantasia, () => authStore.isAuthenticated],
+  () => {
+    updateDocumentTitle()
+  },
+  { immediate: true }
+)
+
 onMounted(async () => {
   configStore.initTheme()
   nav.initFromHash()
   await configStore.loadConfig()
   await authStore.checkStatus()
+  updateDocumentTitle()
   if (authStore.isAuthenticated) {
     clientesStore.loadClientes()
   }
