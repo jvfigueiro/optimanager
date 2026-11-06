@@ -2,7 +2,7 @@
 
 # OptiManager
 
-**Self-Hosted Business & Service Order Management System (On-Premises)**
+**Self-Hosted Business & Service Order Management System**
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.5+-4FC08D?style=flat&logo=vuedotjs)](https://vuejs.org/)
@@ -11,12 +11,21 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
 [![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?style=flat&logo=pwa)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Status: Early Development](https://img.shields.io/badge/Status-Early%20Development-orange.svg)](#project-status)
 
 *A lightweight, fast, self-contained web application designed for micro and small business owners, technical freelancers, and service providers to manage work orders, client directories, technical reports, and billing with full data sovereignty.*
 
 **Official Website:** [https://jvfigueiro.com/projects/optimanager](https://jvfigueiro.com/projects/optimanager)
 
 </div>
+
+---
+
+## Project Status
+
+> [!NOTE]
+> **Early Stage Development:**
+> OptiManager is currently in an early stage of development. Features, internal APIs, database schemas, and workflows are actively evolving and subject to change.
 
 ---
 
