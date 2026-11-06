@@ -114,7 +114,7 @@ async function verificarBackup() {
   try {
     await authStore.checkStatus()
     if (!authStore.needsSetup) {
-      toast.show('🎉 Banco de dados identificado com sucesso! Redirecionando para o login...')
+      toast.show('Banco de dados identificado com sucesso! Redirecionando para o login...')
     } else {
       toast.show('Nenhum banco de dados configurado foi detectado ainda. Verifique se o arquivo .db foi colocado no diretório correto e o container reiniciado.', 'error')
     }

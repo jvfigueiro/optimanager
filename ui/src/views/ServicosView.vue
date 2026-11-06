@@ -192,7 +192,7 @@ function gerarDocumento(os: OrdemServico) {
               <td class="py-3.5 px-4 max-w-sm">
                 <p class="text-slate-700 dark:text-slate-200 line-clamp-2">{{ o.servico }}</p>
                 <span v-if="o.obs_tecnicas" class="inline-block mt-1 text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">
-                  🔑 {{ o.obs_tecnicas }}
+                  Obs: {{ o.obs_tecnicas }}
                 </span>
               </td>
               <td class="py-3.5 px-4 text-right font-bold whitespace-nowrap text-slate-900 dark:text-white">

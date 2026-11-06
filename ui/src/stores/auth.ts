@@ -49,7 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (autoAuthenticate) {
         needsSetup.value = false
         isAuthenticated.value = true
-        toast.show(`🎉 Bem-vindo(a), ${res.usuario.nome}! Empresa e administrador configurados.`)
+        toast.show(`Bem-vindo(a), ${res.usuario.nome}! Empresa e administrador configurados.`)
       }
       await configStore.loadConfig()
       return res.usuario
@@ -64,7 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
   function completeSetup() {
     needsSetup.value = false
     isAuthenticated.value = true
-    toast.show(`🎉 Bem-vindo(a), ${user.value?.nome || 'Administrador'}!`)
+    toast.show(`Bem-vindo(a), ${user.value?.nome || 'Administrador'}!`)
   }
 
   async function login(email: string, senha: string) {
@@ -75,7 +75,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = res.usuario
       needsSetup.value = false
       isAuthenticated.value = true
-      toast.show(`👋 Olá, ${res.usuario.nome}!`)
+      toast.show(`Olá, ${res.usuario.nome}!`)
       return res.usuario
     } catch (err: any) {
       toast.show(err.message || 'Credenciais inválidas', 'error')
@@ -109,7 +109,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const novo = await api.createUsuario(payload)
       usuarios.value.push(novo)
-      toast.show(`✅ Usuário ${novo.nome} adicionado com sucesso!`)
+      toast.show(`Usuário ${novo.nome} adicionado com sucesso!`)
       return novo
     } catch (err: any) {
       toast.show(err.message || 'Erro ao criar usuário', 'error')
@@ -127,7 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (user.value && user.value.id === id) {
         user.value = atualizado
       }
-      toast.show(`✅ Usuário ${atualizado.nome} atualizado!`)
+      toast.show(`Usuário ${atualizado.nome} atualizado!`)
       return atualizado
     } catch (err: any) {
       toast.show(err.message || 'Erro ao atualizar usuário', 'error')
@@ -139,7 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await api.deleteUsuario(id)
       usuarios.value = usuarios.value.filter((u) => u.id !== id)
-      toast.show('🗑️ Usuário removido com sucesso.')
+      toast.show('Usuário removido com sucesso.')
     } catch (err: any) {
       toast.show(err.message || 'Erro ao remover usuário', 'error')
       throw err

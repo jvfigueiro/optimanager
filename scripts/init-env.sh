@@ -9,11 +9,11 @@ ENV_FILE=".env"
 ENV_EXAMPLE=".env.example"
 
 if [ -f "$ENV_FILE" ]; then
-    echo "[init-env] Arquivo $ENV_FILE já existe. Nenhuma alteração foi realizada para preservar as configurações atuais."
+    echo "[init-env] File $ENV_FILE already exists. No changes made to preserve current configuration."
     exit 0
 fi
 
-echo "[init-env] Criando $ENV_FILE a partir de $ENV_EXAMPLE..."
+echo "[init-env] Creating $ENV_FILE from $ENV_EXAMPLE..."
 
 if command -v openssl >/dev/null 2>&1; then
     NEW_SECRET=$(openssl rand -hex 32)
@@ -33,5 +33,4 @@ EOF
 fi
 
 chmod 600 "$ENV_FILE"
-echo "[init-env] Sucesso! Arquivo $ENV_FILE gerado com segredo HMAC seguro de 64 caracteres hexadecimais."
-
+echo "[init-env] Success: $ENV_FILE generated with a secure 64-character hexadecimal HMAC secret."

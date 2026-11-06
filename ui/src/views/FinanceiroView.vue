@@ -255,7 +255,7 @@ function exportarCSV() {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 
-  toast.show('📥 Relatório financeiro exportado com sucesso em formato CSV!')
+  toast.show('Relatório financeiro exportado com sucesso em formato CSV!')
 }
 
 function imprimirRelatorio() {
@@ -471,7 +471,7 @@ function imprimirRelatorio() {
               {{ formatBRL(diaMaiorFaturamento.total) }}
             </div>
             <p class="text-xs text-blue-100 font-semibold">
-              📅 {{ formatDate(diaMaiorFaturamento.data) }} • {{ diaMaiorFaturamento.quantidade }} serviço(s)
+              {{ formatDate(diaMaiorFaturamento.data) }} • {{ diaMaiorFaturamento.quantidade }} serviço(s)
             </p>
           </div>
           <div v-else class="text-sm text-blue-200 py-2">

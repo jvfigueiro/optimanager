@@ -165,7 +165,7 @@ export const useConfigStore = defineStore('config', () => {
       const data = await api.updateConfig(updated)
       config.value = data
       applyColorTheme(data.cor_primaria, data.cor_secundaria)
-      toast.show('✅ Configurações salvas com sucesso!')
+      toast.show('Configurações salvas com sucesso!')
       return data
     } catch (err: any) {
       toast.show('Erro ao salvar configurações: ' + err.message, 'error')

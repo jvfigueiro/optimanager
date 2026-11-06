@@ -30,7 +30,7 @@ type OrdemServico struct {
 	WhatsAppURL     string     `json:"whatsapp_url,omitempty"`
 }
 
-// CreateOrdemRequest define os dados recebidos para criação de uma OS.
+// CreateOrdemRequest defines payload to create a new service order.
 type CreateOrdemRequest struct {
 	DataEmissao     string  `json:"data_emissao"`
 	HoraEmissao     string  `json:"hora_emissao"`
@@ -47,10 +47,10 @@ type CreateOrdemRequest struct {
 	ValorTotal      float64 `json:"valor_total"`
 	PagamentoStatus string  `json:"pagamento_status"`
 	PagamentoForma  string  `json:"pagamento_forma"`
-	IsVT            bool    `json:"is_vt"` // Se true, ativa atalho de Visita Técnica
+	IsVT            bool    `json:"is_vt"` // When true, triggers On-site Technical Visit shortcut
 }
 
-// UpdateOrdemRequest define os dados para atualização de uma OS.
+// UpdateOrdemRequest defines payload to update an existing service order.
 type UpdateOrdemRequest struct {
 	DataEmissao     string  `json:"data_emissao"`
 	HoraEmissao     string  `json:"hora_emissao"`
@@ -69,7 +69,7 @@ type UpdateOrdemRequest struct {
 	PagamentoForma  string  `json:"pagamento_forma"`
 }
 
-// BaixaPagamentoRequest define os dados para liquidação rápida de pagamento.
+// BaixaPagamentoRequest defines payload for quick payment settlement.
 type BaixaPagamentoRequest struct {
 	Forma  string `json:"forma"`  // 'Pix', 'Dinheiro', 'Cartão', 'Boleto'
 	Status string `json:"status"` // 'Pago'
@@ -77,7 +77,7 @@ type BaixaPagamentoRequest struct {
 
 var nonDigitsRegex = regexp.MustCompile(`\D+`)
 
-// BuildWhatsAppURL gera o link wa.me pronto para envio com resumo da OS e chave Pix.
+// BuildWhatsAppURL builds a wa.me URL with a formatted summary of the order.
 func (os *OrdemServico) BuildWhatsAppURL(cnpj, empresa string) string {
 	rawPhone := strings.TrimSpace(os.ClienteContato)
 	cleanPhone := nonDigitsRegex.ReplaceAllString(rawPhone, "")
@@ -85,7 +85,7 @@ func (os *OrdemServico) BuildWhatsAppURL(cnpj, empresa string) string {
 		return ""
 	}
 
-	// Adiciona DDI 55 do Brasil se tiver apenas DDD + número (10 ou 11 dígitos)
+	// Prepend Brazil country code (55) if only area code + number provided
 	if len(cleanPhone) == 10 || len(cleanPhone) == 11 {
 		cleanPhone = "55" + cleanPhone
 	}

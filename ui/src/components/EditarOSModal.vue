@@ -511,8 +511,8 @@ async function handleDelete() {
               v-model="pagamentoStatus"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-opti"
             >
-              <option value="Pendente">⏳ Pendente</option>
-              <option value="Pago">✅ Pago</option>
+              <option value="Pendente">Pendente</option>
+              <option value="Pago">Pago</option>
             </select>
           </div>
 

@@ -281,7 +281,7 @@ function getStatusBadgeClass(status: string) {
                 @click="dashboardStore.liquidarOS(o.id)"
                 class="text-xs bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-600 dark:hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white font-bold px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-700 transition shrink-0"
               >
-                ✔ Receber
+                Receber
               </button>
             </div>
           </div>

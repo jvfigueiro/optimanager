@@ -96,8 +96,8 @@ async function handleDelete(id: number) {
         <div class="bg-slate-50 dark:bg-slate-750 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
           <div class="flex items-center justify-between mb-3">
             <h4 class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <span v-if="editingId" class="text-amber-600 dark:text-amber-400">✏️ Editar Atalho</span>
-              <span v-else class="text-opti dark:text-blue-400">➕ Novo Atalho</span>
+              <span v-if="editingId" class="text-amber-600 dark:text-amber-400">Editar Atalho</span>
+              <span v-else class="text-opti dark:text-blue-400">Novo Atalho</span>
             </h4>
             <button
               v-if="editingId"

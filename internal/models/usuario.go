@@ -12,12 +12,12 @@ type Usuario struct {
 }
 
 type SetupAdminRequest struct {
-	// Dados do Administrador
+	// Administrator credentials
 	Nome  string `json:"nome"`
 	Email string `json:"email"`
 	Senha string `json:"senha"`
 
-	// Dados da Empresa (Configurados no Assistente de Primeiro Acesso)
+	// Company details configured during initial wizard
 	Fantasia     string `json:"fantasia"`
 	RazaoSocial  string `json:"razao_social"`
 	CNPJ         string `json:"cnpj"`
@@ -42,7 +42,7 @@ type CreateUsuarioRequest struct {
 type UpdateUsuarioRequest struct {
 	Nome  string `json:"nome"`
 	Email string `json:"email"`
-	Senha string `json:"senha"` // Opcional na edição
+	Senha string `json:"senha"` // Optional on profile update
 	Role  string `json:"role"`
 }
 

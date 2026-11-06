@@ -76,7 +76,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
 
     if (showNotification) {
-      toast.show(`📋 CNPJ ${cnpj} copiado para a área de transferência!`)
+      toast.show(`CNPJ ${cnpj} copiado para a área de transferência!`)
     }
   }
 
@@ -106,7 +106,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     try {
       const created = await api.createAtalho(novo)
       data.value.atalhos.push(created)
-      toast.show('🔗 Novo atalho adicionado ao Dashboard!')
+      toast.show('Novo atalho adicionado ao Dashboard!')
     } catch (err: any) {
       toast.show('Erro ao criar atalho: ' + err.message, 'error')
       throw err
@@ -140,7 +140,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   async function liquidarOS(id: number) {
     try {
       await api.baixaPagamento(id, 'Pix', 'Pago')
-      toast.show(`💰 Pagamento da OS ${id} baixado com sucesso!`)
+      toast.show(`Pagamento da OS ${id} baixado com sucesso!`)
       await loadDashboard()
     } catch (err: any) {
       toast.show('Erro ao baixar pagamento: ' + err.message, 'error')

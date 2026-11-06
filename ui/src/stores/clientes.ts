@@ -33,7 +33,7 @@ export const useClientesStore = defineStore('clientes', () => {
     try {
       const novo = await api.createCliente(cli)
       clientes.value.unshift(novo)
-      toast.show('👤 Cliente salvo! Já disponível no autocompletar.')
+      toast.show('Cliente salvo! Já disponível no autocompletar.')
       return novo
     } catch (err: any) {
       toast.show('Erro ao cadastrar cliente: ' + err.message, 'error')
@@ -51,7 +51,7 @@ export const useClientesStore = defineStore('clientes', () => {
       if (idx !== -1) {
         clientes.value[idx] = updated
       }
-      toast.show('👤 Cliente atualizado com sucesso!')
+      toast.show('Cliente atualizado com sucesso!')
       return updated
     } catch (err: any) {
       toast.show('Erro ao atualizar cliente: ' + err.message, 'error')

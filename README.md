@@ -1,8 +1,8 @@
 <div align="center">
 
-# 💼 OptiManager
+# OptiManager
 
-**Sistema de Gestão Empresarial e Ordens de Serviço Auto-Hospedado (On-Premises)**
+**Self-Hosted Business & Service Order Management System (On-Premises)**
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![Vue 3](https://img.shields.io/badge/Vue-3.5+-4FC08D?style=flat&logo=vuedotjs)](https://vuejs.org/)
@@ -12,102 +12,102 @@
 [![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?style=flat&logo=pwa)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-*Uma aplicação web rápida, leve e auto-suficiente projetada para micro e pequenos empreendedores, técnicos e prestadores de serviços gerenciarem atendimentos, clientes, relatórios técnicos e faturamento com controle total dos seus próprios dados.*
+*A lightweight, fast, self-contained web application designed for micro and small business owners, technical freelancers, and service providers to manage work orders, client directories, technical reports, and billing with full data sovereignty.*
 
-🌐 **Site Oficial:** [https://jvfigueiro.com/projects/optimanager](https://jvfigueiro.com/projects/optimanager)
+**Official Website:** [https://jvfigueiro.com/projects/optimanager](https://jvfigueiro.com/projects/optimanager)
 
 </div>
 
 ---
 
-## 🌟 Principais Recursos
+## Key Features
 
-- 🚀 **Assistente de Primeiro Uso Guiado:** Configuração inicial rápida em 6 passos (boas-vindas, termos de uso, opções de nova instalação ou restauração de backup, criação do administrador e dados da empresa).
-- 📋 **Gestão Completa de Ordens de Serviço (OS):** Criação, edição, filtragem por status (Orçamento, Aberto, Em Andamento, Concluído, Entregue, Cancelado), responsável, prazos e controle de valores.
-- 👥 **Base de Clientes com Autocompletar:** Cadastre clientes frequentes para autopreenchimento instantâneo em ordens de serviço e emissão de laudos.
-- 📄 **Relatórios de Serviço Profissionais:** Emissão e impressão limpa de Relatórios Técnicos, Orçamentos e Recibos de Entrega formatados para o cliente.
-- 📊 **Painel Financeiro & Métricas:** Acompanhe faturamento mensal, faturamento do dia, tíquete médio, serviços em aberto e exportação de dados.
-- 📱 **Progressive Web App (PWA):** Aplicativo 100% instalável em Desktop (Chrome, Edge) e dispositivos móveis (Android/iOS) com service worker para carregamento instantâneo.
-- 🛡️ **Segurança & Controle de Acesso:** Autenticação baseada em JWT com validação estrita de segredo em produção, controle RBAC por perfil e log de auditoria operacional.
-- 💾 **Sistema de Backup Transacional:** Snapshots atômicos e consistentes via `VACUUM INTO` do SQLite, checagem prévia de integridade (`PRAGMA integrity_check`), rotação de retenção configurável e suporte a backups pré-migração.
-- 🌗 **Interface Moderna:** Totalmente responsiva com alternância entre Tema Claro e Tema Escuro.
-
----
-
-## 🏗️ Arquitetura & Stack Tecnológica
-
-O **OptiManager** foi construído com foco em **baixo consumo de recursos** (< 40MB de RAM em execução), zero dependências pesadas e facilidade máxima de implantação:
-
-- **Backend:** [Go](https://go.dev/) (Go 1.24+), utilizando o router padrão `http.ServeMux` da standard library, middlewares nativos para CORS, gzip, logging e recovery.
-- **Banco de Dados:** [SQLite](https://www.sqlite.org/) embarcado operando em modo WAL (*Write-Ahead Logging*), com versionamento por `PRAGMA user_version` e transações consistentes.
-- **Frontend:** [Vue 3](https://vuejs.org/) (Composition API), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/), [Tailwind CSS](https://tailwindcss.com/), [Pinia](https://pinia.vuejs.org/) e [Lucide Icons](https://lucide.dev/).
-- **Containerização:** [Docker](https://www.docker.com/) multi-stage build resultando em uma imagem Alpine minimalista com todos os ativos web embutidos diretamente no binário (`//go:embed`).
+- **Guided First-Run Wizard:** Smooth 6-step initial onboarding wizard (welcome screen, terms of use, choice between fresh setup or database restore, administrator account creation, and business information).
+- **End-to-End Service Order (OS) Management:** Create, track, and filter work orders across lifecycle stages (Quote, Open, In Progress, Completed, Delivered, Cancelled) with assignee, deadlines, and financial breakdown.
+- **Client Directory with Smart Autocomplete:** Maintain customer records for instant lookup and automated autofill across service orders and PDF reports.
+- **Professional Reports & Receipts:** Generate and print clean, client-ready Technical Reports, Quotes, and Delivery Receipts.
+- **Financial Dashboard & Metrics:** Real-time visibility into monthly revenue, daily turnover, average ticket, pending balances, and CSV export.
+- **Progressive Web App (PWA):** Fully installable on Desktop (Chrome, Edge) and mobile devices (Android, iOS) with a service worker for rapid offline shell loading.
+- **Security & Access Control:** Strict JWT-based authentication with boot-time HMAC secret entropy checks, role-based access control (RBAC), and persistent audit logging.
+- **Transactional Backup Engine:** Consistent atomic snapshots via SQLite native `VACUUM INTO`, pre-execution integrity checks (`PRAGMA integrity_check`), segregated retention policies, and automatic pre-migration safeguards.
+- **Modern Responsive Interface:** Clean UI with support for both Light and Dark themes.
 
 ---
 
-## 🚀 Como Executar com Docker (Recomendado)
+## Architecture & Technology Stack
 
-### Pré-requisitos
-- [Docker](https://docs.docker.com/get-docker/) e [Docker Compose](https://docs.docker.com/compose/) instalados no seu sistema.
+OptiManager is engineered for **minimal footprint** (< 40MB operational RAM), zero heavy runtime dependencies, and effortless deployment:
 
-### 1. Clonar o Repositório
+- **Backend:** [Go](https://go.dev/) (Go 1.24+), utilizing the standard library `http.ServeMux` and lightweight middleware for CORS, gzip compression, logging, and panic recovery.
+- **Database:** Embedded [SQLite](https://www.sqlite.org/) configured in WAL mode (*Write-Ahead Logging*), dedicated connection pools (1 writer, 8 readers), numbered migrations, and schema tracking via `PRAGMA user_version`.
+- **Frontend:** [Vue 3](https://vuejs.org/) (Composition API), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/), [Tailwind CSS](https://tailwindcss.com/), [Pinia](https://pinia.vuejs.org/), and [Lucide Icons](https://lucide.dev/).
+- **Containerization:** Multi-stage [Docker](https://www.docker.com/) build yielding a minimal Alpine runtime image where all compiled frontend assets are directly embedded into the single Go binary (`//go:embed`).
+
+---
+
+## Quick Start with Docker (Recommended)
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/) installed on your machine.
+
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/jvfigueiro/optimanager.git
 cd optimanager
 ```
 
-### 2. Inicializar o Arquivo de Configuração (.env)
-O repositório inclui um script seguro para gerar automaticamente sua chave secreta criptográfica sem sobrescrever configurações existentes:
+### 2. Initialize the Environment File (.env)
+The repository provides a utility script that generates a cryptographically secure HMAC secret without overwriting existing configuration files:
 
 ```bash
 chmod +x scripts/init-env.sh
 ./scripts/init-env.sh
 ```
 
-> **Nota:** O script criará o arquivo `.env` com um segredo aleatório de 64 caracteres hexadecimais (`JWT_SECRET`) gerado via `openssl rand -hex 32`.
+> **Note:** This creates `.env` with a 64-character hexadecimal `JWT_SECRET` generated via `openssl rand -hex 32`.
 
-### 3. Iniciar a Aplicação
+### 3. Launch the Application Container
 ```bash
 docker compose up -d
 ```
 
-### 4. Acessar o Sistema
-Abra seu navegador e acesse:
+### 4. Open in Your Browser
+Navigate to:
 ```
 http://localhost:8080
 ```
-Você será recebido pelo **Assistente de Boas-Vindas**, onde definirá sua conta de Administrador e os dados da sua empresa.
+Follow the **Welcome Wizard** to configure your administrator user and business details.
 
 ---
 
-## ⚙️ Variáveis de Ambiente
+## Environment Variables
 
-O arquivo `.env` controla o comportamento da instância:
+The `.env` file governs runtime configuration:
 
-| Variável | Descrição | Padrão | Obrigatório em Produção |
+| Variable | Description | Default | Required in Production |
 | :--- | :--- | :--- | :--- |
-| `PORT` | Porta HTTP na qual o serviço escuta | `8080` | Não |
-| `DB_PATH` | Caminho do arquivo de banco SQLite no container | `/data/optimanager.db` | Não |
-| `TZ` | Fuso horário da aplicação | `America/Sao_Paulo` | Não |
-| `JWT_SECRET` | Chave HMAC de assinatura de tokens (mínimo 32 caracteres) | *Gerada pelo script* | **Sim** |
-| `APP_ENV` | Ambiente (`production` ou `dev`) | `production` | Não |
-| `TRUST_PROXY` | Se `true`, respeita cabeçalhos `X-Forwarded-For` para auditoria | `false` | Não |
+| `PORT` | Public HTTP listening port | `8080` | No |
+| `DB_PATH` | Path to the SQLite database file inside container | `/data/optimanager.db` | No |
+| `TZ` | Container and application time zone | `America/Sao_Paulo` | No |
+| `JWT_SECRET` | 256-bit HMAC signing key (minimum 32 characters) | *Generated by script* | **Yes** |
+| `APP_ENV` | Application environment (`production` or `dev`) | `production` | No |
+| `TRUST_PROXY` | When `true`, honors `X-Forwarded-For` for client IP logging | `false` | No |
 
 ---
 
-## 🛠️ Desenvolvimento Local
+## Local Development
 
-Caso deseje executar ou modificar o código localmente fora do Docker:
+To run or develop outside of Docker:
 
 ### Backend (Go)
 ```bash
-# Executar testes unitários e de concorrência com detecção de race conditions
+# Run unit, integration, and race-condition tests
 go test ./... -race -count=1
 
-# Executar validação estática
+# Run static analysis
 go vet ./...
 
-# Iniciar o servidor de desenvolvimento
+# Start local development server
 APP_ENV=dev DB_PATH=./data/optimanager.db go run cmd/server/main.go
 ```
 
@@ -115,43 +115,42 @@ APP_ENV=dev DB_PATH=./data/optimanager.db go run cmd/server/main.go
 ```bash
 cd ui
 npm install
-npm run build   # Checagem de tipos (vue-tsc) e build de produção
-npm run dev     # Servidor de desenvolvimento com HMR
+npm run build   # Type-check (vue-tsc) and production build
+npm run dev     # Vite development server with HMR
 ```
 
 ---
 
-## 📁 Estrutura de Diretórios
+## Directory Structure
 
 ```
 optimanager/
 ├── cmd/
-│   └── server/             # Ponto de entrada do servidor Go (main.go)
-├── docs/                   # Especificações técnicas e planos arquiteturais
+│   └── server/             # Application entry point (main.go)
+├── docs/                   # Technical specifications and architectural plans
 ├── internal/
-│   ├── database/           # Conexão SQLite (WAL), repositórios e migrações
-│   │   └── migrations/     # Scripts SQL versionados por PRAGMA user_version
-│   ├── handlers/           # Handlers HTTP REST (Auth, OS, Clientes, Config, Auditoria)
-│   ├── models/             # Estruturas de dados de domínio (Go structs)
+│   ├── database/           # SQLite connection pool, migrations, and repositories
+│   │   └── migrations/     # Versioned SQL scripts tracked by PRAGMA user_version
+│   ├── handlers/           # REST HTTP endpoints (Auth, OS, Clients, Config, Audit)
+│   ├── models/             # Domain entities and request/response DTOs
 │   └── services/
-│       ├── backup/         # Serviço de backup atômico (VACUUM INTO, retenção, integridade)
-│       └── pdf/            # Utilitários de relatórios
+│       ├── backup/         # Atomic backup engine (VACUUM INTO, retention, integrity)
+│       └── pdf/            # Document and report generation utilities
 ├── scripts/
-│   └── init-env.sh         # Script utilitário para geração de chaves no .env
-├── ui/                     # Aplicação frontend Single Page Application (Vue 3)
-│   ├── public/             # Favicons, manifesto PWA e Service Worker
+│   └── init-env.sh         # Helper script for secure .env key provisioning
+├── ui/                     # Single Page Application frontend (Vue 3 + Vite)
+│   ├── public/             # Static assets, web manifest, and Service Worker
 │   └── src/
-│       ├── components/     # Modais, layout principal e componentes reutilizáveis
-│       ├── stores/         # Gerenciamento de estado global (Pinia)
-│       └── views/          # Telas (Dashboard, Serviços, Clientes, Financeiro, Relatórios, etc.)
-├── Dockerfile              # Build multi-stage enxuto (Node + Go -> Alpine)
-├── docker-compose.yml      # Configuração de orquestração local com volume persistente
-└── .env.example            # Modelo de variáveis de ambiente
+│       ├── components/     # Modals, layout wrappers, and reusable UI components
+│       ├── stores/         # Global reactive state management (Pinia)
+│       └── views/          # Primary views (Dashboard, Orders, Clients, Finance, etc.)
+├── Dockerfile              # Multi-stage production container build (Node + Go -> Alpine)
+├── docker-compose.yml      # Container orchestration with persistent storage volume
+└── .env.example            # Environment variables template
 ```
 
 ---
 
-## 📄 Licença
+## License
 
-Este projeto é distribuído sob os termos da licença **GNU General Public License v3.0 (GPLv3)**. Consulte o arquivo [LICENSE](LICENSE) para obter detalhes.
-
+This software is licensed under the terms of the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for complete details.
