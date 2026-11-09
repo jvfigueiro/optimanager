@@ -176,3 +176,34 @@ export interface UpdateUsuarioPayload {
   senha?: string
   role: 'admin' | 'operador'
 }
+
+export interface BackupInfo {
+  filename: string
+  origem: 'manual' | 'auto' | 'prerestore' | 'premigration' | string
+  tamanho_bytes: number
+  tamanho_fmt: string
+  data_criacao: string
+  data_criacao_fmt: string
+  copia_externa_ok: boolean
+}
+
+export interface BackupConfigPayload {
+  backup_auto_enabled: number
+  backup_frequencia: 'diario' | 'semanal'
+  backup_dia_semana: number
+  backup_horario: string
+  backup_retencao_auto: number
+  backup_retencao_manual: number
+  backup_retencao_prerestore: number
+  backup_retencao_premigration: number
+}
+
+export interface BackupStatusResponse extends BackupConfigPayload {
+  backups: BackupInfo[]
+  external_dir: string
+  backup_ultimo_sucesso: string
+  backup_ultimo_erro: string
+  backup_ultimo_erro_em: string
+  backup_ultimo_aviso_externo: string
+  backup_ultimo_aviso_externo_em: string
+}

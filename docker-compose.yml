@@ -7,9 +7,9 @@ services:
     container_name: optimanager
     restart: unless-stopped
     ports:
-      - "${PORT:-8080}:8080"
+      - "${PORT:-8585}:8585"
     environment:
-      - PORT=8080
+      - PORT=8585
       - DB_PATH=/data/optimanager.db
       - TZ=America/Sao_Paulo
       - JWT_SECRET=${JWT_SECRET:-}
@@ -17,7 +17,7 @@ services:
     volumes:
       - optimanager_data:/data
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8585/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3

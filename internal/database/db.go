@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -28,6 +29,14 @@ type Migration struct {
 var migrations = []Migration{
 	{Version: 1, Name: "001_initial_schema", SQL: migration001SQL},
 	{Version: 2, Name: "002_backup_and_audit", SQL: migration002SQL},
+}
+
+// LatestMigrationVersion returns the highest supported schema version.
+func LatestMigrationVersion() int {
+	if len(migrations) == 0 {
+		return 0
+	}
+	return migrations[len(migrations)-1].Version
 }
 
 // DB holds the SQLite database connection pools and metadata.
@@ -57,35 +66,9 @@ func New(customPath string) (*DB, error) {
 		return nil, fmt.Errorf("failed to create directory for database (%s): %w", dir, err)
 	}
 
-	dsn := fmt.Sprintf("%s?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=cache_size(-8000)", dbPath)
-
-	// Writer pool: strictly 1 connection to prevent concurrent write contention and locks
-	writer, err := sql.Open("sqlite", dsn)
+	writer, reader, err := openPools(dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open write connection: %w", err)
-	}
-	writer.SetMaxOpenConns(1)
-	writer.SetMaxIdleConns(1)
-
-	// Reader pool: up to 8 concurrent read connections
-	reader, err := sql.Open("sqlite", dsn)
-	if err != nil {
-		writer.Close()
-		return nil, fmt.Errorf("failed to open read connection: %w", err)
-	}
-	reader.SetMaxOpenConns(8)
-	reader.SetMaxIdleConns(8)
-
-	// Verify connectivity
-	if err := writer.Ping(); err != nil {
-		writer.Close()
-		reader.Close()
-		return nil, fmt.Errorf("ping failed on write connection: %w", err)
-	}
-	if err := reader.Ping(); err != nil {
-		writer.Close()
-		reader.Close()
-		return nil, fmt.Errorf("ping failed on read connection: %w", err)
+		return nil, err
 	}
 
 	instance := &DB{
@@ -102,6 +85,104 @@ func New(customPath string) (*DB, error) {
 
 	log.Printf("[DB] SQLite successfully initialized at %s (WAL mode, Writer: 1 conn, Reader: 8 conns)", dbPath)
 	return instance, nil
+}
+
+func openPools(dbPath string) (*sql.DB, *sql.DB, error) {
+	dsn := fmt.Sprintf("%s?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=cache_size(-8000)", dbPath)
+
+	// Writer pool: strictly 1 connection to prevent concurrent write contention and locks
+	writer, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open write connection: %w", err)
+	}
+	writer.SetMaxOpenConns(1)
+	writer.SetMaxIdleConns(1)
+
+	// Reader pool: up to 8 concurrent read connections
+	reader, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		writer.Close()
+		return nil, nil, fmt.Errorf("failed to open read connection: %w", err)
+	}
+	reader.SetMaxOpenConns(8)
+	reader.SetMaxIdleConns(8)
+
+	// Verify connectivity
+	if err := writer.Ping(); err != nil {
+		writer.Close()
+		reader.Close()
+		return nil, nil, fmt.Errorf("ping failed on write connection: %w", err)
+	}
+	if err := reader.Ping(); err != nil {
+		writer.Close()
+		reader.Close()
+		return nil, nil, fmt.Errorf("ping failed on read connection: %w", err)
+	}
+
+	return writer, reader, nil
+}
+
+// ReplaceDatabase safely swaps the active SQLite database file with a validated backup file,
+// removes any stale WAL/SHM files, reopens the connection pools, and runs any pending migrations.
+func (d *DB) ReplaceDatabase(srcPath string) error {
+	// 1. Copy srcPath to a temporary swap file in the same directory as d.Path
+	swapTmp := d.Path + ".swap.tmp"
+	_ = os.Remove(swapTmp)
+
+	in, err := os.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("failed to open source backup file: %w", err)
+	}
+	out, err := os.OpenFile(swapTmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		in.Close()
+		return fmt.Errorf("failed to create temporary swap file: %w", err)
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		in.Close()
+		out.Close()
+		_ = os.Remove(swapTmp)
+		return fmt.Errorf("failed to copy backup data to swap file: %w", err)
+	}
+	in.Close()
+	if err := out.Sync(); err != nil {
+		out.Close()
+		_ = os.Remove(swapTmp)
+		return fmt.Errorf("failed to fsync swap file: %w", err)
+	}
+	if err := out.Close(); err != nil {
+		_ = os.Remove(swapTmp)
+		return fmt.Errorf("failed to close swap file: %w", err)
+	}
+
+	// 2. Close active connection pools
+	d.Close()
+
+	// 3. Remove stale WAL and SHM files so old journal pages cannot corrupt the newly restored database
+	_ = os.Remove(d.Path + "-wal")
+	_ = os.Remove(d.Path + "-shm")
+
+	// 4. Atomically replace the active database file
+	if err := os.Rename(swapTmp, d.Path); err != nil {
+		_ = os.Remove(swapTmp)
+		return fmt.Errorf("failed to rename swap file over active database: %w", err)
+	}
+
+	// 5. Reopen connection pools
+	writer, reader, err := openPools(d.Path)
+	if err != nil {
+		return fmt.Errorf("failed to reopen database pools after restore: %w", err)
+	}
+	d.Writer = writer
+	d.Reader = reader
+
+	// 6. Run migrations in case the restored backup is from an older schema version
+	if err := d.migrate(); err != nil {
+		return fmt.Errorf("failed to migrate restored database: %w", err)
+	}
+
+	log.Printf("[DB] Database successfully replaced and reopened from %s", filepath.Base(srcPath))
+	return nil
 }
 
 // GetUserVersion reads the current PRAGMA user_version from SQLite.

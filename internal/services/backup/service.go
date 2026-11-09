@@ -128,7 +128,7 @@ func (s *Service) CleanupOrphanTmpFiles() error {
 				continue
 			}
 			name := e.Name()
-			if strings.HasSuffix(name, ".db.tmp") || strings.HasPrefix(name, ".perm_check") {
+			if strings.HasSuffix(name, ".db.tmp") || strings.HasPrefix(name, ".perm_check") || (strings.HasPrefix(name, ".restore_") && strings.HasSuffix(name, ".tmp")) {
 				p := filepath.Join(dir, name)
 				if err := os.Remove(p); err == nil {
 					log.Printf("[BACKUP CLEANUP] Removed orphan temporary file: %s", p)
@@ -175,6 +175,10 @@ func (s *Service) CreateBackup(ctx context.Context, origem string) (*BackupInfo,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	return s.createBackupLocked(ctx, origem)
+}
+
+func (s *Service) createBackupLocked(ctx context.Context, origem string) (*BackupInfo, error) {
 	// 1. Check local free space (require >= 2x active DB size)
 	dbSize := s.getActiveDatabaseSize()
 	minRequired := dbSize * 2
@@ -565,5 +569,202 @@ func formatBytes(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+const sqliteMagicHeader = "SQLite format 3\x00"
+
+// ValidateBackupFile checks that filePath is a valid, uncorrupted SQLite database file
+// compatible with OptiManager's schema and optionally containing at least one administrator account.
+func (s *Service) ValidateBackupFile(ctx context.Context, filePath string, requireAdmin bool) error {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("falha ao abrir arquivo de backup: %w", err)
+	}
+	header := make([]byte, 16)
+	n, err := io.ReadFull(f, header)
+	f.Close()
+	if err != nil || n < 16 || string(header) != sqliteMagicHeader {
+		return errors.New("o arquivo enviado não é um banco de dados SQLite válido")
+	}
+
+	checkDB, err := sql.Open("sqlite", fmt.Sprintf("%s?mode=ro&_pragma=query_only(1)&_pragma=busy_timeout(5000)", filePath))
+	if err != nil {
+		return fmt.Errorf("falha ao inspecionar banco de dados de backup: %w", err)
+	}
+	defer checkDB.Close()
+
+	var integrity string
+	if err := checkDB.QueryRowContext(ctx, "PRAGMA integrity_check").Scan(&integrity); err != nil {
+		return fmt.Errorf("falha ao verificar integridade do arquivo SQLite: %w", err)
+	}
+	if integrity != "ok" {
+		return fmt.Errorf("o arquivo de backup está corrompido (integrity_check: %s)", integrity)
+	}
+
+	var userVer int
+	if err := checkDB.QueryRowContext(ctx, "PRAGMA user_version").Scan(&userVer); err != nil {
+		return fmt.Errorf("falha ao verificar versão de esquema do backup: %w", err)
+	}
+	maxVer := database.LatestMigrationVersion()
+	if userVer < 0 || userVer > maxVer {
+		return fmt.Errorf("versão de banco de dados incompatível (versão do arquivo: v%d, versão máxima suportada por esta instância: v%d)", userVer, maxVer)
+	}
+
+	requiredTables := []string{"config", "usuarios", "clientes", "ordens_servico"}
+	for _, tbl := range requiredTables {
+		var count int
+		err := checkDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, tbl).Scan(&count)
+		if err != nil || count == 0 {
+			return fmt.Errorf("o arquivo SQLite não pertence ao OptiManager (tabela obrigatória ausente: %s)", tbl)
+		}
+	}
+
+	if requireAdmin {
+		var adminCount int
+		err := checkDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM usuarios WHERE role = 'admin'`).Scan(&adminCount)
+		if err != nil || adminCount == 0 {
+			return errors.New("o backup selecionado não possui nenhum usuário administrador cadastrado e não pode ser restaurado")
+		}
+	}
+
+	return nil
+}
+
+// RestoreFromReader validates an uploaded SQLite stream, optionally creates a pre-restore snapshot,
+// atomically replaces the active database, and logs the operation.
+func (s *Service) RestoreFromReader(ctx context.Context, r io.Reader, sourceName string, createPreRestore bool, usuarioID int64, usuarioNome, ip string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	randBytes := make([]byte, 4)
+	_, _ = rand.Read(randBytes)
+	tmpPath := filepath.Join(s.localDir, fmt.Sprintf(".restore_%d_%x.tmp", time.Now().UnixNano(), randBytes))
+	defer os.Remove(tmpPath)
+
+	out, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("falha ao criar arquivo temporário para restauração: %w", err)
+	}
+	if _, err := io.Copy(out, r); err != nil {
+		out.Close()
+		return fmt.Errorf("falha ao gravar arquivo de backup enviado: %w", err)
+	}
+	if err := out.Sync(); err != nil {
+		out.Close()
+		return fmt.Errorf("falha ao sincronizar arquivo temporário em disco: %w", err)
+	}
+	if err := out.Close(); err != nil {
+		return fmt.Errorf("falha ao fechar arquivo temporário: %w", err)
+	}
+
+	return s.restoreFromValidatedPathLocked(ctx, tmpPath, sourceName, createPreRestore, usuarioID, usuarioNome, ip)
+}
+
+// RestoreFromFilename restores the active database from an existing backup file in the local backup directory.
+func (s *Service) RestoreFromFilename(ctx context.Context, filename string, createPreRestore bool, usuarioID int64, usuarioNome, ip string) error {
+	targetPath, err := s.GetBackupFilePath(filename)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.restoreFromValidatedPathLocked(ctx, targetPath, filename, createPreRestore, usuarioID, usuarioNome, ip)
+}
+
+func (s *Service) restoreFromValidatedPathLocked(ctx context.Context, srcPath, sourceLabel string, createPreRestore bool, usuarioID int64, usuarioNome, ip string) error {
+	if err := s.ValidateBackupFile(ctx, srcPath, true); err != nil {
+		return err
+	}
+
+	var preRestoreFilename string
+	if createPreRestore {
+		info, err := s.createBackupLocked(ctx, "prerestore")
+		if err != nil {
+			return fmt.Errorf("restauração abortada: falha ao criar snapshot de segurança pré-restauração: %w", err)
+		}
+		preRestoreFilename = info.Filename
+	}
+
+	if err := s.db.ReplaceDatabase(srcPath); err != nil {
+		return fmt.Errorf("falha crítica ao substituir banco de dados ativo: %w", err)
+	}
+
+	// Record persistent file-based restore log + SQLite audit_log in the newly active database
+	detail := fmt.Sprintf("Banco de dados restaurado a partir de '%s'", sourceLabel)
+	if preRestoreFilename != "" {
+		detail += fmt.Sprintf(" (snapshot pré-restauração: %s)", preRestoreFilename)
+	}
+	_ = s.db.InsertAuditLog(usuarioID, usuarioNome, ip, "BACKUP_RESTORE", detail)
+	s.appendExternalRestoreLog(usuarioNome, ip, detail)
+
+	return nil
+}
+
+func (s *Service) appendExternalRestoreLog(usuarioNome, ip, detail string) {
+	logPath := filepath.Join(filepath.Dir(s.db.Path), "restore_audit.log")
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	line := fmt.Sprintf("[%s] user=%s ip=%s %s\n", time.Now().In(s.tz).Format(time.RFC3339), usuarioNome, ip, detail)
+	_, _ = f.WriteString(line)
+}
+
+// StartScheduler starts a lightweight background goroutine that checks once per minute
+// whether an automated backup is due based on the configuration stored in SQLite.
+func (s *Service) StartScheduler(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		var lastTriggeredDate string
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				cfg, err := s.db.GetConfig()
+				if err != nil || cfg == nil || cfg.BackupAutoEnabled != 1 {
+					continue
+				}
+
+				now := time.Now().In(s.tz)
+				currentHM := now.Format("15:04")
+				todayKey := now.Format("2006-01-02") + "_" + currentHM
+
+				if strings.TrimSpace(cfg.BackupHorario) != currentHM {
+					continue
+				}
+
+				if cfg.BackupFrequencia == "semanal" && int(now.Weekday()) != cfg.BackupDiaSemana {
+					continue
+				}
+
+				if lastTriggeredDate == todayKey {
+					continue
+				}
+
+				// Also check if BackupUltimoSucesso was already recorded in the same minute
+				if strings.HasPrefix(cfg.BackupUltimoSucesso, now.Format("2006-01-02T15:04")) {
+					lastTriggeredDate = todayKey
+					continue
+				}
+
+				lastTriggeredDate = todayKey
+				backupCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+				info, err := s.CreateBackup(backupCtx, "auto")
+				cancel()
+				if err != nil {
+					log.Printf("[BACKUP SCHEDULER] Automated backup failed: %v", err)
+				} else {
+					log.Printf("[BACKUP SCHEDULER] Automated backup created: %s (%s)", info.Filename, info.TamanhoFmt)
+					_ = s.db.InsertAuditLog(0, "sistema", "127.0.0.1", "BACKUP_AUTO", fmt.Sprintf("Backup automático gerado: %s", info.Filename))
+				}
+			}
+		}
+	}()
 }
 

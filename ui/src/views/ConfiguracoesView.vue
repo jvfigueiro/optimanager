@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { api } from '../api'
 import { useConfigStore } from '../stores/config'
 import { useAuthStore } from '../stores/auth'
-import type { Usuario, AutocompletePresets } from '../types'
+import { useToastStore } from '../stores/toast'
+import type { Usuario, AutocompletePresets, BackupInfo, BackupConfigPayload } from '../types'
 import {
   Settings,
   Upload,
@@ -20,10 +22,17 @@ import {
   Github,
   Globe,
   BookOpen,
+  Database,
+  Download,
+  RotateCcw,
+  PlusCircle,
+  Clock,
+  AlertTriangle,
 } from 'lucide-vue-next'
 
 const configStore = useConfigStore()
 const authStore = useAuthStore()
+const toast = useToastStore()
 
 const form = ref({ ...configStore.config })
 const isSaving = ref(false)
@@ -136,8 +145,181 @@ const paletasPredefinidas = [
   { nome: 'Cobre Industrial', primaria: '#c2410c', secundaria: '#7c2d12' },
 ]
 
+// Estado da seção de Backups & Restauração
+const backups = ref<BackupInfo[]>([])
+const isLoadingBackups = ref(false)
+const isCreatingBackup = ref(false)
+const isSavingBackupConfig = ref(false)
+const isRestoringBackup = ref(false)
+const importBackupFile = ref<File | null>(null)
+const backupExternalDir = ref('')
+const backupUltimoSucesso = ref('')
+const backupUltimoErro = ref('')
+const backupUltimoAvisoExterno = ref('')
+
+const backupConfig = ref<BackupConfigPayload>({
+  backup_auto_enabled: 0,
+  backup_frequencia: 'diario',
+  backup_dia_semana: 0,
+  backup_horario: '03:00',
+  backup_retencao_auto: 7,
+  backup_retencao_manual: 5,
+  backup_retencao_prerestore: 3,
+  backup_retencao_premigration: 3,
+})
+
+const diasSemana = [
+  { valor: 0, label: 'Domingo' },
+  { valor: 1, label: 'Segunda-feira' },
+  { valor: 2, label: 'Terça-feira' },
+  { valor: 3, label: 'Quarta-feira' },
+  { valor: 4, label: 'Quinta-feira' },
+  { valor: 5, label: 'Sexta-feira' },
+  { valor: 6, label: 'Sábado' },
+]
+
+async function carregarBackups() {
+  if (authStore.user?.role !== 'admin') return
+  isLoadingBackups.value = true
+  try {
+    const res = await api.getBackups()
+    backups.value = res.backups || []
+    backupExternalDir.value = res.external_dir || ''
+    backupUltimoSucesso.value = res.backup_ultimo_sucesso || ''
+    backupUltimoErro.value = res.backup_ultimo_erro || ''
+    backupUltimoAvisoExterno.value = res.backup_ultimo_aviso_externo || ''
+    backupConfig.value = {
+      backup_auto_enabled: res.backup_auto_enabled ?? 0,
+      backup_frequencia: (res.backup_frequencia === 'semanal' ? 'semanal' : 'diario'),
+      backup_dia_semana: res.backup_dia_semana ?? 0,
+      backup_horario: res.backup_horario || '03:00',
+      backup_retencao_auto: res.backup_retencao_auto || 7,
+      backup_retencao_manual: res.backup_retencao_manual || 5,
+      backup_retencao_prerestore: res.backup_retencao_prerestore || 3,
+      backup_retencao_premigration: res.backup_retencao_premigration || 3,
+    }
+  } catch (err: any) {
+    toast.show('Erro ao carregar backups: ' + (err.message || 'Falha'), 'error')
+  } finally {
+    isLoadingBackups.value = false
+  }
+}
+
+async function handleCriarBackupManual() {
+  isCreatingBackup.value = true
+  try {
+    const novo = await api.createBackup()
+    toast.show(`Backup criado com sucesso: ${novo.filename}`)
+    await carregarBackups()
+  } catch (err: any) {
+    toast.show('Erro ao criar backup: ' + (err.message || 'Falha'), 'error')
+  } finally {
+    isCreatingBackup.value = false
+  }
+}
+
+async function handleSalvarConfigBackup() {
+  isSavingBackupConfig.value = true
+  try {
+    await api.updateBackupConfig(backupConfig.value)
+    toast.show('Configurações de rotina de backup salvas com sucesso!')
+    await carregarBackups()
+  } catch (err: any) {
+    toast.show('Erro ao salvar rotina de backup: ' + (err.message || 'Falha'), 'error')
+  } finally {
+    isSavingBackupConfig.value = false
+  }
+}
+
+function handleSelectRestoreFile(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    importBackupFile.value = target.files[0]
+  } else {
+    importBackupFile.value = null
+  }
+}
+
+async function handleImportarERestaurarArquivo() {
+  if (!importBackupFile.value) {
+    toast.show('Selecione um arquivo .db para importar e restaurar.', 'error')
+    return
+  }
+
+  if (
+    !confirm(
+      `Atenção: Deseja realmente substituir o banco de dados atual pelo arquivo "${importBackupFile.value.name}"?\n\nUm backup de segurança pré-restauração será criado automaticamente antes da substituição.`
+    )
+  ) {
+    return
+  }
+
+  isRestoringBackup.value = true
+  try {
+    await api.restoreBackupFromFile(importBackupFile.value)
+    importBackupFile.value = null
+    toast.show('Banco de dados restaurado com sucesso! Recarregando dados do sistema...')
+    await Promise.all([configStore.loadConfig(), authStore.checkStatus(), authStore.loadUsuarios(), carregarBackups()])
+    form.value = { ...configStore.config }
+  } catch (err: any) {
+    toast.show('Falha ao restaurar arquivo de backup: ' + (err.message || 'Arquivo inválido'), 'error')
+  } finally {
+    isRestoringBackup.value = false
+  }
+}
+
+async function handleRestaurarBackupExistente(b: BackupInfo) {
+  if (
+    !confirm(
+      `Atenção: Deseja restaurar o sistema para o ponto "${b.filename}" (${b.data_criacao_fmt})?\n\nUm backup de segurança pré-restauração do estado atual será gerado automaticamente antes da operação.`
+    )
+  ) {
+    return
+  }
+
+  isRestoringBackup.value = true
+  try {
+    await api.restoreBackupByFilename(b.filename)
+    toast.show('Banco de dados restaurado com sucesso!')
+    await Promise.all([configStore.loadConfig(), authStore.checkStatus(), authStore.loadUsuarios(), carregarBackups()])
+    form.value = { ...configStore.config }
+  } catch (err: any) {
+    toast.show('Erro ao restaurar backup: ' + (err.message || 'Falha'), 'error')
+  } finally {
+    isRestoringBackup.value = false
+  }
+}
+
+async function handleExcluirBackup(b: BackupInfo) {
+  if (!confirm(`Deseja realmente excluir o arquivo de backup "${b.filename}"?`)) {
+    return
+  }
+  try {
+    await api.deleteBackup(b.filename)
+    toast.show('Arquivo de backup removido.')
+    await carregarBackups()
+  } catch (err: any) {
+    toast.show('Erro ao excluir backup: ' + (err.message || 'Falha'), 'error')
+  }
+}
+
+function formatOrigemLabel(origem: string) {
+  switch (origem) {
+    case 'manual':
+      return 'Manual'
+    case 'auto':
+      return 'Automático'
+    case 'prerestore':
+      return 'Pré-Restauração'
+    case 'premigration':
+      return 'Pré-Migração'
+    default:
+      return origem
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([configStore.loadConfig(), authStore.loadUsuarios()])
+  await Promise.all([configStore.loadConfig(), authStore.loadUsuarios(), carregarBackups()])
   form.value = { ...configStore.config }
   customPresets.value = {
     marcas_titulo: configStore.presets.marcas_titulo || 'Marcas / Fabricantes',
@@ -927,6 +1109,271 @@ async function handleDeleteUser(u: Usuario) {
         <span v-else class="text-xs text-slate-400 italic">
           Alterações restritas a administradores.
         </span>
+      </div>
+    </div>
+
+    <!-- Card: Backups & Restauração do Banco de Dados (Apenas Administradores) -->
+    <div
+      v-if="authStore.user?.role === 'admin'"
+      class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-6"
+    >
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <Database class="w-5 h-5 text-opti" />
+            <h3 class="font-bold text-lg text-slate-800 dark:text-white">
+              Backups & Restauração de Dados
+            </h3>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Crie snapshots seguros do banco de dados SQLite, importe backups anteriores (.db) ou programe rotinas automáticas.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          @click="handleCriarBackupManual"
+          :disabled="isCreatingBackup || isRestoringBackup"
+          class="bg-opti hover:bg-opti-dark disabled:opacity-50 text-white font-bold px-4 py-2.5 rounded-xl transition shadow-xs flex items-center gap-2 text-xs self-start sm:self-auto shrink-0"
+        >
+          <PlusCircle class="w-4 h-4" :class="{ 'animate-spin': isCreatingBackup }" />
+          <span>{{ isCreatingBackup ? 'Gerando Backup...' : 'Criar Novo Backup Agora' }}</span>
+        </button>
+      </div>
+
+      <!-- Alertas de erro ou aviso externo se existirem -->
+      <div
+        v-if="backupUltimoErro || backupUltimoAvisoExterno"
+        class="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300 space-y-1"
+      >
+        <div v-if="backupUltimoErro" class="flex items-center gap-2 font-semibold text-red-600 dark:text-red-400">
+          <AlertTriangle class="w-4 h-4 shrink-0" />
+          <span>Último erro registrado: {{ backupUltimoErro }}</span>
+        </div>
+        <div v-if="backupUltimoAvisoExterno" class="flex items-center gap-2">
+          <AlertTriangle class="w-4 h-4 shrink-0" />
+          <span>Aviso de destino externo: {{ backupUltimoAvisoExterno }}</span>
+        </div>
+      </div>
+
+      <!-- Grid: Importar Arquivo Externo (.db) + Configurar Rotina Automática -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Bloco 1: Importar / Restaurar Backup Externo -->
+        <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-750/50 flex flex-col justify-between space-y-4">
+          <div class="space-y-1.5">
+            <h4 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+              <Upload class="w-4 h-4 text-opti" />
+              <span>Importar Arquivo de Backup (.db)</span>
+            </h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Envie um arquivo <code class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded font-mono text-[11px]">.db</code> do seu computador para restaurar os dados. O sistema criará automaticamente um snapshot pré-restauração antes de aplicar o arquivo.
+            </p>
+          </div>
+
+          <div class="space-y-3">
+            <label
+              class="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition text-center"
+              :class="
+                importBackupFile
+                  ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20'
+                  : 'border-slate-300 dark:border-slate-600 hover:border-opti bg-white dark:bg-slate-800'
+              "
+            >
+              <Upload class="w-5 h-5 mb-1" :class="importBackupFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'" />
+              <span v-if="importBackupFile" class="text-xs font-bold text-emerald-700 dark:text-emerald-300 truncate max-w-full px-2">
+                {{ importBackupFile.name }} ({{ (importBackupFile.size / 1024).toFixed(1) }} KB)
+              </span>
+              <span v-else class="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                Selecionar arquivo .db no computador
+              </span>
+              <input
+                type="file"
+                accept=".db,.sqlite,.sqlite3,application/vnd.sqlite3,application/octet-stream"
+                @change="handleSelectRestoreFile"
+                class="hidden"
+              />
+            </label>
+
+            <button
+              type="button"
+              @click="handleImportarERestaurarArquivo"
+              :disabled="!importBackupFile || isRestoringBackup"
+              class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-xs"
+            >
+              <RotateCcw class="w-4 h-4" :class="{ 'animate-spin': isRestoringBackup }" />
+              <span>{{ isRestoringBackup ? 'Restaurando Banco de Dados...' : 'Importar e Restaurar Agora' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bloco 2: Agendamento Automático e Retenção -->
+        <form @submit.prevent="handleSalvarConfigBackup" class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-750/50 space-y-3.5 text-xs">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+              <Clock class="w-4 h-4 text-opti" />
+              <span>Backup Automático & Retenção</span>
+            </h4>
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                :checked="backupConfig.backup_auto_enabled === 1"
+                @change="backupConfig.backup_auto_enabled = ($event.target as HTMLInputElement).checked ? 1 : 0"
+                class="rounded text-opti focus:ring-opti w-4 h-4"
+              />
+              <span>Ativar rotina</span>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Frequência</label>
+              <select
+                v-model="backupConfig.backup_frequencia"
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5"
+              >
+                <option value="diario">Diário</option>
+                <option value="semanal">Semanal</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Horário (HH:MM)</label>
+              <input
+                type="time"
+                v-model="backupConfig.backup_horario"
+                required
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 font-mono"
+              />
+            </div>
+
+            <div v-if="backupConfig.backup_frequencia === 'semanal'" class="col-span-2">
+              <label class="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Dia da Semana</label>
+              <select
+                v-model.number="backupConfig.backup_dia_semana"
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5"
+              >
+                <option v-for="d in diasSemana" :key="d.valor" :value="d.valor">{{ d.label }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Retenção Automática</label>
+              <input
+                type="number"
+                min="1"
+                max="60"
+                v-model.number="backupConfig.backup_retencao_auto"
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5"
+              />
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">Retenção Manual</label>
+              <input
+                type="number"
+                min="1"
+                max="60"
+                v-model.number="backupConfig.backup_retencao_manual"
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-[11px] text-slate-400 truncate">
+              {{ backupUltimoSucesso ? `Último auto: ${backupUltimoSucesso}` : 'Nenhum backup automático executado ainda' }}
+            </span>
+            <button
+              type="submit"
+              :disabled="isSavingBackupConfig"
+              class="bg-opti hover:bg-opti-dark text-white font-bold px-4 py-2 rounded-xl transition text-xs shrink-0"
+            >
+              {{ isSavingBackupConfig ? 'Salvando...' : 'Salvar Rotina' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lista de Backups Disponíveis no Servidor -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Arquivos de Backup Armazenados ({{ backups.length }})
+          </h4>
+        </div>
+
+        <div
+          v-if="backups.length === 0"
+          class="p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center text-xs text-slate-400"
+        >
+          Nenhum arquivo de backup encontrado no servidor. Clique em <strong>"Criar Novo Backup Agora"</strong> para gerar seu primeiro ponto de restauração.
+        </div>
+
+        <div
+          v-else
+          class="divide-y divide-slate-200 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden"
+        >
+          <div
+            v-for="b in backups"
+            :key="b.filename"
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition text-xs"
+          >
+            <div class="min-w-0 space-y-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-mono font-bold text-slate-800 dark:text-white truncate">
+                  {{ b.filename }}
+                </span>
+                <span
+                  class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
+                  :class="{
+                    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300': b.origem === 'manual',
+                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300': b.origem === 'auto',
+                    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300': b.origem === 'prerestore' || b.origem === 'premigration',
+                  }"
+                >
+                  {{ formatOrigemLabel(b.origem) }}
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-3">
+                <span>Criado em: <strong>{{ b.data_criacao_fmt }}</strong></span>
+                <span>Tamanho: <strong>{{ b.tamanho_fmt }}</strong></span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <a
+                :href="api.getBackupDownloadUrl(b.filename)"
+                download
+                class="px-3 py-1.5 rounded-lg font-semibold border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-1.5"
+                title="Baixar cópia deste arquivo .db"
+              >
+                <Download class="w-3.5 h-3.5" />
+                <span>Baixar</span>
+              </a>
+
+              <button
+                type="button"
+                @click="handleRestaurarBackupExistente(b)"
+                :disabled="isRestoringBackup"
+                class="px-3 py-1.5 rounded-lg font-semibold border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-40 transition flex items-center gap-1.5"
+                title="Restaurar banco de dados para este ponto"
+              >
+                <RotateCcw class="w-3.5 h-3.5" />
+                <span>Restaurar</span>
+              </button>
+
+              <button
+                type="button"
+                @click="handleExcluirBackup(b)"
+                :disabled="isRestoringBackup"
+                class="px-2.5 py-1.5 rounded-lg font-semibold border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 disabled:opacity-40 transition flex items-center gap-1"
+                title="Excluir arquivo de backup"
+              >
+                <Trash2 class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

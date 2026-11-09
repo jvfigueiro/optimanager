@@ -25,7 +25,7 @@ if [ -f "$ENV_EXAMPLE" ]; then
     sed "s|^JWT_SECRET=.*|JWT_SECRET=${NEW_SECRET}|" "$ENV_EXAMPLE" > "$ENV_FILE"
 else
     cat <<EOF > "$ENV_FILE"
-PORT=8080
+PORT=8585
 DB_PATH=/data/optimanager.db
 TZ=America/Sao_Paulo
 JWT_SECRET=${NEW_SECRET}

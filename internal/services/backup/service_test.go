@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -448,5 +449,69 @@ func TestBackup_CheckExternalWritable(t *testing.T) {
 		if filepath.HasPrefix(e.Name(), ".perm_check") {
 			t.Fatalf("found leftover .perm_check file: %s", e.Name())
 		}
+	}
+}
+
+func TestBackup_RestoreHotSwapsDatabaseAndCreatesPreRestoreSnapshot(t *testing.T) {
+	db, tempDir := setupTestDB(t)
+	defer db.Close()
+
+	backupDir := filepath.Join(tempDir, "backups")
+	svc, err := backup.NewService(db, backupDir, "")
+	if err != nil {
+		t.Fatalf("failed to initialize backup service: %v", err)
+	}
+
+	// 1. Create an admin user and a client in the initial state
+	u, err := db.CreateUsuario("Admin Original", "admin@test.com", "123456", "admin")
+	if err != nil {
+		t.Fatalf("failed to create admin user: %v", err)
+	}
+	cfg, _ := db.GetConfig()
+	cfg.Fantasia = "Empresa Ponto 1"
+	_ = db.UpdateConfig(cfg)
+
+	ctx := context.Background()
+	snap1, err := svc.CreateBackup(ctx, "manual")
+	if err != nil {
+		t.Fatalf("failed to create manual snapshot: %v", err)
+	}
+
+	// 2. Mutate the database after snapshot 1
+	cfg2, _ := db.GetConfig()
+	cfg2.Fantasia = "Empresa Modificada Ponto 2"
+	_ = db.UpdateConfig(cfg2)
+
+	// 3. Restore back to snap1 with createPreRestore = true
+	if err := svc.RestoreFromFilename(ctx, snap1.Filename, true, u.ID, u.Nome, "127.0.0.1"); err != nil {
+		t.Fatalf("RestoreFromFilename failed: %v", err)
+	}
+
+	// 4. Verify database state reverted to Ponto 1 without restarting DB struct
+	cfgRestored, err := db.GetConfig()
+	if err != nil {
+		t.Fatalf("failed to read config after restore: %v", err)
+	}
+	if cfgRestored.Fantasia != "Empresa Ponto 1" {
+		t.Fatalf("expected Fantasia to be 'Empresa Ponto 1' after restore, got %q", cfgRestored.Fantasia)
+	}
+
+	// 5. Verify a prerestore backup was generated
+	list, _ := svc.ListBackups()
+	foundPreRestore := false
+	for _, b := range list {
+		if b.Origem == "prerestore" {
+			foundPreRestore = true
+			break
+		}
+	}
+	if !foundPreRestore {
+		t.Fatalf("expected a prerestore snapshot to be created automatically before restore")
+	}
+
+	// 6. Verify invalid file stream is rejected
+	err = svc.RestoreFromReader(ctx, strings.NewReader("invalid non-sqlite payload"), "bad.db", false, u.ID, u.Nome, "127.0.0.1")
+	if err == nil {
+		t.Fatalf("expected error when restoring invalid non-SQLite stream")
 	}
 }

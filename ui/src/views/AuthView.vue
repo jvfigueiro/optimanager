@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { api } from '../api'
 import { useAuthStore } from '../stores/auth'
 import { useConfigStore } from '../stores/config'
 import { useToastStore } from '../stores/toast'
@@ -31,6 +32,7 @@ import {
   PartyPopper,
   X,
   FileCheck,
+  Upload,
 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
@@ -56,6 +58,36 @@ const concordoTermos = ref(false)
 // Passo 3: Opção de Instalação ('nova' ou 'backup')
 const opcaoInstalacao = ref<'nova' | 'backup'>('nova')
 const isCheckingBackup = ref(false)
+const selectedBackupFile = ref<File | null>(null)
+const isRestoringBackup = ref(false)
+
+function handleBackupFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    selectedBackupFile.value = target.files[0]
+  } else {
+    selectedBackupFile.value = null
+  }
+}
+
+async function handleImportarBackupInicial() {
+  if (!selectedBackupFile.value) {
+    toast.show('Selecione um arquivo de backup (.db) antes de restaurar.', 'error')
+    return
+  }
+
+  isRestoringBackup.value = true
+  try {
+    await api.restoreInitialBackupFromFile(selectedBackupFile.value)
+    await Promise.all([configStore.loadConfig(), authStore.checkStatus()])
+    selectedBackupFile.value = null
+    toast.show('Backup importado e restaurado com sucesso! Entre com suas credenciais.')
+  } catch (err: any) {
+    toast.show('Erro ao restaurar backup: ' + (err.message || 'Arquivo inválido'), 'error')
+  } finally {
+    isRestoringBackup.value = false
+  }
+}
 
 // Passo 4: Administrador (e formulário de login padrão)
 const nome = ref('')
@@ -555,34 +587,72 @@ async function handleLogin() {
               </div>
             </div>
 
-            <!-- Painel Informativo para Restauração de Backup -->
+            <!-- Painel de Importação Direta de Backup -->
             <div
               v-if="opcaoInstalacao === 'backup'"
-              class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 space-y-3"
+              class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 space-y-4"
             >
               <div class="flex items-start gap-2.5">
                 <Database class="w-5 h-5 text-opti shrink-0 mt-0.5" />
                 <div class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                  <strong class="block text-slate-900 dark:text-white font-bold mb-1">
-                    Como restaurar seu backup no OptiManager:
+                  <strong class="block text-slate-900 dark:text-white font-bold mb-0.5">
+                    Importar arquivo de backup (.db)
                   </strong>
-                  <ol class="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-400">
-                    <li>Pare o container da aplicação: <code class="px-1 py-0.5 bg-slate-200 dark:bg-slate-800 rounded font-mono text-[11px]">docker compose down</code></li>
-                    <li>Copie seu arquivo de backup para o volume do banco: <code class="px-1 py-0.5 bg-slate-200 dark:bg-slate-800 rounded font-mono text-[11px]">./data/optimanager.db</code></li>
-                    <li>Inicie a aplicação novamente: <code class="px-1 py-0.5 bg-slate-200 dark:bg-slate-800 rounded font-mono text-[11px]">docker compose up -d</code></li>
-                  </ol>
+                  <p class="text-slate-600 dark:text-slate-400">
+                    Selecione um arquivo de backup gerado anteriormente pelo OptiManager. O sistema validará a integridade do arquivo e restaurará automaticamente seus usuários, clientes, ordens de serviço e configurações.
+                  </p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                @click="verificarBackup"
-                :disabled="isCheckingBackup"
-                class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition"
+              <!-- Seletor de Arquivo .db -->
+              <label
+                class="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition text-center"
+                :class="
+                  selectedBackupFile
+                    ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20'
+                    : 'border-slate-300 dark:border-slate-600 hover:border-opti dark:hover:border-opti bg-white dark:bg-slate-800/70'
+                "
               >
-                <RotateCcw class="w-4 h-4" :class="{ 'animate-spin': isCheckingBackup }" />
-                <span>{{ isCheckingBackup ? 'Verificando banco de dados...' : 'Verificar se o Banco foi Restaurado' }}</span>
-              </button>
+                <Upload class="w-6 h-6 mb-1.5" :class="selectedBackupFile ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'" />
+                <span v-if="selectedBackupFile" class="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                  {{ selectedBackupFile.name }} ({{ (selectedBackupFile.size / 1024).toFixed(1) }} KB)
+                </span>
+                <span v-else class="text-xs font-bold text-slate-700 dark:text-slate-200">
+                  Clique para escolher o arquivo de backup (.db)
+                </span>
+                <span class="text-[11px] text-slate-400 mt-0.5">
+                  Apenas arquivos SQLite válidos do OptiManager
+                </span>
+                <input
+                  type="file"
+                  accept=".db,.sqlite,.sqlite3,application/vnd.sqlite3,application/octet-stream"
+                  @change="handleBackupFileChange"
+                  class="hidden"
+                />
+              </label>
+
+              <div class="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  @click="handleImportarBackupInicial"
+                  :disabled="!selectedBackupFile || isRestoringBackup"
+                  class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-xs"
+                >
+                  <Upload class="w-4 h-4" :class="{ 'animate-bounce': isRestoringBackup }" />
+                  <span>{{ isRestoringBackup ? 'Validando e restaurando backup...' : 'Importar e Restaurar Backup' }}</span>
+                </button>
+
+                <button
+                  type="button"
+                  @click="verificarBackup"
+                  :disabled="isCheckingBackup || isRestoringBackup"
+                  class="px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                  title="Caso tenha restaurado manualmente via volume Docker"
+                >
+                  <RotateCcw class="w-3.5 h-3.5" :class="{ 'animate-spin': isCheckingBackup }" />
+                  <span>{{ isCheckingBackup ? 'Verificando...' : 'Verificar Volume' }}</span>
+                </button>
+              </div>
             </div>
 
             <!-- Botões Voltar / Avançar -->

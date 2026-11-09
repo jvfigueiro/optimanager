@@ -12,6 +12,9 @@ import type {
   AuthResponse,
   CreateUsuarioPayload,
   UpdateUsuarioPayload,
+  BackupInfo,
+  BackupConfigPayload,
+  BackupStatusResponse,
 } from '../types'
 
 const API_BASE = '/api'
@@ -174,4 +177,46 @@ export const api = {
     request<{ message: string }>(`/atalhos/${id}`, {
       method: 'DELETE',
     }),
+
+  // Backups & Restauração
+  getBackups: () => request<BackupStatusResponse>('/backups'),
+  createBackup: () =>
+    request<BackupInfo>('/backups', {
+      method: 'POST',
+    }),
+  updateBackupConfig: (payload: BackupConfigPayload) =>
+    request<{ message: string }>('/backups/config', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  deleteBackup: (filename: string) =>
+    request<{ message: string }>(`/backups/${encodeURIComponent(filename)}`, {
+      method: 'DELETE',
+    }),
+  getBackupDownloadUrl: (filename: string) => {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+    const qs = token ? `?token=${encodeURIComponent(token)}` : ''
+    return `${API_BASE}/backups/${encodeURIComponent(filename)}/download${qs}`
+  },
+  restoreBackupByFilename: (filename: string) =>
+    request<{ message: string }>('/backups/restore', {
+      method: 'POST',
+      body: JSON.stringify({ filename }),
+    }),
+  restoreBackupFromFile: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request<{ message: string }>('/backups/restore', {
+      method: 'POST',
+      body: formData,
+    })
+  },
+  restoreInitialBackupFromFile: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request<{ message: string }>('/auth/restore', {
+      method: 'POST',
+      body: formData,
+    })
+  },
 }
