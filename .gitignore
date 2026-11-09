@@ -37,6 +37,7 @@ ui/dist/
 *.tmp
 *.swp
 *.swo
+*.csv
 
 # OS & Editor configurations
 .DS_Store
