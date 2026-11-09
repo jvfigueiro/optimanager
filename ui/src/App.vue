@@ -67,7 +67,7 @@ watch(
   </div>
   <template v-else>
     <AppLayout v-if="authStore.isAuthenticated && !authStore.needsSetup" />
-    <div v-else>
+    <div v-else class="min-h-screen w-full flex flex-col">
       <AuthView />
       <ToastContainer />
     </div>

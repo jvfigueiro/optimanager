@@ -246,7 +246,7 @@ async function handleLogin() {
 
 <template>
   <div
-    class="min-h-screen w-full flex flex-col justify-center items-center p-4 bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 relative overflow-y-auto"
+    class="min-h-screen w-full flex flex-col items-center py-8 sm:py-12 px-4 sm:px-6 bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 relative"
   >
     <!-- Botão Alternar Tema no Topo Direito -->
     <div class="fixed top-4 right-4 z-10">
@@ -262,7 +262,7 @@ async function handleLogin() {
 
     <!-- Cartão Central de Autenticação / Assistente de Setup -->
     <div
-      class="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all my-6"
+      class="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all my-auto"
       :class="authStore.needsSetup ? 'max-w-2xl' : 'max-w-md'"
     >
       <!-- Cabeçalho Institucional -->
@@ -1080,9 +1080,9 @@ async function handleLogin() {
     <!-- Modal Informativo de Documentação (Passo 1) -->
     <div
       v-if="showDocModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto"
     >
-      <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+      <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 my-auto">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <BookOpen class="w-5 h-5 text-opti" />
