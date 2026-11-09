@@ -3,9 +3,11 @@ package handlers_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -68,10 +70,13 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 			protected.Route("/clientes", func(cr chi.Router) {
 				cr.Get("/", cliH.List)
 				cr.Post("/", cliH.Create)
+				cr.Post("/batch", cliH.Batch)
+				cr.Delete("/{id}", cliH.Delete)
 			})
 			protected.Route("/ordens", func(or chi.Router) {
 				or.Get("/", osH.List)
 				or.Post("/", osH.Create)
+				or.Post("/batch", osH.Batch)
 				or.Put("/{id}", osH.Update)
 				or.Delete("/{id}", osH.Delete)
 				or.Patch("/{id}/baixa", osH.BaixaPagamento)
@@ -315,5 +320,78 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 	r.ServeHTTP(wDel, reqDel)
 	if wDel.Code != http.StatusOK {
 		t.Fatalf("expected status 200 on order delete, got %d: %s", wDel.Code, wDel.Body.String())
+	}
+
+	// 7. Test Batch Operations on Orders
+	// Create two new orders
+	for i := 1; i <= 2; i++ {
+		oPayload := fmt.Sprintf(`{"servico":"Batch Service %d","cliente_nome":"Batch Client %d","valor_total":100.0}`, i, i)
+		wCreate := httptest.NewRecorder()
+		reqCreate := httptest.NewRequest(http.MethodPost, "/api/ordens", strings.NewReader(oPayload))
+		reqCreate.Header.Set("Authorization", authHeader)
+		reqCreate.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(wCreate, reqCreate)
+		if wCreate.Code != http.StatusCreated {
+			t.Fatalf("failed to create order for batch test: %s", wCreate.Body.String())
+		}
+	}
+
+	// Batch Status Update
+	wBatchStatus := httptest.NewRecorder()
+	reqBatchStatus := httptest.NewRequest(http.MethodPost, "/api/ordens/batch", strings.NewReader(`{"action":"status","ids":[1001,1002],"status":"Em Serviço"}`))
+	reqBatchStatus.Header.Set("Authorization", authHeader)
+	reqBatchStatus.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wBatchStatus, reqBatchStatus)
+	if wBatchStatus.Code != http.StatusOK {
+		t.Fatalf("batch status failed: %s", wBatchStatus.Body.String())
+	}
+
+	// Batch Baixa Update
+	wBatchBaixa := httptest.NewRecorder()
+	reqBatchBaixa := httptest.NewRequest(http.MethodPost, "/api/ordens/batch", strings.NewReader(`{"action":"baixa","ids":[1001,1002],"pagamento_forma":"Pix"}`))
+	reqBatchBaixa.Header.Set("Authorization", authHeader)
+	reqBatchBaixa.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wBatchBaixa, reqBatchBaixa)
+	if wBatchBaixa.Code != http.StatusOK {
+		t.Fatalf("batch baixa failed: %s", wBatchBaixa.Body.String())
+	}
+
+	// Batch Duplicar
+	wBatchDup := httptest.NewRecorder()
+	reqBatchDup := httptest.NewRequest(http.MethodPost, "/api/ordens/batch", strings.NewReader(`{"action":"duplicar","ids":[1001]}`))
+	reqBatchDup.Header.Set("Authorization", authHeader)
+	reqBatchDup.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wBatchDup, reqBatchDup)
+	if wBatchDup.Code != http.StatusOK {
+		t.Fatalf("batch duplicate failed: %s", wBatchDup.Body.String())
+	}
+
+	// Batch Delete Orders
+	wBatchDel := httptest.NewRecorder()
+	reqBatchDel := httptest.NewRequest(http.MethodPost, "/api/ordens/batch", strings.NewReader(`{"action":"delete","ids":[1001,1002,1003]}`))
+	reqBatchDel.Header.Set("Authorization", authHeader)
+	reqBatchDel.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wBatchDel, reqBatchDel)
+	if wBatchDel.Code != http.StatusOK {
+		t.Fatalf("batch delete failed: %s", wBatchDel.Body.String())
+	}
+
+	// 8. Test Batch Operations on Clients
+	// Create free clients (not linked to OS)
+	wCliCreate := httptest.NewRecorder()
+	reqCliCreate := httptest.NewRequest(http.MethodPost, "/api/clientes", strings.NewReader(`{"nome":"Cliente Solto Teste"}`))
+	reqCliCreate.Header.Set("Authorization", authHeader)
+	reqCliCreate.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wCliCreate, reqCliCreate)
+	var cliSolto models.Cliente
+	_ = json.NewDecoder(wCliCreate.Body).Decode(&cliSolto)
+
+	wBatchCli := httptest.NewRecorder()
+	reqBatchCli := httptest.NewRequest(http.MethodPost, "/api/clientes/batch", strings.NewReader(fmt.Sprintf(`{"action":"delete","ids":[%d]}`, cliSolto.ID)))
+	reqBatchCli.Header.Set("Authorization", authHeader)
+	reqBatchCli.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wBatchCli, reqBatchCli)
+	if wBatchCli.Code != http.StatusOK {
+		t.Fatalf("batch client delete failed: %s", wBatchCli.Body.String())
 	}
 }

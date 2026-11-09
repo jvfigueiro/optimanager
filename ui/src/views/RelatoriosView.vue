@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Check,
   X,
+  Search,
 } from 'lucide-vue-next'
 
 const ordensStore = useOrdensStore()
@@ -27,6 +28,31 @@ type DocType = 'os' | 'orcamento' | 'relatorio' | 'recibo'
 const docType = ref<DocType>('os')
 
 const selectedOSId = ref<number | null>(null)
+const osSearchQuery = ref('')
+
+// Ordens ordenadas por mais recente (maior ID / data mais recente)
+const ordensOrdenadasPorMaisRecente = computed(() => {
+  return [...ordensStore.ordens].sort((a, b) => {
+    if (b.data_emissao !== a.data_emissao) {
+      return b.data_emissao.localeCompare(a.data_emissao)
+    }
+    return b.id - a.id
+  })
+})
+
+const filteredOrdensParaRelatorio = computed(() => {
+  const q = osSearchQuery.value.trim().toLowerCase()
+  if (!q) return ordensOrdenadasPorMaisRecente.value
+
+  return ordensOrdenadasPorMaisRecente.value.filter((o) => {
+    const idStr = String(o.id)
+    const cli = (o.cliente_nome || '').toLowerCase()
+    const equip = (o.equipamento || '').toLowerCase()
+    const serv = (o.servico || '').toLowerCase()
+    return idStr.includes(q) || cli.includes(q) || equip.includes(q) || serv.includes(q)
+  })
+})
+
 const docCliente = ref('')
 const docCpfCnpj = ref('')
 const docEquipamento = ref('')
@@ -57,9 +83,12 @@ onMounted(async () => {
     configStore.config.termo_garantia ||
     'Garantia legal de 90 dias conforme Art. 26 do CDC para serviços executados e peças aplicadas.'
 
-  if (!ordensStore.ordens.length) {
-    await ordensStore.loadOrdens()
+  // Garante carregamento do catálogo completo para pesquisa e reemissão histórica
+  if (ordensStore.currentFiltro !== 'TODOS' || ordensStore.searchQuery !== '') {
+    ordensStore.currentFiltro = 'TODOS'
+    ordensStore.searchQuery = ''
   }
+  await ordensStore.loadOrdens()
 
   // Se uma OS foi selecionada anteriormente a partir da tabela de serviços
   if (ordensStore.selectedOSForDoc) {
@@ -70,9 +99,11 @@ onMounted(async () => {
     selectedOSId.value = ordensStore.selectedOSForDoc.id
     carregarOSNoGerador(ordensStore.selectedOSForDoc.id)
     ordensStore.selectedOSForDoc = null
-  } else if (ordensStore.ordens.length) {
-    selectedOSId.value = ordensStore.ordens[0].id
-    carregarOSNoGerador(ordensStore.ordens[0].id)
+  } else if (ordensOrdenadasPorMaisRecente.value.length) {
+    // Pré-seleciona sempre a ordem mais atual
+    const maisRecente = ordensOrdenadasPorMaisRecente.value[0]
+    selectedOSId.value = maisRecente.id
+    carregarOSNoGerador(maisRecente.id)
   }
 })
 
@@ -232,23 +263,58 @@ function imprimirDocumento() {
         </p>
       </div>
 
-      <!-- 1. Seletor de OS -->
-      <div>
-        <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-          Selecione a Ordem de Serviço
-        </label>
+      <!-- 1. Seletor de OS com Barra de Pesquisa Integrada -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+            1. Selecione a Ordem de Serviço
+          </label>
+          <span
+            v-if="selectedOSId"
+            class="text-[11px] font-bold text-opti dark:text-blue-400 bg-blue-50 dark:bg-slate-700 px-2 py-0.5 rounded-lg border border-blue-100 dark:border-slate-600"
+          >
+            OS Selecionada: #{{ selectedOSId }}
+          </span>
+        </div>
+
+        <!-- Barra de Pesquisa de Ordens Históricas -->
+        <div class="relative">
+          <Search class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            v-model="osSearchQuery"
+            placeholder="Pesquisar por número da OS (ex: 1042), cliente ou equipamento..."
+            class="w-full border border-slate-300 dark:border-slate-600 rounded-xl pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-700 text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-opti"
+          />
+          <button
+            v-if="osSearchQuery"
+            @click="osSearchQuery = ''"
+            type="button"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            title="Limpar busca"
+          >
+            <X class="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         <select
           v-model="selectedOSId"
           class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-opti"
         >
           <option
-            v-for="o in ordensStore.ordens"
+            v-for="o in filteredOrdensParaRelatorio"
             :key="o.id"
             :value="o.id"
           >
-            OS {{ o.id }} - {{ o.cliente_nome }} ({{ formatDate(o.data_emissao) }})
+            OS {{ o.id }} - {{ o.cliente_nome }} • {{ o.equipamento !== 'N/A' ? o.equipamento : o.servico }} ({{ formatDate(o.data_emissao) }})
+          </option>
+          <option v-if="!filteredOrdensParaRelatorio.length" disabled value="">
+            Nenhuma OS encontrada para a pesquisa "{{ osSearchQuery }}"
           </option>
         </select>
+        <p v-if="osSearchQuery" class="text-[11px] text-slate-500 dark:text-slate-400">
+          Mostrando {{ filteredOrdensParaRelatorio.length }} de {{ ordensStore.ordens.length }} ordens registradas.
+        </p>
       </div>
 
       <!-- 2. Tipo de Documento -->

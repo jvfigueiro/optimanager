@@ -139,3 +139,32 @@ func (h *ClienteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, map[string]string{"message": "Client deleted successfully"})
 }
+
+// Batch handles bulk operations on clients.
+func (h *ClienteHandler) Batch(w http.ResponseWriter, r *http.Request) {
+	var req models.BatchClientesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
+		return
+	}
+	if len(req.IDs) == 0 {
+		respondError(w, http.StatusBadRequest, "No client IDs provided")
+		return
+	}
+
+	if req.Action == "delete" {
+		deleted, failed, err := h.db.BatchDeleteClientes(req.IDs)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, models.BatchClientesResponse{
+			Deleted: deleted,
+			Failed:  failed,
+			Message: "Operação em lote concluída",
+		})
+		return
+	}
+
+	respondError(w, http.StatusBadRequest, "Invalid batch action")
+}

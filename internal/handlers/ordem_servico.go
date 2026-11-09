@@ -220,3 +220,71 @@ func (h *OrdemHandler) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(pdfBytes)
 }
+
+// Batch handles bulk operations on service orders.
+func (h *OrdemHandler) Batch(w http.ResponseWriter, r *http.Request) {
+	var req models.BatchOrdensRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload: "+err.Error())
+		return
+	}
+	if len(req.IDs) == 0 {
+		respondError(w, http.StatusBadRequest, "No service order IDs provided")
+		return
+	}
+
+	switch req.Action {
+	case "baixa":
+		forma := strings.TrimSpace(req.PagamentoForma)
+		if forma == "" {
+			forma = "Pix"
+		}
+		if err := h.db.BatchBaixaOrdens(req.IDs, forma); err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message": "Ordens baixadas com sucesso",
+			"count":   len(req.IDs),
+		})
+
+	case "status":
+		status := strings.TrimSpace(req.Status)
+		if status == "" {
+			respondError(w, http.StatusBadRequest, "Status is required")
+			return
+		}
+		if err := h.db.BatchUpdateStatusOrdens(req.IDs, status); err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message": "Status das ordens atualizado com sucesso",
+			"count":   len(req.IDs),
+		})
+
+	case "duplicar":
+		novas, err := h.db.BatchDuplicarOrdens(req.IDs)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message": "Ordens duplicadas com sucesso",
+			"count":   len(novas),
+		})
+
+	case "delete":
+		if err := h.db.BatchDeleteOrdens(req.IDs); err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message": "Ordens excluídas com sucesso",
+			"count":   len(req.IDs),
+		})
+
+	default:
+		respondError(w, http.StatusBadRequest, "Invalid batch action")
+	}
+}

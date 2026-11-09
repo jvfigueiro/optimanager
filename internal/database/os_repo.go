@@ -441,3 +441,108 @@ func (d *DB) DeleteOrdem(id int64) error {
 	}
 	return nil
 }
+
+// BatchBaixaOrdens marks multiple orders as paid in a single query.
+func (d *DB) BatchBaixaOrdens(ids []int64, forma string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if strings.TrimSpace(forma) == "" {
+		forma = "Pix"
+	}
+
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids)+1)
+	args[0] = forma
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i+1] = id
+	}
+
+	query := fmt.Sprintf(`UPDATE ordens_servico 
+		SET status = 'Concluído', pagamento_status = 'Pago', pagamento_forma = ?, pago_em = CURRENT_TIMESTAMP 
+		WHERE id IN (%s)`, strings.Join(placeholders, ","))
+
+	_, err := d.Writer.Exec(query, args...)
+	return err
+}
+
+// BatchUpdateStatusOrdens changes the status of multiple orders in a single query.
+func (d *DB) BatchUpdateStatusOrdens(ids []int64, status string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	status = strings.TrimSpace(status)
+	if status == "" {
+		status = "Avaliação"
+	}
+
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids)+1)
+	args[0] = status
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i+1] = id
+	}
+
+	query := fmt.Sprintf(`UPDATE ordens_servico SET status = ? WHERE id IN (%s)`, strings.Join(placeholders, ","))
+	_, err := d.Writer.Exec(query, args...)
+	return err
+}
+
+// BatchDuplicarOrdens duplicates multiple orders, creating new open orders for the same clients.
+func (d *DB) BatchDuplicarOrdens(ids []int64) ([]*models.OrdemServico, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	tx, err := d.Writer.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var novas []*models.OrdemServico
+	for _, id := range ids {
+		var o models.OrdemServico
+		err := tx.QueryRow(`SELECT cliente_id, equipamento, servico, obs_tecnicas, valor_total, pagamento_forma 
+			FROM ordens_servico WHERE id = ?`, id).
+			Scan(&o.ClienteID, &o.Equipamento, &o.Servico, &o.ObsTecnicas, &o.ValorTotal, &o.PagamentoForma)
+		if err != nil {
+			continue
+		}
+
+		res, err := tx.Exec(`INSERT INTO ordens_servico 
+			(data_emissao, hora_emissao, status, cliente_id, equipamento, servico, obs_tecnicas, valor_total, pagamento_status, pagamento_forma)
+			VALUES (DATE('now', 'localtime'), TIME('now', 'localtime'), 'Orçamento', ?, ?, ?, ?, ?, 'Pendente', ?)`,
+			o.ClienteID, o.Equipamento, o.Servico, o.ObsTecnicas, o.ValorTotal, o.PagamentoForma)
+		if err != nil {
+			return nil, err
+		}
+		newID, _ := res.LastInsertId()
+		novas = append(novas, &models.OrdemServico{ID: newID})
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return novas, nil
+}
+
+// BatchDeleteOrdens deletes multiple service orders in a single query.
+func (d *DB) BatchDeleteOrdens(ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`DELETE FROM ordens_servico WHERE id IN (%s)`, strings.Join(placeholders, ","))
+	_, err := d.Writer.Exec(query, args...)
+	return err
+}

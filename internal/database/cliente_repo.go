@@ -232,3 +232,36 @@ func (d *DB) DeleteCliente(id int64) error {
 	}
 	return nil
 }
+
+// BatchDeleteClientes removes multiple clients, tracking which succeeded and which failed due to FK constraints.
+func (d *DB) BatchDeleteClientes(ids []int64) ([]int64, []int64, error) {
+	if len(ids) == 0 {
+		return nil, nil, nil
+	}
+
+	var deleted []int64
+	var failed []int64
+
+	for _, id := range ids {
+		var count int
+		err := d.Reader.QueryRow(`SELECT count(*) FROM ordens_servico WHERE cliente_id = ?`, id).Scan(&count)
+		if err != nil || count > 0 {
+			failed = append(failed, id)
+			continue
+		}
+
+		res, err := d.Writer.Exec(`DELETE FROM clientes WHERE id = ?`, id)
+		if err != nil {
+			failed = append(failed, id)
+			continue
+		}
+		rows, _ := res.RowsAffected()
+		if rows > 0 {
+			deleted = append(deleted, id)
+		} else {
+			failed = append(failed, id)
+		}
+	}
+
+	return deleted, failed, nil
+}

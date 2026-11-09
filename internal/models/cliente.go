@@ -11,3 +11,16 @@ type Cliente struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// BatchClientesRequest defines payload for bulk operations on clients.
+type BatchClientesRequest struct {
+	Action string  `json:"action"` // "delete"
+	IDs    []int64 `json:"ids"`
+}
+
+// BatchClientesResponse returns details of bulk client deletion.
+type BatchClientesResponse struct {
+	Deleted []int64 `json:"deleted"`
+	Failed  []int64 `json:"failed"`
+	Message string  `json:"message"`
+}
+

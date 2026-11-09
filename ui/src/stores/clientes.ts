@@ -71,6 +71,34 @@ export const useClientesStore = defineStore('clientes', () => {
     }
   }
 
+  async function batchDelete(ids: number[]) {
+    if (!ids.length) return
+    loading.value = true
+    try {
+      const res = await api.batchClientes({ action: 'delete', ids })
+      await loadClientes()
+      if (res.deleted.length > 0 && res.failed.length === 0) {
+        toast.show(`${res.deleted.length} clientes excluídos com sucesso.`)
+      } else if (res.deleted.length > 0 && res.failed.length > 0) {
+        toast.show(
+          `${res.deleted.length} clientes excluídos. ${res.failed.length} não puderam ser excluídos pois possuem ordens vinculadas.`,
+          'info'
+        )
+      } else if (res.failed.length > 0) {
+        toast.show(
+          `Nenhum cliente pôde ser excluído pois todos possuem ordens de serviço vinculadas no histórico.`,
+          'error'
+        )
+      }
+      return res
+    } catch (err: any) {
+      toast.show('Erro ao excluir clientes em lote: ' + err.message, 'error')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     clientes,
     loading,
@@ -80,6 +108,7 @@ export const useClientesStore = defineStore('clientes', () => {
     createCliente,
     updateCliente,
     deleteCliente,
+    batchDelete,
   }
 })
 

@@ -131,6 +131,66 @@ export const useOrdensStore = defineStore('ordens', () => {
     window.open(os.whatsapp_url, '_blank')
   }
 
+  async function batchBaixa(ids: number[], forma = 'Pix') {
+    if (!ids.length) return
+    loading.value = true
+    try {
+      await api.batchOrdens({ action: 'baixa', ids, pagamento_forma: forma })
+      await loadOrdens()
+      toast.show(`${ids.length} ordens baixadas com sucesso!`)
+    } catch (err: any) {
+      toast.show('Erro ao baixar ordens em lote: ' + err.message, 'error')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function batchStatus(ids: number[], status: string) {
+    if (!ids.length) return
+    loading.value = true
+    try {
+      await api.batchOrdens({ action: 'status', ids, status })
+      await loadOrdens()
+      toast.show(`Situação de ${ids.length} ordens alterada para "${status}"!`)
+    } catch (err: any) {
+      toast.show('Erro ao alterar status em lote: ' + err.message, 'error')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function batchDuplicar(ids: number[]) {
+    if (!ids.length) return
+    loading.value = true
+    try {
+      await api.batchOrdens({ action: 'duplicar', ids })
+      await loadOrdens()
+      toast.show(`${ids.length} ordens duplicadas com sucesso!`)
+    } catch (err: any) {
+      toast.show('Erro ao duplicar ordens em lote: ' + err.message, 'error')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function batchDelete(ids: number[]) {
+    if (!ids.length) return
+    loading.value = true
+    try {
+      await api.batchOrdens({ action: 'delete', ids })
+      await loadOrdens()
+      toast.show(`${ids.length} ordens excluídas com sucesso.`)
+    } catch (err: any) {
+      toast.show('Erro ao excluir ordens em lote: ' + err.message, 'error')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     ordens,
     loading,
@@ -147,6 +207,10 @@ export const useOrdensStore = defineStore('ordens', () => {
     duplicarOrdem,
     liquidarOS,
     openWhatsApp,
+    batchBaixa,
+    batchStatus,
+    batchDuplicar,
+    batchDelete,
   }
 })
 

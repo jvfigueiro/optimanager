@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useClientesStore } from '../stores/clientes'
 import { useConfigStore } from '../stores/config'
 import type { Cliente } from '../types'
@@ -12,7 +12,9 @@ import {
   Calendar,
   Edit2,
   X,
+  Check,
   MessageCircle,
+  Layers,
 } from 'lucide-vue-next'
 
 const clientesStore = useClientesStore()
@@ -29,6 +31,57 @@ const editNome = ref('')
 const editDoc = ref('')
 const editContato = ref('')
 const isUpdating = ref(false)
+
+// Estado para Ações em Lote de Clientes
+const selectedClienteIds = ref<number[]>([])
+const isDeletingBatch = ref(false)
+
+const isAllSelected = computed(() => {
+  if (!clientesStore.clientes.length) return false
+  return clientesStore.clientes.every((c) => selectedClienteIds.value.includes(c.id))
+})
+
+const isSomeSelected = computed(() => {
+  return selectedClienteIds.value.length > 0 && !isAllSelected.value
+})
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedClienteIds.value = []
+  } else {
+    selectedClienteIds.value = clientesStore.clientes.map((c) => c.id)
+  }
+}
+
+function toggleSelect(id: number) {
+  const idx = selectedClienteIds.value.indexOf(id)
+  if (idx !== -1) {
+    selectedClienteIds.value.splice(idx, 1)
+  } else {
+    selectedClienteIds.value.push(id)
+  }
+}
+
+function clearSelection() {
+  selectedClienteIds.value = []
+}
+
+async function handleBatchDelete() {
+  if (!selectedClienteIds.value.length) return
+  if (
+    confirm(
+      `Atenção: deseja realmente excluir os ${selectedClienteIds.value.length} clientes selecionados? Clientes com histórico de ordens de serviço vinculadas serão preservados para segurança do sistema.`
+    )
+  ) {
+    isDeletingBatch.value = true
+    try {
+      await clientesStore.batchDelete(selectedClienteIds.value)
+      clearSelection()
+    } finally {
+      isDeletingBatch.value = false
+    }
+  }
+}
 
 onMounted(() => {
   clientesStore.loadClientes()
@@ -171,6 +224,16 @@ async function handleDeleteClient(c: Cliente) {
         <table class="w-full text-left border-collapse text-sm">
           <thead>
             <tr class="bg-slate-50 dark:bg-slate-750 text-slate-500 dark:text-slate-400 text-xs uppercase border-b border-slate-200 dark:border-slate-700">
+              <th class="py-3 px-3 w-10 text-center">
+                <input
+                  type="checkbox"
+                  :checked="isAllSelected"
+                  :indeterminate.prop="isSomeSelected"
+                  @change="toggleSelectAll"
+                  title="Selecionar / Desmarcar todos visíveis"
+                  class="rounded border-slate-300 dark:border-slate-600 text-opti focus:ring-opti w-4 h-4 cursor-pointer"
+                />
+              </th>
               <th class="py-3 px-4">ID</th>
               <th class="py-3 px-4">Cliente / Nome</th>
               <th class="py-3 px-4">CPF / CNPJ</th>
@@ -184,7 +247,16 @@ async function handleDeleteClient(c: Cliente) {
               v-for="c in clientesStore.clientes"
               :key="c.id"
               class="hover:bg-slate-50/80 dark:hover:bg-slate-750 transition"
+              :class="selectedClienteIds.includes(c.id) ? 'bg-blue-50/70 dark:bg-blue-950/40' : ''"
             >
+              <td class="py-3 px-3 text-center whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  :checked="selectedClienteIds.includes(c.id)"
+                  @change="toggleSelect(c.id)"
+                  class="rounded border-slate-300 dark:border-slate-600 text-opti focus:ring-opti w-4 h-4 cursor-pointer"
+                />
+              </td>
               <td class="py-3 px-4 font-mono text-xs text-opti dark:text-blue-400 font-bold">
                 {{ c.id }}
               </td>
@@ -241,7 +313,7 @@ async function handleDeleteClient(c: Cliente) {
               </td>
             </tr>
             <tr v-if="!clientesStore.clientes.length">
-              <td colspan="6" class="py-10 text-center text-slate-400">
+              <td colspan="7" class="py-10 text-center text-slate-400">
                 Nenhum cliente cadastrado no momento.
               </td>
             </tr>
@@ -254,20 +326,29 @@ async function handleDeleteClient(c: Cliente) {
         <div
           v-for="c in clientesStore.clientes"
           :key="c.id"
-          class="py-3.5 flex items-center justify-between gap-3"
+          class="py-3.5 flex items-center justify-between gap-3 px-1 transition"
+          :class="selectedClienteIds.includes(c.id) ? 'bg-blue-50/70 dark:bg-blue-950/40 rounded-xl' : ''"
         >
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-mono font-bold text-opti dark:text-blue-400">{{ c.id }}</span>
-              <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">{{ c.nome }}</h4>
+          <div class="flex items-center gap-3 min-w-0">
+            <input
+              type="checkbox"
+              :checked="selectedClienteIds.includes(c.id)"
+              @change="toggleSelect(c.id)"
+              class="rounded border-slate-300 dark:border-slate-600 text-opti focus:ring-opti w-4 h-4 cursor-pointer shrink-0"
+            />
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-mono font-bold text-opti dark:text-blue-400">{{ c.id }}</span>
+                <h4 class="font-bold text-slate-800 dark:text-white text-sm truncate">{{ c.nome }}</h4>
+              </div>
+              <p v-if="c.doc" class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                {{ c.doc }}
+              </p>
+              <p v-if="c.contato" class="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1 mt-0.5">
+                <Phone class="w-3 h-3 text-emerald-500" />
+                <span>{{ c.contato }}</span>
+              </p>
             </div>
-            <p v-if="c.doc" class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-              {{ c.doc }}
-            </p>
-            <p v-if="c.contato" class="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1 mt-0.5">
-              <Phone class="w-3 h-3 text-emerald-500" />
-              <span>{{ c.contato }}</span>
-            </p>
           </div>
 
           <div class="flex items-center gap-1 shrink-0">
@@ -306,6 +387,44 @@ async function handleDeleteClient(c: Cliente) {
         </div>
       </div>
     </div>
+
+    <!-- Barra Flutuante de Ações em Lote para Clientes -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-12 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-12 opacity-0"
+    >
+      <div
+        v-if="selectedClienteIds.length > 0"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 dark:bg-slate-800/95 text-white backdrop-blur shadow-2xl rounded-2xl px-4 py-2.5 border border-slate-700 flex items-center gap-2 sm:gap-3 flex-wrap max-w-[95vw] sm:max-w-max"
+      >
+        <div class="flex items-center gap-2 pr-2 border-r border-slate-700 text-xs font-bold whitespace-nowrap">
+          <Layers class="w-4 h-4 text-blue-400" />
+          <span>{{ selectedClienteIds.length }} cliente(s)</span>
+        </div>
+
+        <button
+          @click="handleBatchDelete"
+          :disabled="isDeletingBatch"
+          class="px-3 py-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+          title="Excluir clientes selecionados"
+        >
+          <Trash2 class="w-3.5 h-3.5" />
+          <span>{{ isDeletingBatch ? 'Excluindo...' : 'Excluir Selecionados' }}</span>
+        </button>
+
+        <button
+          @click="clearSelection"
+          class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+          title="Limpar seleção"
+        >
+          <X class="w-4 h-4" />
+        </button>
+      </div>
+    </Transition>
 
     <!-- Modal Editar Cliente -->
     <div

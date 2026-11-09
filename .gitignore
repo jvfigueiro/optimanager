@@ -5,8 +5,8 @@ bin/
 *.dll
 *.so
 *.dylib
-server
-optimanager
+/server
+/optimanager
 
 # Environment & Secrets (NEVER COMMIT SENSITIVE DATA)
 .env

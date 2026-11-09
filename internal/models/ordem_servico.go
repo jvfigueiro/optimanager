@@ -75,6 +75,14 @@ type BaixaPagamentoRequest struct {
 	Status string `json:"status"` // 'Pago'
 }
 
+// BatchOrdensRequest defines payload for bulk operations on service orders.
+type BatchOrdensRequest struct {
+	Action         string  `json:"action"` // "baixa", "status", "duplicar", "delete"
+	IDs            []int64 `json:"ids"`
+	Status         string  `json:"status,omitempty"`
+	PagamentoForma string  `json:"pagamento_forma,omitempty"`
+}
+
 var nonDigitsRegex = regexp.MustCompile(`\D+`)
 
 // BuildWhatsAppURL builds a wa.me URL with a formatted summary of the order.

@@ -131,6 +131,11 @@ export const api = {
     request<{ message: string }>(`/clientes/${id}`, {
       method: 'DELETE',
     }),
+  batchClientes: (payload: { action: string; ids: number[] }) =>
+    request<{ deleted: number[]; failed: number[]; message: string }>('/clientes/batch', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   // Ordens de Serviço
   getOrdens: (filtro = 'TODOS', busca = '') => {
@@ -159,6 +164,16 @@ export const api = {
   deleteOrdem: (id: number) =>
     request<{ message: string }>(`/ordens/${id}`, {
       method: 'DELETE',
+    }),
+  batchOrdens: (payload: {
+    action: string
+    ids: number[]
+    status?: string
+    pagamento_forma?: string
+  }) =>
+    request<{ message: string; count?: number }>('/ordens/batch', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }),
 
   // Atalhos
