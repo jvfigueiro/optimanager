@@ -272,13 +272,13 @@ async function handleLogin() {
             v-if="configStore.config.logo_base64"
             :src="configStore.config.logo_base64"
             alt="Logo"
-            class="w-16 h-16 object-contain rounded-xl bg-white p-1 shadow"
+            class="w-16 h-16 object-contain shrink-0"
           />
           <img
             v-else
             src="/icon.png"
             alt="OptiManager"
-            class="w-16 h-16 object-contain rounded-xl bg-white/95 p-1 shadow"
+            class="w-16 h-16 object-contain shrink-0"
           />
         </div>
         <h1 class="font-black text-xl tracking-tight">

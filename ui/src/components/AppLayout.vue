@@ -124,13 +124,13 @@ async function instalarPwa() {
               v-if="configStore.config.logo_base64"
               :src="configStore.config.logo_base64"
               alt="Logo"
-              class="w-10 h-10 object-contain rounded-lg bg-white p-0.5 shrink-0 shadow-xs"
+              class="w-10 h-10 object-contain shrink-0"
             />
             <img
               v-else
               src="/icon.png"
               alt="OptiManager"
-              class="w-10 h-10 object-contain rounded-lg bg-white/95 p-0.5 shrink-0 shadow-xs"
+              class="w-10 h-10 object-contain shrink-0"
             />
             <div class="truncate">
               <h1 class="font-bold text-base leading-tight truncate">
