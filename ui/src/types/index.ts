@@ -16,6 +16,8 @@ export interface Config {
   logo_base64: string
   cor_primaria: string
   cor_secundaria: string
+  auto_logout_enabled?: number
+  auto_logout_minutos?: number
 }
 
 export interface AutocompletePresets {
@@ -181,9 +183,9 @@ export interface BackupInfo {
   filename: string
   origem: 'manual' | 'auto' | 'prerestore' | 'premigration' | string
   tamanho_bytes: number
-  tamanho_fmt: string
+  tamanho_formatado: string
   data_criacao: string
-  data_criacao_fmt: string
+  data_criacao_formatada: string
   copia_externa_ok: boolean
 }
 

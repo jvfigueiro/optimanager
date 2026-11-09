@@ -17,7 +17,8 @@ func (d *DB) GetConfig() (*models.Config, error) {
 	                 backup_auto_enabled, backup_frequencia, backup_dia_semana, backup_horario,
 	                 backup_retencao_auto, backup_retencao_manual, backup_retencao_prerestore, backup_retencao_premigration,
 	                 backup_ultimo_sucesso, backup_ultimo_erro, backup_ultimo_erro_em,
-	                 backup_ultimo_aviso_externo, backup_ultimo_aviso_externo_em
+	                 backup_ultimo_aviso_externo, backup_ultimo_aviso_externo_em,
+	                 auto_logout_enabled, auto_logout_minutos
 	          FROM config 
 	          WHERE id = 1`
 
@@ -30,6 +31,7 @@ func (d *DB) GetConfig() (*models.Config, error) {
 		&c.BackupRetencaoAuto, &c.BackupRetencaoManual, &c.BackupRetencaoPrerestore, &c.BackupRetencaoPremigration,
 		&c.BackupUltimoSucesso, &c.BackupUltimoErro, &c.BackupUltimoErroEm,
 		&c.BackupUltimoAvisoExterno, &c.BackupUltimoAvisoExternoEm,
+		&c.AutoLogoutEnabled, &c.AutoLogoutMinutos,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -42,11 +44,21 @@ func (d *DB) GetConfig() (*models.Config, error) {
 
 // UpdateConfig updates the institutional business settings.
 func (d *DB) UpdateConfig(cfg *models.Config) error {
+	autoLogoutEnabled := 0
+	if cfg.AutoLogoutEnabled != 0 {
+		autoLogoutEnabled = 1
+	}
+	autoLogoutMinutos := cfg.AutoLogoutMinutos
+	if autoLogoutMinutos <= 0 {
+		autoLogoutMinutos = 30
+	}
+
 	query := `UPDATE config SET 
 		fantasia = ?, razao_social = ?, cnpj = ?, responsavel = ?, 
 		fones = ?, email_contato = ?, endereco = ?, cidade = ?, vt_valor_padrao = ?, 
 		termo_garantia = ?, termo_responsabilidade = ?, obs_padrao = ?, custom_presets = ?, 
-		logo_base64 = ?, cor_primaria = ?, cor_secundaria = ? 
+		logo_base64 = ?, cor_primaria = ?, cor_secundaria = ?,
+		auto_logout_enabled = ?, auto_logout_minutos = ?
 		WHERE id = 1`
 
 	res, err := d.Writer.Exec(query,
@@ -66,6 +78,8 @@ func (d *DB) UpdateConfig(cfg *models.Config) error {
 		cfg.LogoBase64,
 		strings.TrimSpace(cfg.CorPrimaria),
 		strings.TrimSpace(cfg.CorSecundaria),
+		autoLogoutEnabled,
+		autoLogoutMinutos,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update configuration: %w", err)

@@ -237,6 +237,29 @@ func (d *DB) migrate() error {
 		}
 	}
 
+	// Ensure auto_logout columns exist on databases that were already at version 2
+	if err := d.ensureAutoLogoutColumns(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *DB) ensureAutoLogoutColumns() error {
+	cols, err := d.getTableColumns("config")
+	if err != nil {
+		return err
+	}
+	if !cols["auto_logout_enabled"] {
+		if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN auto_logout_enabled INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return fmt.Errorf("failed to add auto_logout_enabled column: %w", err)
+		}
+	}
+	if !cols["auto_logout_minutos"] {
+		if _, err := d.Writer.Exec(`ALTER TABLE config ADD COLUMN auto_logout_minutos INTEGER NOT NULL DEFAULT 30`); err != nil {
+			return fmt.Errorf("failed to add auto_logout_minutos column: %w", err)
+		}
+	}
 	return nil
 }
 

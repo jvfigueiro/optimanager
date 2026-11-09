@@ -33,4 +33,8 @@ type Config struct {
 	BackupUltimoErroEm         string `json:"backup_ultimo_erro_em"`
 	BackupUltimoAvisoExterno   string `json:"backup_ultimo_aviso_externo"`
 	BackupUltimoAvisoExternoEm string `json:"backup_ultimo_aviso_externo_em"`
+
+	// Session auto-logout configuration
+	AutoLogoutEnabled int `json:"auto_logout_enabled"`
+	AutoLogoutMinutos int `json:"auto_logout_minutos"`
 }

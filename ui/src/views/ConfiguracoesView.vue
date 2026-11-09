@@ -242,13 +242,13 @@ function handleSelectRestoreFile(event: Event) {
 
 async function handleImportarERestaurarArquivo() {
   if (!importBackupFile.value) {
-    toast.show('Selecione um arquivo .db para importar e restaurar.', 'error')
+    toast.show('Selecione um arquivo de backup (.zip ou .db) para importar e restaurar.', 'error')
     return
   }
 
   if (
     !confirm(
-      `Atenção: Deseja realmente substituir o banco de dados atual pelo arquivo "${importBackupFile.value.name}"?\n\nUm backup de segurança pré-restauração será criado automaticamente antes da substituição.`
+      `Atenção: Deseja realmente substituir o banco de dados atual pelo backup "${importBackupFile.value.name}"?\n\nUm pacote de backup pré-restauração será criado automaticamente antes da substituição.`
     )
   ) {
     return
@@ -258,7 +258,7 @@ async function handleImportarERestaurarArquivo() {
   try {
     await api.restoreBackupFromFile(importBackupFile.value)
     importBackupFile.value = null
-    toast.show('Banco de dados restaurado com sucesso! Recarregando dados do sistema...')
+    toast.show('Backup restaurado com sucesso! Recarregando dados do sistema...')
     await Promise.all([configStore.loadConfig(), authStore.checkStatus(), authStore.loadUsuarios(), carregarBackups()])
     form.value = { ...configStore.config }
   } catch (err: any) {
@@ -271,7 +271,7 @@ async function handleImportarERestaurarArquivo() {
 async function handleRestaurarBackupExistente(b: BackupInfo) {
   if (
     !confirm(
-      `Atenção: Deseja restaurar o sistema para o ponto "${b.filename}" (${b.data_criacao_fmt})?\n\nUm backup de segurança pré-restauração do estado atual será gerado automaticamente antes da operação.`
+      `Atenção: Deseja restaurar o sistema para o ponto "${b.filename}" (${b.data_criacao_formatada})?\n\nUm pacote de segurança pré-restauração do estado atual será gerado automaticamente antes da operação.`
     )
   ) {
     return
@@ -542,6 +542,88 @@ async function handleDeleteUser(u: Usuario) {
               <span>Remover</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Política de Desconexão Automática por Inatividade -->
+      <div class="mt-5 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-750/50 space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="space-y-0.5">
+            <h4 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+              <Clock class="w-4 h-4 text-opti" />
+              <span>Desconexão Automática por Inatividade</span>
+            </h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Encerra automaticamente a sessão de usuários logados caso fiquem inativos pelo período estipulado.
+            </p>
+          </div>
+
+          <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 shrink-0">
+            <input
+              type="checkbox"
+              :checked="form.auto_logout_enabled === 1"
+              @change="form.auto_logout_enabled = ($event.target as HTMLInputElement).checked ? 1 : 0"
+              class="rounded text-opti focus:ring-opti w-4 h-4"
+            />
+            <span>Ativar desconexão automática</span>
+          </label>
+        </div>
+
+        <div
+          v-if="form.auto_logout_enabled === 1"
+          class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-700"
+        >
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Tempo de inatividade:</span>
+            <div class="flex items-center gap-1.5">
+              <input
+                type="number"
+                min="1"
+                max="1440"
+                v-model.number="form.auto_logout_minutos"
+                class="w-20 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 text-xs font-mono focus:ring-2 focus:ring-opti outline-none"
+              />
+              <span class="text-xs text-slate-500 dark:text-slate-400">minutos</span>
+            </div>
+
+            <div class="flex flex-wrap gap-1 ml-1">
+              <button
+                v-for="minPreset in [10, 15, 30, 60, 120]"
+                :key="minPreset"
+                type="button"
+                @click="form.auto_logout_minutos = minPreset"
+                class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition"
+                :class="
+                  form.auto_logout_minutos === minPreset
+                    ? 'border-opti bg-opti text-white'
+                    : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-opti'
+                "
+              >
+                {{ minPreset }} min
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            @click="handleSalvar"
+            :disabled="isSaving"
+            class="bg-opti hover:bg-opti-dark text-white font-bold px-4 py-1.5 rounded-xl transition text-xs self-end sm:self-auto shrink-0"
+          >
+            {{ isSaving ? 'Salvando...' : 'Salvar Política' }}
+          </button>
+        </div>
+
+        <div v-else class="flex justify-end pt-1">
+          <button
+            v-if="form.auto_logout_enabled !== configStore.config.auto_logout_enabled"
+            type="button"
+            @click="handleSalvar"
+            :disabled="isSaving"
+            class="bg-opti hover:bg-opti-dark text-white font-bold px-4 py-1.5 rounded-xl transition text-xs"
+          >
+            {{ isSaving ? 'Salvando...' : 'Confirmar Desativação' }}
+          </button>
         </div>
       </div>
     </div>
@@ -1122,11 +1204,11 @@ async function handleDeleteUser(u: Usuario) {
           <div class="flex items-center gap-2.5">
             <Database class="w-5 h-5 text-opti" />
             <h3 class="font-bold text-lg text-slate-800 dark:text-white">
-              Backups & Restauração de Dados
+              Backups & Restauração de Dados (.zip)
             </h3>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Crie snapshots seguros do banco de dados SQLite, importe backups anteriores (.db) ou programe rotinas automáticas.
+            Crie pacotes compactados (.zip) contendo o banco de dados SQLite e o logotipo da empresa, importe backups anteriores ou programe rotinas automáticas.
           </p>
         </div>
 
@@ -1137,7 +1219,7 @@ async function handleDeleteUser(u: Usuario) {
           class="bg-opti hover:bg-opti-dark disabled:opacity-50 text-white font-bold px-4 py-2.5 rounded-xl transition shadow-xs flex items-center gap-2 text-xs self-start sm:self-auto shrink-0"
         >
           <PlusCircle class="w-4 h-4" :class="{ 'animate-spin': isCreatingBackup }" />
-          <span>{{ isCreatingBackup ? 'Gerando Backup...' : 'Criar Novo Backup Agora' }}</span>
+          <span>{{ isCreatingBackup ? 'Compactando Backup...' : 'Criar Novo Backup (.zip)' }}</span>
         </button>
       </div>
 
@@ -1156,17 +1238,17 @@ async function handleDeleteUser(u: Usuario) {
         </div>
       </div>
 
-      <!-- Grid: Importar Arquivo Externo (.db) + Configurar Rotina Automática -->
+      <!-- Grid: Importar Arquivo Externo (.zip / .db) + Configurar Rotina Automática -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <!-- Bloco 1: Importar / Restaurar Backup Externo -->
         <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-750/50 flex flex-col justify-between space-y-4">
           <div class="space-y-1.5">
             <h4 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
               <Upload class="w-4 h-4 text-opti" />
-              <span>Importar Arquivo de Backup (.db)</span>
+              <span>Importar Arquivo de Backup (.zip ou .db)</span>
             </h4>
             <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Envie um arquivo <code class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded font-mono text-[11px]">.db</code> do seu computador para restaurar os dados. O sistema criará automaticamente um snapshot pré-restauração antes de aplicar o arquivo.
+              Envie um pacote de backup compactado <code class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded font-mono text-[11px]">.zip</code> (contendo o banco de dados e logotipo) ou um arquivo <code class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded font-mono text-[11px]">.db</code> para restaurar seus dados. Um snapshot pré-restauração será gerado automaticamente.
             </p>
           </div>
 
@@ -1184,11 +1266,11 @@ async function handleDeleteUser(u: Usuario) {
                 {{ importBackupFile.name }} ({{ (importBackupFile.size / 1024).toFixed(1) }} KB)
               </span>
               <span v-else class="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                Selecionar arquivo .db no computador
+                Selecionar arquivo .zip ou .db no computador
               </span>
               <input
                 type="file"
-                accept=".db,.sqlite,.sqlite3,application/vnd.sqlite3,application/octet-stream"
+                accept=".zip,.db,.sqlite,.sqlite3,application/zip,application/vnd.sqlite3,application/octet-stream"
                 @change="handleSelectRestoreFile"
                 class="hidden"
               />
@@ -1335,8 +1417,8 @@ async function handleDeleteUser(u: Usuario) {
                 </span>
               </div>
               <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-3">
-                <span>Criado em: <strong>{{ b.data_criacao_fmt }}</strong></span>
-                <span>Tamanho: <strong>{{ b.tamanho_fmt }}</strong></span>
+                <span>Criado em: <strong>{{ b.data_criacao_formatada }}</strong></span>
+                <span>Tamanho: <strong>{{ b.tamanho_formatado }}</strong></span>
               </div>
             </div>
 

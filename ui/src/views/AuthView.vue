@@ -72,7 +72,7 @@ function handleBackupFileChange(event: Event) {
 
 async function handleImportarBackupInicial() {
   if (!selectedBackupFile.value) {
-    toast.show('Selecione um arquivo de backup (.db) antes de restaurar.', 'error')
+    toast.show('Selecione um arquivo de backup (.zip ou .db) antes de restaurar.', 'error')
     return
   }
 
@@ -576,7 +576,7 @@ async function handleLogin() {
                     Restaurar um backup
                   </h3>
                   <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Já possui um arquivo de banco de dados (.db) de uma instalação anterior e deseja restaurá-lo.
+                    Já possui um arquivo de backup compactado (.zip) ou banco de dados (.db) de uma instalação anterior e deseja restaurá-lo.
                   </p>
                 </div>
                 <div class="mt-3">
@@ -596,15 +596,15 @@ async function handleLogin() {
                 <Database class="w-5 h-5 text-opti shrink-0 mt-0.5" />
                 <div class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                   <strong class="block text-slate-900 dark:text-white font-bold mb-0.5">
-                    Importar arquivo de backup (.db)
+                    Importar arquivo de backup (.zip ou .db)
                   </strong>
                   <p class="text-slate-600 dark:text-slate-400">
-                    Selecione um arquivo de backup gerado anteriormente pelo OptiManager. O sistema validará a integridade do arquivo e restaurará automaticamente seus usuários, clientes, ordens de serviço e configurações.
+                    Selecione um arquivo de backup gerado anteriormente pelo OptiManager. O sistema extrairá o pacote compactado, validará a integridade do banco e restaurará automaticamente seus usuários, clientes, ordens de serviço, logotipo e configurações.
                   </p>
                 </div>
               </div>
 
-              <!-- Seletor de Arquivo .db -->
+              <!-- Seletor de Arquivo .zip / .db -->
               <label
                 class="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl cursor-pointer transition text-center"
                 :class="
@@ -618,14 +618,14 @@ async function handleLogin() {
                   {{ selectedBackupFile.name }} ({{ (selectedBackupFile.size / 1024).toFixed(1) }} KB)
                 </span>
                 <span v-else class="text-xs font-bold text-slate-700 dark:text-slate-200">
-                  Clique para escolher o arquivo de backup (.db)
+                  Clique para escolher o arquivo de backup (.zip ou .db)
                 </span>
                 <span class="text-[11px] text-slate-400 mt-0.5">
-                  Apenas arquivos SQLite válidos do OptiManager
+                  Aceita pacotes compactados (.zip com banco + logo) ou arquivos SQLite (.db)
                 </span>
                 <input
                   type="file"
-                  accept=".db,.sqlite,.sqlite3,application/vnd.sqlite3,application/octet-stream"
+                  accept=".zip,.db,.sqlite,.sqlite3,application/zip,application/vnd.sqlite3,application/octet-stream"
                   @change="handleBackupFileChange"
                   class="hidden"
                 />

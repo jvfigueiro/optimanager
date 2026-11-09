@@ -1,6 +1,7 @@
 package backup_test
 
 import (
+	"archive/zip"
 	"context"
 	"database/sql"
 	"fmt"
@@ -65,9 +66,16 @@ func TestBackup_RoundtripAndIntegrity(t *testing.T) {
 		t.Fatalf("expected CopiaExternaOk to be true")
 	}
 
-	// Open the snapshot and verify integrity and table counts
-	snapshotPath := filepath.Join(backupDir, info.Filename)
-	snapDB, err := sql.Open("sqlite", fmt.Sprintf("%s?_pragma=query_only(1)", snapshotPath))
+	// Extract and open the snapshot from the .zip archive and verify integrity and table counts
+	snapshotZipPath := filepath.Join(backupDir, info.Filename)
+	if filepath.Ext(info.Filename) != ".zip" {
+		t.Fatalf("expected .zip backup archive, got %s", info.Filename)
+	}
+	extractedDBPath := filepath.Join(tempDir, "extracted_roundtrip.db")
+	if err := backup.ExtractDatabaseFromBackup(snapshotZipPath, extractedDBPath); err != nil {
+		t.Fatalf("failed to extract database from zip backup: %v", err)
+	}
+	snapDB, err := sql.Open("sqlite", fmt.Sprintf("%s?_pragma=query_only(1)", extractedDBPath))
 	if err != nil {
 		t.Fatalf("failed to open snapshot db: %v", err)
 	}
@@ -177,9 +185,13 @@ func TestBackup_TransactionalConsistencyWithControlCase(t *testing.T) {
 	atomic.StoreInt32(&stopWrites, 1)
 	wg.Wait()
 
-	// 3. Validate consistency of VACUUM INTO snapshot
-	snapPath := filepath.Join(backupDir, info.Filename)
-	snapDB, err := sql.Open("sqlite", fmt.Sprintf("%s?_pragma=query_only(1)", snapPath))
+	// 3. Validate consistency of VACUUM INTO snapshot inside the .zip archive
+	snapZipPath := filepath.Join(backupDir, info.Filename)
+	extractedSnapPath := filepath.Join(tempDir, "extracted_concurrent.db")
+	if err := backup.ExtractDatabaseFromBackup(snapZipPath, extractedSnapPath); err != nil {
+		t.Fatalf("failed to extract database from concurrent zip backup: %v", err)
+	}
+	snapDB, err := sql.Open("sqlite", fmt.Sprintf("%s?_pragma=query_only(1)", extractedSnapPath))
 	if err != nil {
 		t.Fatalf("failed to open snapshot db: %v", err)
 	}
@@ -408,7 +420,7 @@ func TestBackup_PathTraversalAndValidation(t *testing.T) {
 		"../../etc/passwd",
 		"random_file.db",
 		"optimanager_backup_2026-11-05_12-00-00_invalid.db",
-		"optimanager_backup_2026-11-05_12-00-00_manual.zip",
+		"optimanager_backup_2026-11-05_12-00-00_manual.tar.gz",
 	}
 
 	for _, name := range invalidNames {
@@ -462,13 +474,15 @@ func TestBackup_RestoreHotSwapsDatabaseAndCreatesPreRestoreSnapshot(t *testing.T
 		t.Fatalf("failed to initialize backup service: %v", err)
 	}
 
-	// 1. Create an admin user and a client in the initial state
+	// 1. Create an admin user, custom logo, and company config in the initial state
 	u, err := db.CreateUsuario("Admin Original", "admin@test.com", "123456", "admin")
 	if err != nil {
 		t.Fatalf("failed to create admin user: %v", err)
 	}
+	sampleLogo := "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
 	cfg, _ := db.GetConfig()
 	cfg.Fantasia = "Empresa Ponto 1"
+	cfg.LogoBase64 = sampleLogo
 	_ = db.UpdateConfig(cfg)
 
 	ctx := context.Background()
@@ -477,9 +491,30 @@ func TestBackup_RestoreHotSwapsDatabaseAndCreatesPreRestoreSnapshot(t *testing.T
 		t.Fatalf("failed to create manual snapshot: %v", err)
 	}
 
+	// Verify that the generated .zip archive contains optimanager.db and assets/logo.png
+	zr, err := zip.OpenReader(filepath.Join(backupDir, snap1.Filename))
+	if err != nil {
+		t.Fatalf("failed to open zip backup: %v", err)
+	}
+	hasDB := false
+	hasLogo := false
+	for _, zf := range zr.File {
+		if zf.Name == "optimanager.db" {
+			hasDB = true
+		}
+		if zf.Name == "assets/logo.png" {
+			hasLogo = true
+		}
+	}
+	zr.Close()
+	if !hasDB || !hasLogo {
+		t.Fatalf("expected zip backup to contain optimanager.db (%v) and assets/logo.png (%v)", hasDB, hasLogo)
+	}
+
 	// 2. Mutate the database after snapshot 1
 	cfg2, _ := db.GetConfig()
 	cfg2.Fantasia = "Empresa Modificada Ponto 2"
+	cfg2.LogoBase64 = ""
 	_ = db.UpdateConfig(cfg2)
 
 	// 3. Restore back to snap1 with createPreRestore = true
@@ -487,13 +522,16 @@ func TestBackup_RestoreHotSwapsDatabaseAndCreatesPreRestoreSnapshot(t *testing.T
 		t.Fatalf("RestoreFromFilename failed: %v", err)
 	}
 
-	// 4. Verify database state reverted to Ponto 1 without restarting DB struct
+	// 4. Verify database state and company logo reverted to Ponto 1 without restarting DB struct
 	cfgRestored, err := db.GetConfig()
 	if err != nil {
 		t.Fatalf("failed to read config after restore: %v", err)
 	}
 	if cfgRestored.Fantasia != "Empresa Ponto 1" {
 		t.Fatalf("expected Fantasia to be 'Empresa Ponto 1' after restore, got %q", cfgRestored.Fantasia)
+	}
+	if cfgRestored.LogoBase64 != sampleLogo {
+		t.Fatalf("expected LogoBase64 to be restored from backup, got %q", cfgRestored.LogoBase64)
 	}
 
 	// 5. Verify a prerestore backup was generated

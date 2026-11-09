@@ -227,7 +227,11 @@ func (h *BackupHandler) Download(w http.ResponseWriter, r *http.Request) {
 		_ = h.db.InsertAuditLog(u.ID, u.Nome, ip, "BACKUP_DOWNLOAD", fmt.Sprintf("Download de backup: %s", fi.Name()))
 	}
 
-	w.Header().Set("Content-Type", "application/vnd.sqlite3")
+	if strings.HasSuffix(strings.ToLower(fi.Name()), ".zip") {
+		w.Header().Set("Content-Type", "application/zip")
+	} else {
+		w.Header().Set("Content-Type", "application/vnd.sqlite3")
+	}
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fi.Name()))
 	w.Header().Set("Cache-Control", "no-store")
 	http.ServeContent(w, r, fi.Name(), fi.ModTime(), f)

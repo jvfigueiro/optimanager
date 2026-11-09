@@ -14,6 +14,8 @@ ALTER TABLE config ADD COLUMN backup_ultimo_erro TEXT NOT NULL DEFAULT '';
 ALTER TABLE config ADD COLUMN backup_ultimo_erro_em TEXT NOT NULL DEFAULT '';
 ALTER TABLE config ADD COLUMN backup_ultimo_aviso_externo TEXT NOT NULL DEFAULT '';
 ALTER TABLE config ADD COLUMN backup_ultimo_aviso_externo_em TEXT NOT NULL DEFAULT '';
+ALTER TABLE config ADD COLUMN auto_logout_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE config ADD COLUMN auto_logout_minutos INTEGER NOT NULL DEFAULT 30;
 
 -- Create audit_log table
 CREATE TABLE IF NOT EXISTS audit_log (

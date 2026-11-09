@@ -1,9 +1,13 @@
 package backup
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,8 +27,8 @@ import (
 )
 
 var (
-	// Strict regex for backup files: optimanager_backup_YYYY-MM-DD_HH-mm-ss_[manual|auto|prerestore|premigration].db
-	backupFilenameRegex = regexp.MustCompile(`^optimanager_backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_(manual|auto|prerestore|premigration)\.db$`)
+	// Strict regex for backup files: optimanager_backup_YYYY-MM-DD_HH-mm-ss_[manual|auto|prerestore|premigration].[zip|db]
+	backupFilenameRegex = regexp.MustCompile(`^optimanager_backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_(manual|auto|prerestore|premigration)\.(zip|db)$`)
 
 	ErrInvalidFilename   = errors.New("invalid backup filename format")
 	ErrPathTraversal     = errors.New("path traversal detected")
@@ -128,7 +132,7 @@ func (s *Service) CleanupOrphanTmpFiles() error {
 				continue
 			}
 			name := e.Name()
-			if strings.HasSuffix(name, ".db.tmp") || strings.HasPrefix(name, ".perm_check") || (strings.HasPrefix(name, ".restore_") && strings.HasSuffix(name, ".tmp")) {
+			if strings.HasSuffix(name, ".db.tmp") || strings.HasSuffix(name, ".zip.tmp") || strings.HasPrefix(name, ".perm_check") || (strings.HasPrefix(name, ".restore_") && strings.HasSuffix(name, ".tmp")) {
 				p := filepath.Join(dir, name)
 				if err := os.Remove(p); err == nil {
 					log.Printf("[BACKUP CLEANUP] Removed orphan temporary file: %s", p)
@@ -206,7 +210,7 @@ func (s *Service) createBackupLocked(ctx context.Context, origem string) (*Backu
 	var filename string
 	for attempt := 0; attempt < 3; attempt++ {
 		now := time.Now().In(s.tz)
-		candidate := fmt.Sprintf("optimanager_backup_%s_%s.db", now.Format("2006-01-02_15-04-05"), origem)
+		candidate := fmt.Sprintf("optimanager_backup_%s_%s.zip", now.Format("2006-01-02_15-04-05"), origem)
 		finalPath := filepath.Join(s.localDir, candidate)
 
 		if _, err := os.Stat(finalPath); os.IsNotExist(err) {
@@ -226,34 +230,36 @@ func (s *Service) createBackupLocked(ctx context.Context, origem string) (*Backu
 		return nil, errors.New("failed to resolve unique backup filename after 3 attempts")
 	}
 
-	tmpPath := filepath.Join(s.localDir, filename+".tmp")
+	tmpDBPath := filepath.Join(s.localDir, filename+".db.tmp")
+	tmpZipPath := filepath.Join(s.localDir, filename+".tmp")
 	finalPath := filepath.Join(s.localDir, filename)
 
 	success := false
 	defer func() {
+		_ = os.Remove(tmpDBPath)
 		if !success {
-			_ = os.Remove(tmpPath)
+			_ = os.Remove(tmpZipPath)
 		}
 	}()
 
-	// 4. Execute VACUUM INTO
+	// 4. Execute VACUUM INTO temporary SQLite snapshot
 	if s.SimulateVacuumFail {
 		return nil, errors.New("simulated VACUUM INTO failure")
 	}
 
-	vacuumSQL := fmt.Sprintf("VACUUM INTO '%s'", tmpPath)
+	vacuumSQL := fmt.Sprintf("VACUUM INTO '%s'", tmpDBPath)
 	if _, err := s.db.Writer.ExecContext(ctx, vacuumSQL); err != nil {
 		nowStr := time.Now().In(s.tz).Format(time.RFC3339)
 		_ = s.db.SetBackupError(fmt.Sprintf("Falha ao gerar snapshot: %v", err), nowStr)
 		return nil, fmt.Errorf("failed to execute VACUUM INTO: %w", err)
 	}
 
-	// 5. Verify integrity with PRAGMA integrity_check
+	// 5. Verify integrity with PRAGMA integrity_check and read company logo from snapshot
 	if s.SimulateIntegrityFail {
 		return nil, errors.New("simulated integrity check failure")
 	}
 
-	checkDB, err := sql.Open("sqlite", fmt.Sprintf("%s?_pragma=query_only(1)&_pragma=busy_timeout(5000)", tmpPath))
+	checkDB, err := sql.Open("sqlite", fmt.Sprintf("%s?_pragma=query_only(1)&_pragma=busy_timeout(5000)", tmpDBPath))
 	if err != nil {
 		nowStr := time.Now().In(s.tz).Format(time.RFC3339)
 		_ = s.db.SetBackupError(fmt.Sprintf("Falha ao abrir snapshot para validação: %v", err), nowStr)
@@ -262,6 +268,8 @@ func (s *Service) createBackupLocked(ctx context.Context, origem string) (*Backu
 
 	var checkResult string
 	err = checkDB.QueryRowContext(ctx, "PRAGMA integrity_check").Scan(&checkResult)
+	var logoDataURI string
+	_ = checkDB.QueryRowContext(ctx, "SELECT logo_base64 FROM config WHERE id = 1").Scan(&logoDataURI)
 	checkDB.Close()
 	if err != nil {
 		nowStr := time.Now().In(s.tz).Format(time.RFC3339)
@@ -274,8 +282,16 @@ func (s *Service) createBackupLocked(ctx context.Context, origem string) (*Backu
 		return nil, fmt.Errorf("integrity check failed with status: %s", checkResult)
 	}
 
-	// 6. Atomically rename .tmp to final
-	if err := os.Rename(tmpPath, finalPath); err != nil {
+	// 6. Package database snapshot and company logo into a compressed .zip archive
+	if err := createBackupZipArchive(tmpZipPath, tmpDBPath, logoDataURI, origem); err != nil {
+		nowStr := time.Now().In(s.tz).Format(time.RFC3339)
+		_ = s.db.SetBackupError(fmt.Sprintf("Falha ao compactar arquivo de backup (.zip): %v", err), nowStr)
+		return nil, fmt.Errorf("failed to create zip backup archive: %w", err)
+	}
+	_ = os.Remove(tmpDBPath)
+
+	// 7. Atomically rename .zip.tmp to final .zip
+	if err := os.Rename(tmpZipPath, finalPath); err != nil {
 		return nil, fmt.Errorf("failed to finalize backup file: %w", err)
 	}
 	success = true
@@ -360,14 +376,15 @@ func (s *Service) ApplyRetention(origem string) error {
 		return err
 	}
 
-	suffix := fmt.Sprintf("_%s.db", origem)
+	suffixZip := fmt.Sprintf("_%s.zip", origem)
+	suffixDB := fmt.Sprintf("_%s.db", origem)
 	var matchedFiles []os.FileInfo
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
 		}
 		name := e.Name()
-		if backupFilenameRegex.MatchString(name) && strings.HasSuffix(name, suffix) {
+		if backupFilenameRegex.MatchString(name) && (strings.HasSuffix(name, suffixZip) || strings.HasSuffix(name, suffixDB)) {
 			if fi, err := e.Info(); err == nil {
 				matchedFiles = append(matchedFiles, fi)
 			}
@@ -571,7 +588,271 @@ func formatBytes(bytes int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
-const sqliteMagicHeader = "SQLite format 3\x00"
+const (
+	sqliteMagicHeader     = "SQLite format 3\x00"
+	maxUncompressedDBSize = 250 << 20 // 250 MB safety cap against zip bombs
+)
+
+type backupMetadata struct {
+	App       string `json:"app"`
+	Version   string `json:"version"`
+	Origin    string `json:"origin"`
+	CreatedAt string `json:"created_at"`
+	HasLogo   bool   `json:"has_logo"`
+	LogoFile  string `json:"logo_file,omitempty"`
+}
+
+func createBackupZipArchive(destZipPath, srcDBPath, logoDataURI, origem string) error {
+	zipFile, err := os.OpenFile(destZipPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer zipFile.Close()
+
+	zw := zip.NewWriter(zipFile)
+
+	// 1. Add optimanager.db to the zip archive with Deflate compression
+	dbIn, err := os.Open(srcDBPath)
+	if err != nil {
+		_ = zw.Close()
+		return err
+	}
+	dbStat, err := dbIn.Stat()
+	if err != nil {
+		dbIn.Close()
+		_ = zw.Close()
+		return err
+	}
+
+	dbHeader, err := zip.FileInfoHeader(dbStat)
+	if err != nil {
+		dbIn.Close()
+		_ = zw.Close()
+		return err
+	}
+	dbHeader.Name = "optimanager.db"
+	dbHeader.Method = zip.Deflate
+
+	dbWriter, err := zw.CreateHeader(dbHeader)
+	if err != nil {
+		dbIn.Close()
+		_ = zw.Close()
+		return err
+	}
+	if _, err := io.Copy(dbWriter, dbIn); err != nil {
+		dbIn.Close()
+		_ = zw.Close()
+		return err
+	}
+	dbIn.Close()
+
+	// 2. If company logo is configured, include both the decoded image file (assets/logo.<ext>)
+	// and the raw data URI (assets/logo_data_uri.txt) inside the zip archive.
+	hasLogo := false
+	logoFilename := ""
+	trimmedLogo := strings.TrimSpace(logoDataURI)
+	if trimmedLogo != "" {
+		rawBytes, ext := decodeDataURIImage(trimmedLogo)
+		if len(rawBytes) > 0 {
+			hasLogo = true
+			logoFilename = "assets/logo." + ext
+			logoWriter, err := zw.CreateHeader(&zip.FileHeader{
+				Name:     logoFilename,
+				Method:   zip.Deflate,
+				Modified: time.Now(),
+			})
+			if err == nil {
+				_, _ = logoWriter.Write(rawBytes)
+			}
+		}
+
+		uriWriter, err := zw.CreateHeader(&zip.FileHeader{
+			Name:     "assets/logo_data_uri.txt",
+			Method:   zip.Deflate,
+			Modified: time.Now(),
+		})
+		if err == nil {
+			_, _ = uriWriter.Write([]byte(trimmedLogo))
+		}
+	}
+
+	// 3. Add backup_metadata.json manifest
+	meta := backupMetadata{
+		App:       "OptiManager",
+		Version:   "3.0.0",
+		Origin:    origem,
+		CreatedAt: time.Now().Format(time.RFC3339),
+		HasLogo:   hasLogo,
+		LogoFile:  logoFilename,
+	}
+	if metaBytes, err := json.MarshalIndent(meta, "", "  "); err == nil {
+		if mw, err := zw.CreateHeader(&zip.FileHeader{
+			Name:     "backup_metadata.json",
+			Method:   zip.Deflate,
+			Modified: time.Now(),
+		}); err == nil {
+			_, _ = mw.Write(metaBytes)
+		}
+	}
+
+	if err := zw.Close(); err != nil {
+		return err
+	}
+	return zipFile.Sync()
+}
+
+func decodeDataURIImage(dataURI string) ([]byte, string) {
+	ext := "png"
+	b64Part := dataURI
+	if strings.HasPrefix(dataURI, "data:") {
+		commaIdx := strings.IndexByte(dataURI, ',')
+		if commaIdx != -1 {
+			meta := strings.ToLower(dataURI[:commaIdx])
+			b64Part = dataURI[commaIdx+1:]
+			switch {
+			case strings.Contains(meta, "image/jpeg") || strings.Contains(meta, "image/jpg"):
+				ext = "jpg"
+			case strings.Contains(meta, "image/webp"):
+				ext = "webp"
+			case strings.Contains(meta, "image/svg"):
+				ext = "svg"
+			case strings.Contains(meta, "image/gif"):
+				ext = "gif"
+			default:
+				ext = "png"
+			}
+		}
+	}
+	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(b64Part))
+	if err != nil {
+		return nil, ext
+	}
+	return decoded, ext
+}
+
+func encodeImageBytesToDataURI(imgBytes []byte, filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	mime := "image/png"
+	switch ext {
+	case ".jpg", ".jpeg":
+		mime = "image/jpeg"
+	case ".webp":
+		mime = "image/webp"
+	case ".svg":
+		mime = "image/svg+xml"
+	case ".gif":
+		mime = "image/gif"
+	}
+	return fmt.Sprintf("data:%s;base64,%s", mime, base64.StdEncoding.EncodeToString(imgBytes))
+}
+
+func isZipFile(filePath string) bool {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	magic := make([]byte, 4)
+	n, err := io.ReadFull(f, magic)
+	if err != nil || n < 4 {
+		return false
+	}
+	return bytes.Equal(magic, []byte{'P', 'K', 0x03, 0x04})
+}
+
+// ExtractDatabaseFromBackup extracts the SQLite database file from a .zip backup archive
+// (or copies it directly if backupPath is a raw .db file) into destDBPath.
+func ExtractDatabaseFromBackup(backupPath, destDBPath string) error {
+	_, err := extractBackupArchive(backupPath, destDBPath)
+	return err
+}
+
+func extractBackupArchive(srcPath, destDBPath string) (string, error) {
+	if !isZipFile(srcPath) {
+		in, err := os.Open(srcPath)
+		if err != nil {
+			return "", err
+		}
+		defer in.Close()
+		out, err := os.OpenFile(destDBPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			return "", err
+		}
+		defer out.Close()
+		if _, err := io.Copy(out, in); err != nil {
+			return "", err
+		}
+		return "", out.Sync()
+	}
+
+	zr, err := zip.OpenReader(srcPath)
+	if err != nil {
+		return "", fmt.Errorf("falha ao abrir arquivo compactado (.zip): %w", err)
+	}
+	defer zr.Close()
+
+	var dbEntry *zip.File
+	var logoDataURI string
+	var fallbackLogoBytes []byte
+	var fallbackLogoName string
+
+	for _, f := range zr.File {
+		cleanName := filepath.ToSlash(filepath.Clean(f.Name))
+		if strings.HasPrefix(cleanName, "../") || strings.HasPrefix(cleanName, "/") {
+			continue
+		}
+		if cleanName == "optimanager.db" || (dbEntry == nil && strings.HasSuffix(strings.ToLower(cleanName), ".db")) {
+			dbEntry = f
+		} else if cleanName == "assets/logo_data_uri.txt" && f.UncompressedSize64 < 5<<20 {
+			if rc, err := f.Open(); err == nil {
+				if data, err := io.ReadAll(io.LimitReader(rc, 5<<20)); err == nil {
+					logoDataURI = strings.TrimSpace(string(data))
+				}
+				rc.Close()
+			}
+		} else if strings.HasPrefix(cleanName, "assets/logo.") && f.UncompressedSize64 < 5<<20 {
+			if rc, err := f.Open(); err == nil {
+				if data, err := io.ReadAll(io.LimitReader(rc, 5<<20)); err == nil && len(data) > 0 {
+					fallbackLogoBytes = data
+					fallbackLogoName = cleanName
+				}
+				rc.Close()
+			}
+		}
+	}
+
+	if dbEntry == nil {
+		return "", errors.New("o arquivo .zip enviado não contém um banco de dados (.db) do OptiManager")
+	}
+
+	rc, err := dbEntry.Open()
+	if err != nil {
+		return "", fmt.Errorf("falha ao extrair banco de dados do arquivo .zip: %w", err)
+	}
+	defer rc.Close()
+
+	out, err := os.OpenFile(destDBPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return "", err
+	}
+	if _, err := io.Copy(out, io.LimitReader(rc, maxUncompressedDBSize)); err != nil {
+		out.Close()
+		return "", fmt.Errorf("falha ao gravar banco de dados extraído do .zip: %w", err)
+	}
+	if err := out.Sync(); err != nil {
+		out.Close()
+		return "", err
+	}
+	if err := out.Close(); err != nil {
+		return "", err
+	}
+
+	if logoDataURI == "" && len(fallbackLogoBytes) > 0 {
+		logoDataURI = encodeImageBytesToDataURI(fallbackLogoBytes, fallbackLogoName)
+	}
+
+	return logoDataURI, nil
+}
 
 // ValidateBackupFile checks that filePath is a valid, uncorrupted SQLite database file
 // compatible with OptiManager's schema and optionally containing at least one administrator account.
@@ -674,7 +955,17 @@ func (s *Service) RestoreFromFilename(ctx context.Context, filename string, crea
 }
 
 func (s *Service) restoreFromValidatedPathLocked(ctx context.Context, srcPath, sourceLabel string, createPreRestore bool, usuarioID int64, usuarioNome, ip string) error {
-	if err := s.ValidateBackupFile(ctx, srcPath, true); err != nil {
+	randBytes := make([]byte, 4)
+	_, _ = rand.Read(randBytes)
+	extractedDBPath := filepath.Join(s.localDir, fmt.Sprintf(".restore_db_%d_%x.tmp", time.Now().UnixNano(), randBytes))
+	defer os.Remove(extractedDBPath)
+
+	restoredLogoURI, err := extractBackupArchive(srcPath, extractedDBPath)
+	if err != nil {
+		return err
+	}
+
+	if err := s.ValidateBackupFile(ctx, extractedDBPath, true); err != nil {
 		return err
 	}
 
@@ -687,8 +978,16 @@ func (s *Service) restoreFromValidatedPathLocked(ctx context.Context, srcPath, s
 		preRestoreFilename = info.Filename
 	}
 
-	if err := s.db.ReplaceDatabase(srcPath); err != nil {
+	if err := s.db.ReplaceDatabase(extractedDBPath); err != nil {
 		return fmt.Errorf("falha crítica ao substituir banco de dados ativo: %w", err)
+	}
+
+	// If the .zip archive contained an extracted company logo asset, ensure config.logo_base64 is populated
+	if restoredLogoURI != "" {
+		if cfg, err := s.db.GetConfig(); err == nil && cfg != nil && strings.TrimSpace(cfg.LogoBase64) == "" {
+			cfg.LogoBase64 = restoredLogoURI
+			_ = s.db.UpdateConfig(cfg)
+		}
 	}
 
 	// Record persistent file-based restore log + SQLite audit_log in the newly active database

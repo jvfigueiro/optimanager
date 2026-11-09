@@ -51,6 +51,8 @@ export const useConfigStore = defineStore('config', () => {
     logo_base64: '',
     cor_primaria: '#0B5694',
     cor_secundaria: '#083f6e',
+    auto_logout_enabled: 0,
+    auto_logout_minutos: 30,
   })
 
   const isDarkMode = ref(false)
