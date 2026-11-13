@@ -132,16 +132,20 @@ async function instalarPwa() {
               class="w-8 h-8 object-contain shrink-0"
             />
             <div class="truncate">
-              <div class="flex items-center gap-1.5">
-                <span class="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
-                  OptiManager
-                </span>
-                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
-                  3.0
-                </span>
-              </div>
-              <span class="text-[11px] text-slate-500 dark:text-slate-400 block truncate">
-                {{ configStore.config.fantasia || 'Gestão & OS' }}
+              <span class="font-extrabold text-base tracking-tight text-slate-900 dark:text-white block truncate">
+                {{ configStore.config.fantasia || 'OptiManager' }}
+              </span>
+              <span
+                v-if="configStore.config.razao_social"
+                class="text-[11px] text-slate-500 dark:text-slate-400 block truncate"
+              >
+                {{ configStore.config.razao_social }}
+              </span>
+              <span
+                v-if="configStore.config.cnpj"
+                class="text-[11px] font-mono text-slate-400 dark:text-slate-500 block truncate mt-0.5"
+              >
+                {{ configStore.config.cnpj }}
               </span>
             </div>
           </div>
@@ -347,15 +351,6 @@ async function instalarPwa() {
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- Status Resumido do Sistema (Semelhante ao Topbar do OptiAssist) -->
-          <div
-            v-if="configStore.config.cnpj"
-            class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
-          >
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>CNPJ: {{ configStore.config.cnpj }}</span>
-          </div>
-
           <!-- Botão Alternar Tema Claro/Escuro (Estilo OptiAssist: Pílula Redonda no Topo) -->
           <button
             @click="configStore.toggleTheme()"

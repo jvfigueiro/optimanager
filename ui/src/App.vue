@@ -64,11 +64,11 @@ const viewTitles: Record<string, string> = {
 function updateDocumentTitle() {
   const empresa = configStore.config.fantasia || 'Empresa'
   if (!authStore.isAuthenticated || authStore.needsSetup) {
-    document.title = `OptiManager | Acesso | ${empresa}`
+    document.title = `${empresa} | Acesso | OptiManager`
     return
   }
   const tela = viewTitles[nav.currentView] || 'Painel'
-  document.title = `OptiManager | ${tela} | ${empresa}`
+  document.title = `${empresa} | ${tela} | OptiManager`
 }
 
 watch(

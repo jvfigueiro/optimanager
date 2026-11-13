@@ -28,7 +28,6 @@ import {
   CreditCard,
   Building2,
   Archive,
-  Database,
   ShieldCheck,
   Zap,
   MapPin,
@@ -545,34 +544,6 @@ const autoLogoutTexto = computed(() => {
           <Info class="w-3.5 h-3.5" />
           <span>Configurações</span>
         </button>
-      </div>
-    </div>
-
-    <!-- Barra de Pílulas de Status do Rodapé Estilo OptiAssist -->
-    <div class="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs">
-      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#111928] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs">
-        <ShieldCheck class="w-3.5 h-3.5 text-sky-500" />
-        <span>Sessão: <strong class="text-slate-900 dark:text-slate-200">{{ autoLogoutTexto }}</strong></span>
-      </div>
-
-      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#111928] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs">
-        <Database class="w-3.5 h-3.5 text-emerald-500" />
-        <span>Banco SQLite: <strong class="text-emerald-600 dark:text-emerald-400">WAL Ativo</strong></span>
-      </div>
-
-      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#111928] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs">
-        <Archive class="w-3.5 h-3.5 text-sky-500" />
-        <span>Backup ZIP: <strong class="text-sky-600 dark:text-sky-400">Disponível</strong></span>
-      </div>
-
-      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#111928] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs">
-        <CheckCircle2 class="w-3.5 h-3.5 text-emerald-500" />
-        <span>Servidor: <strong class="text-emerald-600 dark:text-emerald-400">Online (:8585)</strong></span>
-      </div>
-
-      <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#111928] border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 shadow-2xs">
-        <FileText class="w-3.5 h-3.5 text-slate-400" />
-        <span>Licença: <strong class="text-slate-700 dark:text-slate-300">GNU GPLv3</strong></span>
       </div>
     </div>
 
