@@ -763,7 +763,7 @@ async function handleDeleteUser(u: Usuario) {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Nome Fantasia / Marca
+              Nome da Empresa
             </label>
             <input
               type="text"
@@ -776,7 +776,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Razão Social / Titular
+              Razão Social
             </label>
             <input
               type="text"
@@ -789,7 +789,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              CNPJ (ou CPF)
+              CNPJ
             </label>
             <input
               type="text"
@@ -802,7 +802,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Telefones / WhatsApp
+              Número de Contato
             </label>
             <input
               type="text"
@@ -815,7 +815,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              E-mail Comercial / Contato
+              E-mail comercial
             </label>
             <input
               type="email"
@@ -827,7 +827,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div>
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Endereço Comercial
+              Endereço
             </label>
             <input
               type="text"
@@ -839,7 +839,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Cidade - UF
+              Cidade
             </label>
             <input
               type="text"
@@ -852,7 +852,7 @@ async function handleDeleteUser(u: Usuario) {
 
           <div class="sm:col-span-2">
             <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Informações de Garantia e Observações Legais
+              Informações de Garantia
             </label>
             <textarea
               v-model="form.termo_garantia"
@@ -1562,22 +1562,22 @@ async function handleDeleteUser(u: Usuario) {
           </div>
 
           <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Telefones / WhatsApp</span>
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Número de Contato</span>
             <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.fones || 'Não informado' }}</strong>
           </div>
 
           <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">E-mail de Contato</span>
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">E-mail comercial</span>
             <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.email_contato || 'Não informado' }}</strong>
           </div>
 
           <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Endereço Comercial</span>
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Endereço</span>
             <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.endereco || 'Não informado' }}</strong>
           </div>
 
           <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-750 border border-slate-200 dark:border-slate-700">
-            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Cidade - UF</span>
+            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Cidade</span>
             <strong class="text-sm text-slate-800 dark:text-white">{{ configStore.config.cidade || 'Não informado' }}</strong>
           </div>
         </div>

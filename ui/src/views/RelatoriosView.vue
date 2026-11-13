@@ -250,9 +250,9 @@ function imprimirDocumento() {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-    <!-- PAINEL DE CONFIGURAÇÃO (ESQUERDA) -->
-    <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 space-y-4 no-print">
+  <div class="space-y-6">
+    <!-- PAINEL DE CONFIGURAÇÃO (TOPO) -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 space-y-4 no-print">
       <div>
         <h3 class="font-bold text-base text-slate-800 dark:text-white flex items-center gap-2">
           <FileText class="w-5 h-5 text-opti" />
@@ -449,27 +449,29 @@ function imprimirDocumento() {
           <span>Imprimir / Salvar como PDF (Ctrl+P)</span>
         </button>
 
-        <button
-          type="button"
-          @click="openPersonalizarModal"
-          class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-650 text-slate-700 dark:text-slate-200 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs border border-slate-300 dark:border-slate-600 shadow-2xs"
-        >
-          <SlidersHorizontal class="w-4 h-4 text-opti dark:text-blue-400" />
-          <span>Personalizar Termos & Cláusulas</span>
-        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            @click="openPersonalizarModal"
+            class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-650 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs border border-slate-300 dark:border-slate-600 shadow-2xs"
+          >
+            <SlidersHorizontal class="w-4 h-4 text-opti dark:text-blue-400 shrink-0" />
+            <span>Personalizar Termos & Cláusulas</span>
+          </button>
 
-        <button
-          @click="dispararWhatsApp"
-          class="w-full bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs"
-        >
-          <MessageCircle class="w-4 h-4" />
-          <span>Enviar Resumo pelo WhatsApp</span>
-        </button>
+          <button
+            @click="dispararWhatsApp"
+            class="w-full bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs"
+          >
+            <MessageCircle class="w-4 h-4 shrink-0" />
+            <span>Enviar Resumo pelo WhatsApp</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- FOLHA A4 DE PRÉ-VISUALIZAÇÃO AO VIVO (DIREITA) -->
-    <div class="lg:col-span-7">
+    <!-- FOLHA A4 DE PRÉ-VISUALIZAÇÃO AO VIVO (ABAIXO) -->
+    <div>
       <div
         id="a4-preview"
         class="bg-white text-slate-900 p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 text-xs sm:text-sm min-h-[640px]"
