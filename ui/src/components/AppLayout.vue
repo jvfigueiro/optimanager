@@ -21,7 +21,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  UserCheck,
   Download,
 } from 'lucide-vue-next'
 
@@ -97,7 +96,7 @@ async function instalarPwa() {
 </script>
 
 <template>
-  <div class="h-screen flex overflow-hidden bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
+  <div class="h-screen flex overflow-hidden bg-slate-50 dark:bg-[#0a0f1d] text-slate-800 dark:text-slate-100">
     <!-- OVERLAY MOBILE DA SIDEBAR -->
     <div
       v-if="nav.isMobileSidebarOpen"
@@ -105,9 +104,9 @@ async function instalarPwa() {
       class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 z-40 lg:hidden no-print transition-opacity"
     ></div>
 
-    <!-- SIDEBAR (MENU LATERAL RETRÁTIL NO DESKTOP E DRAWER NO MOBILE) -->
+    <!-- SIDEBAR (ESTILO OPTIASSIST: TEMA ADAPTATIVO, BORDAS FINAS E PILULAS SUAVES) -->
     <aside
-      class="fixed lg:static inset-y-0 left-0 z-50 bg-opti text-white flex flex-col justify-between transform transition-all duration-200 ease-in-out shadow-xl no-print shrink-0 overflow-hidden"
+      class="fixed lg:static inset-y-0 left-0 z-50 bg-white dark:bg-[#0c1322] text-slate-800 dark:text-slate-100 flex flex-col justify-between transform transition-all duration-200 ease-in-out border-r border-slate-200/90 dark:border-slate-800/90 shadow-xs no-print shrink-0 overflow-hidden"
       :class="[
         nav.isMobileSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64',
         nav.isDesktopSidebarOpen
@@ -116,34 +115,33 @@ async function instalarPwa() {
       ]"
     >
       <!-- Topo: Identificação & Links -->
-      <div class="w-64">
-        <!-- Logo & Identificação -->
-        <div class="p-5 border-b border-white/10 flex items-center justify-between">
-          <div class="flex items-center gap-3 min-w-0">
+      <div class="w-64 flex flex-col h-full overflow-y-auto no-scrollbar">
+        <!-- Logo & Identificação (Estilo OptiAssist) -->
+        <div class="p-4 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2.5 min-w-0">
             <img
               v-if="configStore.config.logo_base64"
               :src="configStore.config.logo_base64"
               alt="Logo"
-              class="w-10 h-10 object-contain shrink-0"
+              class="w-8 h-8 object-contain shrink-0"
             />
             <img
               v-else
               src="/icon.png"
               alt="OptiManager"
-              class="w-10 h-10 object-contain shrink-0"
+              class="w-8 h-8 object-contain shrink-0"
             />
             <div class="truncate">
-              <h1 class="font-bold text-base leading-tight truncate">
-                {{ configStore.config.fantasia }}
-              </h1>
-              <span class="text-[11px] text-blue-200 block truncate">
-                {{ configStore.config.razao_social }}
-              </span>
-              <span
-                v-if="configStore.config.cnpj"
-                class="text-[11px] text-blue-200/80 font-mono block truncate"
-              >
-                {{ configStore.config.cnpj }}
+              <div class="flex items-center gap-1.5">
+                <span class="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
+                  OptiManager
+                </span>
+                <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                  3.0
+                </span>
+              </div>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400 block truncate">
+                {{ configStore.config.fantasia || 'Gestão & OS' }}
               </span>
             </div>
           </div>
@@ -151,64 +149,63 @@ async function instalarPwa() {
           <!-- Botão Fechar (Mobile) -->
           <button
             @click="nav.toggleMobileSidebar()"
-            class="lg:hidden text-blue-200 hover:text-white p-1 rounded-lg transition"
+            class="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg transition"
             title="Fechar menu"
           >
-            <X class="w-6 h-6" />
+            <X class="w-5 h-5" />
           </button>
         </div>
 
-        <!-- Botão Principal de Ação e Copiar CNPJ -->
-        <div class="p-4 space-y-2">
+        <!-- Botões de Ação Rápida (Estilo OptiAssist) -->
+        <div class="p-3.5 space-y-2">
           <button
             @click="nav.openNovaOS()"
-            class="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm"
+            class="w-full bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center gap-2 text-xs"
           >
-            <Plus class="w-5 h-5" />
+            <Plus class="w-4 h-4" />
             <span>Novo Serviço</span>
           </button>
 
-          <!-- Botão Copiar CNPJ (Movido para a barra lateral) -->
           <button
             @click="dashboardStore.copyCNPJ()"
-            class="w-full bg-white/10 hover:bg-white/20 active:bg-white/25 text-blue-100 hover:text-white text-xs font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-2"
+            class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-200/80 dark:border-slate-700/80"
           >
             <Copy class="w-3.5 h-3.5" />
             <span>Copiar CNPJ</span>
           </button>
         </div>
 
-        <!-- Links de Navegação -->
-        <nav class="px-3 space-y-1 text-sm font-medium">
+        <!-- Links de Navegação (Pílulas arredondadas estilo OptiAssist) -->
+        <nav class="px-3 flex-1 space-y-1 text-xs font-medium">
           <button
             @click="nav.navigate('dashboard')"
-            class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition font-medium"
+            class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'dashboard'
-                ? 'bg-white text-opti font-bold shadow-xs'
-                : 'text-blue-100 hover:bg-opti-dark'
+                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
-            <LayoutDashboard class="w-5 h-5 shrink-0" />
+            <LayoutDashboard class="w-4 h-4 shrink-0" />
             <span>Dashboard</span>
           </button>
 
           <button
             @click="nav.navigate('orders')"
-            class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition font-medium"
+            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'orders'
-                ? 'bg-white text-opti font-bold shadow-xs'
-                : 'text-blue-100 hover:bg-opti-dark'
+                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
             <div class="flex items-center gap-3">
-              <Wrench class="w-5 h-5 shrink-0" />
+              <Wrench class="w-4 h-4 shrink-0" />
               <span>Serviços</span>
             </div>
             <span
               v-if="abertosCount > 0"
-              class="text-xs bg-amber-400 text-slate-900 font-bold px-2 py-0.5 rounded-full"
+              class="text-[10px] bg-amber-400 text-slate-900 font-bold px-2 py-0.5 rounded-full"
             >
               {{ abertosCount }}
             </span>
@@ -216,20 +213,20 @@ async function instalarPwa() {
 
           <button
             @click="nav.navigate('clients')"
-            class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition font-medium"
+            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'clients'
-                ? 'bg-white text-opti font-bold shadow-xs'
-                : 'text-blue-100 hover:bg-opti-dark'
+                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
             <div class="flex items-center gap-3">
-              <Users class="w-5 h-5 shrink-0" />
+              <Users class="w-4 h-4 shrink-0" />
               <span>Clientes</span>
             </div>
             <span
               v-if="clientesStore.clientes.length > 0"
-              class="text-xs bg-opti-dark text-blue-200 px-2 py-0.5 rounded-full"
+              class="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold px-2 py-0.5 rounded-full"
             >
               {{ clientesStore.clientes.length }}
             </span>
@@ -237,78 +234,85 @@ async function instalarPwa() {
 
           <button
             @click="nav.navigate('finance')"
-            class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition font-medium"
+            class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'finance'
-                ? 'bg-white text-opti font-bold shadow-xs'
-                : 'text-blue-100 hover:bg-opti-dark'
+                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
-            <DollarSign class="w-5 h-5 shrink-0" />
+            <DollarSign class="w-4 h-4 shrink-0" />
             <span>Financeiro</span>
           </button>
 
           <button
             @click="nav.navigate('reports')"
-            class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition font-medium"
+            class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'reports'
-                ? 'bg-white text-opti font-bold shadow-xs'
-                : 'text-blue-100 hover:bg-opti-dark'
+                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
-            <FileText class="w-5 h-5 shrink-0" />
-            <span>Relatórios de Serviço</span>
+            <FileText class="w-4 h-4 shrink-0" />
+            <span>Relatórios</span>
           </button>
+
+          <!-- Divisor de Grupo (Estilo OptiAssist: Settings & About) -->
+          <div class="pt-3 pb-1">
+            <div class="border-t border-slate-200/80 dark:border-slate-800"></div>
+          </div>
 
           <button
             @click="nav.navigate('settings')"
-            class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition font-medium"
+            class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'settings'
-                ? 'bg-white text-opti font-bold shadow-xs'
-                : 'text-blue-100 hover:bg-opti-dark'
+                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
-            <Settings class="w-5 h-5 shrink-0" />
+            <Settings class="w-4 h-4 shrink-0" />
             <span>Configurações</span>
           </button>
 
-          <!-- Botão Instalar App PWA (na Barra Lateral) -->
+          <!-- Botão Instalar App PWA -->
           <button
             v-if="canInstallPwa"
             @click="instalarPwa"
-            class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition font-medium bg-white/15 hover:bg-white/25 text-white border border-white/20 text-xs shadow-xs mt-2"
+            class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl transition font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs shadow-2xs mt-2"
             title="Instalar aplicativo no computador ou smartphone"
           >
-            <div class="flex items-center gap-2.5">
-              <Download class="w-4 h-4 text-emerald-300 shrink-0" />
-              <span>Instalar Aplicativo</span>
+            <div class="flex items-center gap-2">
+              <Download class="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span>Instalar PWA</span>
             </div>
-            <span class="text-[10px] bg-emerald-400 text-slate-900 px-1.5 py-0.5 rounded font-black">PWA</span>
+            <span class="text-[9px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1 py-0.5 rounded font-bold">App</span>
           </button>
         </nav>
       </div>
 
       <!-- Rodapé da Sidebar (Usuário Logado & Logout) -->
-      <div class="w-64 p-4 border-t border-white/10 bg-opti-dark/60 text-xs">
+      <div class="w-64 p-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-[#0c1322] text-xs">
         <div
           v-if="authStore.user"
-          class="flex items-center justify-between gap-2"
+          class="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60"
         >
           <div class="flex items-center gap-2 min-w-0">
-            <UserCheck class="w-4 h-4 text-emerald-300 shrink-0" />
+            <div class="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-xs shrink-0">
+              {{ authStore.user.nome.charAt(0).toUpperCase() }}
+            </div>
             <div class="truncate">
-              <p class="font-bold text-white truncate">{{ authStore.user.nome }}</p>
-              <p class="text-[10px] text-blue-200 truncate">{{ authStore.user.email }}</p>
+              <p class="font-bold text-slate-800 dark:text-white truncate leading-tight">{{ authStore.user.nome }}</p>
+              <p class="text-[10px] text-slate-400 truncate">{{ authStore.user.role === 'admin' ? 'Administrador' : 'Operador' }}</p>
             </div>
           </div>
           <button
             @click="authStore.logout()"
-            class="p-1.5 rounded-lg bg-white/10 hover:bg-rose-600 text-blue-100 hover:text-white transition shrink-0"
+            class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
             title="Sair do sistema"
           >
-            <LogOut class="w-4 h-4" />
+            <LogOut class="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -316,71 +320,60 @@ async function instalarPwa() {
 
     <!-- ÁREA CENTRAL DE CONTEÚDO -->
     <div class="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
-      <!-- HEADER CONTEXTUAL / TOPBAR -->
+      <!-- HEADER TOPBAR (ESTILO OPTIASSIST) -->
       <header
-        class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 py-3.5 flex justify-between items-center shrink-0 no-print"
+        class="bg-white dark:bg-[#0c1322] border-b border-slate-200/80 dark:border-slate-800 px-4 sm:px-6 py-2.5 flex justify-between items-center shrink-0 no-print"
       >
         <div class="flex items-center gap-3">
-          <!-- Botão Exibir/Ocultar Barra Lateral (Mobile e Desktop) -->
+          <!-- Botão Exibir/Ocultar Barra Lateral -->
           <button
             @click="nav.toggleSidebar()"
-            class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-1.5"
-            :title="nav.isDesktopSidebarOpen ? 'Ocultar barra lateral de menus' : 'Exibir barra lateral de menus'"
+            class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition flex items-center gap-1"
+            :title="nav.isDesktopSidebarOpen ? 'Recolher menu lateral' : 'Expandir menu lateral'"
           >
-            <Menu class="w-5 h-5 lg:hidden" />
-            <PanelLeftClose v-if="nav.isDesktopSidebarOpen" class="w-5 h-5 hidden lg:block" />
-            <PanelLeftOpen v-else class="w-5 h-5 hidden lg:block text-opti dark:text-blue-400" />
+            <Menu class="w-4 h-4 lg:hidden" />
+            <PanelLeftClose v-if="nav.isDesktopSidebarOpen" class="w-4 h-4 hidden lg:block" />
+            <PanelLeftOpen v-else class="w-4 h-4 hidden lg:block text-sky-600 dark:text-sky-400" />
           </button>
 
           <div>
-            <h2 class="font-bold text-lg text-slate-800 dark:text-white leading-tight">
+            <h2 class="font-black text-base text-slate-900 dark:text-white leading-tight">
               {{ currentMeta.title }}
             </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
               {{ currentMeta.sub }}
             </p>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- Botão Instalar App (PWA) no Topo -->
-          <button
-            v-if="canInstallPwa"
-            @click="instalarPwa"
-            class="hidden sm:flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-opti dark:text-blue-400 border border-blue-200 dark:border-blue-800 text-xs font-bold px-3 py-1.5 rounded-xl transition"
-            title="Instalar o OptiManager como aplicativo"
+          <!-- Status Resumido do Sistema (Semelhante ao Topbar do OptiAssist) -->
+          <div
+            v-if="configStore.config.cnpj"
+            class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700"
           >
-            <Download class="w-3.5 h-3.5" />
-            <span>Instalar App</span>
-          </button>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>CNPJ: {{ configStore.config.cnpj }}</span>
+          </div>
 
-          <!-- Alternador de Tema Claro/Escuro -->
+          <!-- Botão Alternar Tema Claro/Escuro (Estilo OptiAssist: Pílula Redonda no Topo) -->
           <button
             @click="configStore.toggleTheme()"
-            class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs"
             :title="configStore.isDarkMode ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
           >
             <Sun v-if="configStore.isDarkMode" class="w-4 h-4 text-amber-400" />
             <Moon v-else class="w-4 h-4 text-slate-600" />
           </button>
 
-          <!-- Botão Novo Serviço (Visível no mobile ou quando a sidebar desktop está recolhida) -->
+          <!-- Botão Novo Serviço (Mobile ou sidebar recolhida) -->
           <button
             @click="nav.openNovaOS()"
             :class="nav.isDesktopSidebarOpen ? 'lg:hidden' : 'flex'"
-            class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-2 rounded-xl text-xs shadow flex items-center gap-1 transition"
+            class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-xs flex items-center gap-1 transition"
           >
             <Plus class="w-3.5 h-3.5" />
-            <span>Novo Serviço</span>
-          </button>
-
-          <!-- Botão Sair Rápido -->
-          <button
-            @click="authStore.logout()"
-            class="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-700 transition"
-            title="Sair do sistema"
-          >
-            <LogOut class="w-4 h-4" />
+            <span>Novo</span>
           </button>
         </div>
       </header>
@@ -397,41 +390,41 @@ async function instalarPwa() {
 
       <!-- BOTTOM NAVIGATION BAR (FIXA NO MOBILE) -->
       <nav
-        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-around items-center py-2 z-30 text-xs font-medium text-slate-500 dark:text-slate-400 no-print"
+        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[#0c1322]/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 flex justify-around items-center py-2 z-30 text-xs font-medium text-slate-500 dark:text-slate-400 no-print"
       >
         <button
           @click="nav.navigate('dashboard')"
           class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
-          :class="nav.currentView === 'dashboard' ? 'text-opti dark:text-blue-400 font-bold' : ''"
+          :class="nav.currentView === 'dashboard' ? 'text-sky-600 dark:text-sky-400 font-bold' : ''"
         >
-          <LayoutDashboard class="w-5 h-5" />
+          <LayoutDashboard class="w-4 h-4" />
           <span>Dashboard</span>
         </button>
 
         <button
           @click="nav.navigate('orders')"
           class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
-          :class="nav.currentView === 'orders' ? 'text-opti dark:text-blue-400 font-bold' : ''"
+          :class="nav.currentView === 'orders' ? 'text-sky-600 dark:text-sky-400 font-bold' : ''"
         >
-          <Wrench class="w-5 h-5" />
+          <Wrench class="w-4 h-4" />
           <span>Serviços</span>
         </button>
 
         <button
           @click="nav.navigate('finance')"
           class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
-          :class="nav.currentView === 'finance' ? 'text-opti dark:text-blue-400 font-bold' : ''"
+          :class="nav.currentView === 'finance' ? 'text-sky-600 dark:text-sky-400 font-bold' : ''"
         >
-          <DollarSign class="w-5 h-5" />
+          <DollarSign class="w-4 h-4" />
           <span>Financeiro</span>
         </button>
 
         <button
           @click="nav.navigate('reports')"
           class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
-          :class="nav.currentView === 'reports' ? 'text-opti dark:text-blue-400 font-bold' : ''"
+          :class="nav.currentView === 'reports' ? 'text-sky-600 dark:text-sky-400 font-bold' : ''"
         >
-          <FileText class="w-5 h-5" />
+          <FileText class="w-4 h-4" />
           <span>Relatórios</span>
         </button>
       </nav>
