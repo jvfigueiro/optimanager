@@ -462,10 +462,10 @@ const activeTab = ref<ConfigTab>(authStore.user?.role === 'admin' ? 'usuarios' :
 const visibleTabs = computed(() => {
   const isAdmin = authStore.user?.role === 'admin'
   const all: Array<{ id: ConfigTab; label: string; adminOnly?: boolean }> = [
-    { id: 'usuarios', label: 'Usuários & Controle de Acesso', adminOnly: true },
-    { id: 'empresa', label: 'Configurações da Empresa & Personalização' },
-    { id: 'os', label: 'Configurações de OS e Serviços' },
-    { id: 'backups', label: 'Backups & Restauração de Dados', adminOnly: true },
+    { id: 'usuarios', label: 'Usuários', adminOnly: true },
+    { id: 'empresa', label: 'Empresa' },
+    { id: 'os', label: 'OS e Serviços' },
+    { id: 'backups', label: 'Backup & Restauração', adminOnly: true },
     { id: 'sobre', label: 'Sobre o OptiManager' },
   ]
   return all.filter((t) => !t.adminOnly || isAdmin)
@@ -473,7 +473,7 @@ const visibleTabs = computed(() => {
 </script>
 
 <template>
-  <div class="max-w-4xl space-y-6">
+  <div class="w-full space-y-6">
     <!-- Navegação por Abas -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-1.5 shadow-xs overflow-x-auto">
       <div class="flex items-center gap-1 min-w-max">
@@ -504,7 +504,7 @@ const visibleTabs = computed(() => {
           <div class="flex items-center gap-2.5">
             <Users class="w-5 h-5 text-opti" />
             <h3 class="font-bold text-lg text-slate-800 dark:text-white">
-              Usuários & Controle de Acesso
+              Usuários
             </h3>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -686,7 +686,7 @@ const visibleTabs = computed(() => {
       <div class="flex items-center gap-2.5 mb-2">
         <Settings class="w-5 h-5 text-opti" />
         <h3 class="font-bold text-lg text-slate-800 dark:text-white">
-          Configurações da Empresa & Personalização
+          Empresa
         </h3>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">
@@ -929,7 +929,7 @@ const visibleTabs = computed(() => {
         <div class="flex items-center gap-2.5">
           <Sparkles class="w-5 h-5 text-opti" />
           <h3 class="font-bold text-lg text-slate-800 dark:text-white">
-            Configurações de OS e Serviços
+            OS e Serviços
           </h3>
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -1306,7 +1306,7 @@ const visibleTabs = computed(() => {
           <div class="flex items-center gap-2.5">
             <Database class="w-5 h-5 text-opti" />
             <h3 class="font-bold text-lg text-slate-800 dark:text-white">
-              Backups & Restauração de Dados (.zip)
+              Backup & Restauração
             </h3>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
