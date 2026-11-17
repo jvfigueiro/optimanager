@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useOrdensStore } from '../stores/ordens'
 import { useClientesStore } from '../stores/clientes'
 import { useConfigStore } from '../stores/config'
+import { splitObsAndProblema, mergeObsAndProblema } from '../utils/formatters'
 import type { OrdemServico, PagamentoStatus } from '../types'
 import {
   X,
@@ -49,6 +50,7 @@ function getCurrentTimeHHMM() {
 const clienteNome = ref('')
 const marca = ref('')
 const modelo = ref('')
+const problemaInformado = ref('')
 const servico = ref('')
 const obsTecnicas = ref('')
 const status = ref<string>('Avaliação')
@@ -123,8 +125,10 @@ watch(
       }
       marca.value = foundMarca
       modelo.value = foundModelo
+      const parsedObs = splitObsAndProblema(o.obs_tecnicas)
+      problemaInformado.value = parsedObs.problema
       servico.value = o.servico || ''
-      obsTecnicas.value = o.obs_tecnicas || ''
+      obsTecnicas.value = parsedObs.obs
       dataEmissao.value = o.data_emissao ? o.data_emissao.substring(0, 10) : getTodayISO()
       horaEmissao.value = o.hora_emissao || ''
       dataEntrega.value = o.data_entrega || ''
@@ -169,7 +173,7 @@ async function handleUpdate() {
       cliente_nome: clienteNome.value.trim(),
       equipamento: equipFinal,
       servico: servico.value.trim(),
-      obs_tecnicas: obsTecnicas.value.trim(),
+      obs_tecnicas: mergeObsAndProblema(problemaInformado.value, obsTecnicas.value),
       status: status.value,
       data_emissao: dataEmissao.value,
       hora_emissao: horaEmissao.value,
@@ -446,10 +450,27 @@ async function handleDelete() {
           </div>
         </div>
 
-        <!-- Descrição do Serviço -->
+        <!-- Problema Informado (conforme Configurações de OS e Serviços) -->
+        <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false">
+          <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+            {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+          </label>
+          <textarea
+            v-model="problemaInformado"
+            rows="2"
+            placeholder="Sintoma ou defeito relatado pelo cliente..."
+            class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-opti"
+          ></textarea>
+        </div>
+
+        <!-- Serviço Executado / Descrição do Serviço -->
         <div>
           <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-            Descrição do Serviço *
+            {{
+              configStore.presets.os_secao_servico_exec_ativa !== false
+                ? (configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:')
+                : 'Descrição do Serviço'
+            }} *
           </label>
           <textarea
             v-model="servico"

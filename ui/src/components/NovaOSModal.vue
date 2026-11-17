@@ -5,6 +5,7 @@ import { useOrdensStore } from '../stores/ordens'
 import { useClientesStore } from '../stores/clientes'
 import { useConfigStore } from '../stores/config'
 import { useDashboardStore } from '../stores/dashboard'
+import { mergeObsAndProblema } from '../utils/formatters'
 import { X, Wrench, CheckCircle, Printer } from 'lucide-vue-next'
 
 const nav = useNavigationStore()
@@ -31,6 +32,7 @@ function getCurrentTimeHHMM() {
 const clienteNome = ref('')
 const marca = ref('')
 const modelo = ref('')
+const problemaInformado = ref('')
 const servico = ref('')
 const obsTecnicas = ref('')
 const dataEmissao = ref(getTodayISO())
@@ -118,7 +120,7 @@ async function salvarOrdem(printAfter = false) {
       cliente_nome: clienteNome.value.trim(),
       equipamento: equipFinal,
       servico: servico.value.trim(),
-      obs_tecnicas: obsTecnicas.value.trim(),
+      obs_tecnicas: mergeObsAndProblema(problemaInformado.value, obsTecnicas.value),
       status: status.value,
       valor_total: Number(valorTotal.value) || 0,
       pagamento_status: pagamentoStatus.value,
@@ -136,6 +138,7 @@ async function salvarOrdem(printAfter = false) {
     clienteNome.value = ''
     marca.value = ''
     modelo.value = ''
+    problemaInformado.value = ''
     servico.value = ''
     obsTecnicas.value = ''
     dataEmissao.value = getTodayISO()
@@ -311,10 +314,27 @@ async function handleSalvarEImprimir() {
           </div>
         </div>
 
-        <!-- Descrição do Serviço -->
+        <!-- Problema Informado (conforme Configurações de OS e Serviços) -->
+        <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false">
+          <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+            {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+          </label>
+          <textarea
+            v-model="problemaInformado"
+            rows="2"
+            placeholder="Sintoma ou defeito relatado pelo cliente..."
+            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
+          ></textarea>
+        </div>
+
+        <!-- Serviço Executado / Descrição do Serviço -->
         <div>
           <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-            Descrição do Serviço *
+            {{
+              configStore.presets.os_secao_servico_exec_ativa !== false
+                ? (configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:')
+                : 'Descrição do Serviço'
+            }} *
           </label>
           <textarea
             v-model="servico"

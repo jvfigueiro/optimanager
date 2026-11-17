@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useOrdensStore } from '../stores/ordens'
 import { useConfigStore } from '../stores/config'
 import { useAuthStore } from '../stores/auth'
-import { formatBRL, formatDate } from '../utils/formatters'
+import { formatBRL, formatDate, splitObsAndProblema } from '../utils/formatters'
 import {
   Printer,
   MessageCircle,
@@ -136,7 +136,9 @@ function carregarOSNoGerador(id: number) {
   docEquipamento.value = os.equipamento || 'N/A'
   docValor.value = os.valor_total || 0
   docServico.value = os.servico || ''
-  docObs.value = os.obs_tecnicas || configStore.config.obs_padrao || ''
+  const parsedObs = splitObsAndProblema(os.obs_tecnicas)
+  docProblemaInformado.value = parsedObs.problema
+  docObs.value = parsedObs.obs || configStore.config.obs_padrao || ''
   docData.value = formatDate(os.data_emissao) || new Date().toLocaleDateString('pt-BR')
   docHora.value = os.hora_emissao || ''
   docEntrega.value = os.data_entrega
@@ -787,12 +789,28 @@ function imprimirDocumento() {
                 <div><strong>Cidade:</strong> {{ configStore.config.cidade }}</div>
               </div>
 
-              <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
-                Descritivo do Orçamento
+              <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false && docProblemaInformado" class="space-y-2">
+                <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+                  {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+                </div>
+                <div class="p-3 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed whitespace-pre-line text-slate-900">
+                  {{ docProblemaInformado }}
+                </div>
               </div>
-              <div class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed">
-                <p class="whitespace-pre-line text-slate-900">{{ docServico }}</p>
-                <div class="text-right text-base font-black text-opti mt-4 pt-3 border-t border-slate-300">
+
+              <div v-if="configStore.presets.os_secao_servico_exec_ativa !== false" class="space-y-2">
+                <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+                  {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
+                </div>
+                <div class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed">
+                  <p class="whitespace-pre-line text-slate-900">{{ docServico }}</p>
+                  <div class="text-right text-base font-black text-opti mt-4 pt-3 border-t border-slate-300">
+                    Valor Total: {{ formatBRL(docValor) }}
+                  </div>
+                </div>
+              </div>
+              <div v-else class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed">
+                <div class="text-right text-base font-black text-opti">
                   Valor Total: {{ formatBRL(docValor) }}
                 </div>
               </div>
