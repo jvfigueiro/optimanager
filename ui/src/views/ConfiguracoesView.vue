@@ -52,6 +52,27 @@ const customPresets = ref<AutocompletePresets>({
 
   estados_servico: [...(configStore.presets.estados_servico || ['Avaliação/Orçamento', 'Em Serviço', 'Aguardando', 'Concluído'])],
   formas_pagamento: [...(configStore.presets.formas_pagamento || ['Pendente', 'Dinheiro', 'Cartão', 'Boleto', 'Pix'])],
+
+  os_proximo_numero: configStore.presets.os_proximo_numero ?? 1000,
+  os_permitir_editar_numero: configStore.presets.os_permitir_editar_numero ?? false,
+  os_vias_impressao: configStore.presets.os_vias_impressao ?? 1,
+  os_mostrar_cnpj_doc: configStore.presets.os_mostrar_cnpj_doc ?? true,
+  os_abrir_financeiro_finalizar: configStore.presets.os_abrir_financeiro_finalizar ?? true,
+  os_abrir_impressao_finalizar: configStore.presets.os_abrir_impressao_finalizar ?? false,
+  os_abrir_pesquisa_item: configStore.presets.os_abrir_pesquisa_item ?? false,
+  os_mostrar_referencia_produto: configStore.presets.os_mostrar_referencia_produto ?? true,
+  os_titulo_os: configStore.presets.os_titulo_os || 'ORDEM DE SERVIÇO',
+  os_titulo_orcamento: configStore.presets.os_titulo_orcamento || 'ORÇAMENTO',
+  os_titulo_chamado: configStore.presets.os_titulo_chamado || 'CHAMADO TÉCNICO',
+  os_secao_problema_inf_ativa: configStore.presets.os_secao_problema_inf_ativa ?? true,
+  os_secao_problema_inf_rotulo: configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:',
+  os_secao_problema_const_ativa: configStore.presets.os_secao_problema_const_ativa ?? true,
+  os_secao_problema_const_rotulo: configStore.presets.os_secao_problema_const_rotulo || 'Problema Constatado:',
+  os_secao_servico_exec_ativa: configStore.presets.os_secao_servico_exec_ativa ?? true,
+  os_secao_servico_exec_rotulo: configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:',
+  os_secao_obs_gerais_ativa: configStore.presets.os_secao_obs_gerais_ativa ?? false,
+  os_secao_obs_gerais_rotulo: configStore.presets.os_secao_obs_gerais_rotulo || 'Observações Gerais:',
+  os_rodape_doc: configStore.presets.os_rodape_doc || 'ESTE DOCUMENTO NÃO VALE COMO RECIBO DE PAGAMENTO',
 })
 
 const newMarca = ref('')
@@ -374,7 +395,10 @@ async function handleSalvar() {
   isSaving.value = true
   try {
     form.value.custom_presets = JSON.stringify(customPresets.value)
-    await configStore.saveConfig(form.value)
+    const saved = await configStore.saveConfig(form.value)
+    if (saved) {
+      form.value = { ...saved }
+    }
   } finally {
     isSaving.value = false
   }
@@ -848,29 +872,6 @@ async function handleDeleteUser(u: Usuario) {
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
             />
           </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Informações de Garantia
-            </label>
-            <textarea
-              v-model="form.termo_garantia"
-              rows="2"
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
-            ></textarea>
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Informações Adicionais
-            </label>
-            <textarea
-              v-model="form.obs_padrao"
-              rows="2"
-              placeholder="Ex: Aparelho recebido com marcas normais de uso. Backup de dados sob responsabilidade do cliente..."
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
-            ></textarea>
-          </div>
         </div>
 
         <div class="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
@@ -890,18 +891,202 @@ async function handleDeleteUser(u: Usuario) {
       </form>
     </div>
 
-    <!-- Card 4: Segmento de Atuação & Autocompletar Customizável -->
+    <!-- Card 4: Configurações de OS e Serviços -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-6">
       <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
         <div class="flex items-center gap-2.5">
           <Sparkles class="w-5 h-5 text-opti" />
           <h3 class="font-bold text-lg text-slate-800 dark:text-white">
-            Segmento de Atuação & Autocompletar
+            Configurações de OS e Serviços
           </h3>
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Personalize as categorias, renomeie os títulos, oculte ou exiba seções, defina estados de serviço e formas de pagamento conforme a necessidade do seu negócio.
+          Personalize numeração, vias de impressão, títulos, seções de texto, informações legais, categorias, estados de serviço e formas de pagamento.
         </p>
+      </div>
+
+      <!-- Personalização de OS e Documentos (referência telaconfigOS) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Numeração, Vias e Comportamento -->
+        <div class="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50 text-xs">
+          <p class="font-bold uppercase text-slate-700 dark:text-slate-300">
+            Numeração, Impressão e Comportamento
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">
+                Próximo Nº da OS
+              </label>
+              <input
+                type="number"
+                min="1"
+                v-model.number="customPresets.os_proximo_numero"
+                class="w-full font-mono font-bold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-opti"
+              />
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">
+                Vias na Impressão A4
+              </label>
+              <div class="flex items-center gap-4 pt-1.5">
+                <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700 dark:text-slate-200">
+                  <input type="radio" :value="1" v-model="customPresets.os_vias_impressao" class="text-opti focus:ring-opti" />
+                  <span>1 Via</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700 dark:text-slate-200">
+                  <input type="radio" :value="2" v-model="customPresets.os_vias_impressao" class="text-opti focus:ring-opti" />
+                  <span>2 Vias</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-1">
+            <label class="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
+              <input type="checkbox" v-model="customPresets.os_mostrar_cnpj_doc" class="rounded text-opti focus:ring-opti w-4 h-4" />
+              <span>Mostrar Nº do CNPJ da empresa nos documentos</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
+              <input type="checkbox" v-model="customPresets.os_permitir_editar_numero" class="rounded text-opti focus:ring-opti w-4 h-4" />
+              <span>Liberar edição manual do número da OS (restrito por permissão)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
+              <input type="checkbox" v-model="customPresets.os_abrir_financeiro_finalizar" class="rounded text-opti focus:ring-opti w-4 h-4" />
+              <span>Abrir menu financeiro (pagamento) na finalização</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
+              <input type="checkbox" v-model="customPresets.os_abrir_impressao_finalizar" class="rounded text-opti focus:ring-opti w-4 h-4" />
+              <span>Abrir menu de impressão na finalização</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
+              <input type="checkbox" v-model="customPresets.os_abrir_pesquisa_item" class="rounded text-opti focus:ring-opti w-4 h-4" />
+              <span>Abrir pesquisa de item automaticamente ao criar OS</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
+              <input type="checkbox" v-model="customPresets.os_mostrar_referencia_produto" class="rounded text-opti focus:ring-opti w-4 h-4" />
+              <span>Mostrar referência do produto na OS</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Títulos dos Documentos & Seções de Texto Ativáveis -->
+        <div class="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50 text-xs">
+          <p class="font-bold uppercase text-slate-700 dark:text-slate-300">
+            Títulos dos Documentos & Seções de Texto
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Título OS</label>
+              <input
+                type="text"
+                v-model="customPresets.os_titulo_os"
+                placeholder="ORDEM DE SERVIÇO"
+                class="w-full font-semibold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
+              />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Título Orçamento</label>
+              <input
+                type="text"
+                v-model="customPresets.os_titulo_orcamento"
+                placeholder="ORÇAMENTO"
+                class="w-full font-semibold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
+              />
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Título Chamado</label>
+              <input
+                type="text"
+                v-model="customPresets.os_titulo_chamado"
+                placeholder="CHAMADO TÉCNICO"
+                class="w-full font-semibold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-1">
+            <label class="block text-[10px] font-bold uppercase text-slate-400">
+              Seções de Texto Ativas & Rótulos
+            </label>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" v-model="customPresets.os_secao_problema_inf_ativa" class="rounded text-opti focus:ring-opti w-4 h-4 shrink-0" />
+              <input
+                type="text"
+                v-model="customPresets.os_secao_problema_inf_rotulo"
+                placeholder="Problema Informado:"
+                class="flex-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" v-model="customPresets.os_secao_problema_const_ativa" class="rounded text-opti focus:ring-opti w-4 h-4 shrink-0" />
+              <input
+                type="text"
+                v-model="customPresets.os_secao_problema_const_rotulo"
+                placeholder="Problema Constatado:"
+                class="flex-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" v-model="customPresets.os_secao_servico_exec_ativa" class="rounded text-opti focus:ring-opti w-4 h-4 shrink-0" />
+              <input
+                type="text"
+                v-model="customPresets.os_secao_servico_exec_rotulo"
+                placeholder="Serviço Executado:"
+                class="flex-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
+              />
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" v-model="customPresets.os_secao_obs_gerais_ativa" class="rounded text-opti focus:ring-opti w-4 h-4 shrink-0" />
+              <input
+                type="text"
+                v-model="customPresets.os_secao_obs_gerais_rotulo"
+                placeholder="Observações Gerais:"
+                class="flex-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
+              />
+            </div>
+          </div>
+
+          <div class="pt-1">
+            <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">
+              Rodapé Padrão dos Documentos
+            </label>
+            <input
+              type="text"
+              v-model="customPresets.os_rodape_doc"
+              placeholder="ESTE DOCUMENTO NÃO VALE COMO RECIBO DE PAGAMENTO"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Informações de Garantia e Informações Adicionais (movidas para dentro de Configurações de OS e Serviços) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50">
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+            Informações de Garantia
+          </label>
+          <textarea
+            v-model="form.termo_garantia"
+            rows="3"
+            class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+            Informações Adicionais
+          </label>
+          <textarea
+            v-model="form.obs_padrao"
+            rows="3"
+            placeholder="Ex: Aparelho recebido com marcas normais de uso. Backup de dados sob responsabilidade do cliente..."
+            class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none text-xs"
+          ></textarea>
+        </div>
       </div>
 
       <!-- 1. Marcas / Fabricantes -->
@@ -1185,7 +1370,7 @@ async function handleDeleteUser(u: Usuario) {
           class="bg-opti hover:bg-opti-dark text-white font-bold px-6 py-2.5 rounded-xl transition shadow flex items-center gap-2 text-sm"
         >
           <CheckCircle2 class="w-4 h-4" />
-          <span>{{ isSaving ? 'Salvando...' : 'Salvar Autocompletar' }}</span>
+          <span>{{ isSaving ? 'Salvando...' : 'Salvar Configurações de OS e Serviços' }}</span>
         </button>
         <span v-else class="text-xs text-slate-400 italic">
           Alterações restritas a administradores.

@@ -20,10 +20,22 @@ import {
 const clientesStore = useClientesStore()
 const configStore = useConfigStore()
 
+const isCreateModalOpen = ref(false)
 const nome = ref('')
 const doc = ref('')
 const contato = ref('')
 const isSubmitting = ref(false)
+
+function openCreateModal() {
+  nome.value = ''
+  doc.value = ''
+  contato.value = ''
+  isCreateModalOpen.value = true
+}
+
+function closeCreateModal() {
+  isCreateModalOpen.value = false
+}
 
 // Estado para Edição de Cliente
 const editingClient = ref<Cliente | null>(null)
@@ -110,6 +122,7 @@ async function handleAddClient() {
     nome.value = ''
     doc.value = ''
     contato.value = ''
+    isCreateModalOpen.value = false
   } catch (err) {
     console.error(err)
   } finally {
@@ -156,48 +169,6 @@ async function handleDeleteClient(c: Cliente) {
 
 <template>
   <div class="space-y-6">
-    <!-- Formulário de Cadastro Rápido de Cliente -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-5">
-      <div class="flex items-center gap-2 mb-1">
-        <UserPlus class="w-5 h-5 text-opti" />
-        <h3 class="font-bold text-base text-slate-800 dark:text-white">
-          Adicionar Cliente
-        </h3>
-      </div>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-        Os clientes salvos aqui preenchem automaticamente o telefone, endereço e CPF/CNPJ ao criar uma OS ou Relatório.
-      </p>
-
-      <form @submit.prevent="handleAddClient" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
-        <input
-          type="text"
-          v-model="nome"
-          required
-          placeholder="Ex: Mariana Silva ou Mercado Central"
-          class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 lg:col-span-2 focus:outline-none focus:ring-2 focus:ring-opti"
-        />
-        <input
-          type="text"
-          v-model="doc"
-          placeholder="000.000.000-00 ou CNPJ"
-          class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
-        />
-        <input
-          type="text"
-          v-model="contato"
-          placeholder="(11) 98765-4321"
-          class="border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
-        />
-        <button
-          type="submit"
-          :disabled="isSubmitting"
-          class="bg-opti hover:bg-opti-dark text-white font-bold rounded-xl px-4 py-2 transition shadow-xs flex items-center justify-center gap-1.5"
-        >
-          <span>{{ isSubmitting ? 'Salvando...' : '+ Salvar Cliente' }}</span>
-        </button>
-      </form>
-    </div>
-
     <!-- Lista de Clientes -->
     <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-5">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
@@ -208,15 +179,26 @@ async function handleDeleteClient(c: Cliente) {
           </h3>
         </div>
 
-        <div class="relative w-full sm:w-64">
-          <Search class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input
-            type="text"
-            v-model="clientesStore.searchQuery"
-            @input="clientesStore.setSearch(clientesStore.searchQuery)"
-            placeholder="Filtrar por nome ou doc..."
-            class="text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl pl-9 pr-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-opti"
-          />
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+          <div class="relative w-full sm:w-64">
+            <Search class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              v-model="clientesStore.searchQuery"
+              @input="clientesStore.setSearch(clientesStore.searchQuery)"
+              placeholder="Filtrar por nome ou doc..."
+              class="text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl pl-9 pr-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-opti"
+            />
+          </div>
+
+          <button
+            type="button"
+            @click="openCreateModal"
+            class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 transition shrink-0"
+          >
+            <UserPlus class="w-4 h-4" />
+            <span>Novo Cliente</span>
+          </button>
         </div>
       </div>
 
@@ -501,6 +483,96 @@ async function handleDeleteClient(c: Cliente) {
             >
               <Check class="w-3.5 h-3.5" />
               <span>{{ isUpdating ? 'Salvando...' : 'Salvar Alterações' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Novo Cliente (estilo semelhante à janela Novo Serviço) -->
+    <div
+      v-if="isCreateModalOpen"
+      class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-4 z-50 no-print"
+      @click.self="closeCreateModal"
+    >
+      <div
+        class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[92vh] flex flex-col"
+      >
+        <!-- Header do Modal -->
+        <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center shrink-0">
+          <div class="flex items-center gap-2">
+            <UserPlus class="w-5 h-5" />
+            <h3 class="font-bold text-sm sm:text-base">Novo Cliente</h3>
+          </div>
+          <button
+            type="button"
+            @click="closeCreateModal"
+            class="text-blue-200 hover:text-white p-1 rounded-lg transition"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Formulário com scroll -->
+        <form @submit.prevent="handleAddClient" class="p-5 space-y-3.5 text-sm overflow-y-auto flex-1">
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            Os clientes salvos aqui preenchem automaticamente o contato e CPF/CNPJ ao criar uma OS ou Relatório.
+          </p>
+
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              Nome / Razão Social *
+            </label>
+            <input
+              type="text"
+              v-model="nome"
+              required
+              placeholder="Ex: Mariana Silva ou Mercado Central"
+              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                CPF / CNPJ
+              </label>
+              <input
+                type="text"
+                v-model="doc"
+                placeholder="000.000.000-00 ou CNPJ"
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-opti"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+                Contato / WhatsApp
+              </label>
+              <input
+                type="text"
+                v-model="contato"
+                placeholder="(11) 98765-4321"
+                class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
+              />
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+            <button
+              type="button"
+              @click="closeCreateModal"
+              class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-xs font-semibold transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting"
+              class="px-5 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+            >
+              <Check class="w-3.5 h-3.5" />
+              <span>{{ isSubmitting ? 'Salvando...' : 'Salvar Cliente' }}</span>
             </button>
           </div>
         </form>

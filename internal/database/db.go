@@ -27,6 +27,9 @@ var migration002SQL string
 //go:embed migrations/003_foundation.sql
 var migration003SQL string
 
+//go:embed migrations/004_cleanup_default_shortcuts.sql
+var migration004SQL string
+
 type Migration struct {
 	Version int
 	Name    string
@@ -37,6 +40,7 @@ var migrations = []Migration{
 	{Version: 1, Name: "001_initial_schema", SQL: migration001SQL},
 	{Version: 2, Name: "002_backup_and_audit", SQL: migration002SQL},
 	{Version: 3, Name: "003_foundation", SQL: migration003SQL},
+	{Version: 4, Name: "004_cleanup_default_shortcuts", SQL: migration004SQL},
 }
 
 // LatestMigrationVersion returns the highest supported schema version.

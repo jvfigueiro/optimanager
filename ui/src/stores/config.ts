@@ -29,6 +29,27 @@ export const DEFAULT_AUTOCOMPLETE_PRESETS: AutocompletePresets = {
 
   estados_servico: DEFAULT_ESTADOS_SERVICO,
   formas_pagamento: DEFAULT_FORMAS_PAGAMENTO,
+
+  os_proximo_numero: 1000,
+  os_permitir_editar_numero: false,
+  os_vias_impressao: 1,
+  os_mostrar_cnpj_doc: true,
+  os_abrir_financeiro_finalizar: true,
+  os_abrir_impressao_finalizar: false,
+  os_abrir_pesquisa_item: false,
+  os_mostrar_referencia_produto: true,
+  os_titulo_os: 'ORDEM DE SERVIÇO',
+  os_titulo_orcamento: 'ORÇAMENTO',
+  os_titulo_chamado: 'CHAMADO TÉCNICO',
+  os_secao_problema_inf_ativa: true,
+  os_secao_problema_inf_rotulo: 'Problema Informado:',
+  os_secao_problema_const_ativa: true,
+  os_secao_problema_const_rotulo: 'Problema Constatado:',
+  os_secao_servico_exec_ativa: true,
+  os_secao_servico_exec_rotulo: 'Serviço Executado:',
+  os_secao_obs_gerais_ativa: false,
+  os_secao_obs_gerais_rotulo: 'Observações Gerais:',
+  os_rodape_doc: 'ESTE DOCUMENTO NÃO VALE COMO RECIBO DE PAGAMENTO',
 }
 
 export const useConfigStore = defineStore('config', () => {

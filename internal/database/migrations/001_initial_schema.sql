@@ -69,12 +69,9 @@ CREATE TABLE IF NOT EXISTS atalhos (
     ordem INTEGER NOT NULL DEFAULT 0
 );
 
--- Insert default quick shortcuts if table is empty
+-- Insert default quick shortcut if table is empty
 INSERT OR IGNORE INTO atalhos (id, titulo, descricao, url, ordem) VALUES
-(1, 'PGMEI - Guia DAS', 'Gerador de DAS do MEI', 'http://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao', 1),
-(2, 'Portal da Nota Fiscal (NFS-e)', 'Emissão de NFS-e Nacional / Municipal', 'https://www.gov.br/nfse/pt-br', 2),
-(3, 'Portal do Empreendedor', 'Serviços e Declaração Anual (DASN)', 'https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei', 3),
-(4, 'Consulta Cartão CNPJ', 'Comprovante de Inscrição Receita', 'https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp', 4);
+(2, 'Portal da Nota Fiscal (NFS-e)', 'Emissão de NFS-e Nacional / Municipal', 'https://www.gov.br/nfse/pt-br', 1);
 
 -- Users table for authentication and access control
 CREATE TABLE IF NOT EXISTS usuarios (

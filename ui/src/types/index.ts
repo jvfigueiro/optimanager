@@ -38,6 +38,28 @@ export interface AutocompletePresets {
 
   estados_servico?: string[]
   formas_pagamento?: string[]
+
+  // Personalização de OS e Documentos
+  os_proximo_numero?: number
+  os_permitir_editar_numero?: boolean
+  os_vias_impressao?: 1 | 2
+  os_mostrar_cnpj_doc?: boolean
+  os_abrir_financeiro_finalizar?: boolean
+  os_abrir_impressao_finalizar?: boolean
+  os_abrir_pesquisa_item?: boolean
+  os_mostrar_referencia_produto?: boolean
+  os_titulo_os?: string
+  os_titulo_orcamento?: string
+  os_titulo_chamado?: string
+  os_secao_problema_inf_ativa?: boolean
+  os_secao_problema_inf_rotulo?: string
+  os_secao_problema_const_ativa?: boolean
+  os_secao_problema_const_rotulo?: string
+  os_secao_servico_exec_ativa?: boolean
+  os_secao_servico_exec_rotulo?: string
+  os_secao_obs_gerais_ativa?: boolean
+  os_secao_obs_gerais_rotulo?: string
+  os_rodape_doc?: string
 }
 
 export interface Cliente {
