@@ -795,7 +795,7 @@ function imprimirRelatorio() {
 
       <!-- Rodapé do Documento -->
       <div class="mt-6 pt-3 border-t border-slate-200 flex justify-between items-center text-[9px] text-slate-400">
-        <span>OptiManager • Gerenciamento Operacional & Financeiro</span>
+        <span>OptiManager</span>
         <span>Página 1 / Documento Não-Fiscal</span>
       </div>
     </div>

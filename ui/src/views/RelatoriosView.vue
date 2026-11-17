@@ -528,7 +528,7 @@ function imprimirDocumento() {
               <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
                 {{ docServico }}
                 <div v-if="docObs" class="pt-1 mt-1 border-t border-slate-300 text-opti font-semibold text-[11px]">
-                  Obs: {{ docObs }}
+                  {{ docObs }}
                 </div>
               </div>
             </div>
@@ -634,7 +634,7 @@ function imprimirDocumento() {
               <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
                 {{ docServico }}
                 <div v-if="docObs" class="pt-1 mt-1 border-t border-slate-300 text-opti font-semibold text-[11px]">
-                  Obs: {{ docObs }}
+                  {{ docObs }}
                 </div>
               </div>
             </div>
@@ -726,7 +726,7 @@ function imprimirDocumento() {
                 <div class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed space-y-2">
                   <p class="whitespace-pre-line text-slate-900">{{ docServico }}</p>
                   <div v-if="docObs" class="pt-2 border-t border-slate-300 font-semibold text-opti">
-                    Parâmetros / Observações Técnicas: {{ docObs }}
+                    {{ docObs }}
                   </div>
                 </div>
               </template>
@@ -773,7 +773,7 @@ function imprimirDocumento() {
               </div>
 
               <div v-if="docObs" class="p-3 bg-white border border-opti/60 rounded-lg text-xs text-slate-800">
-                <strong>Observações adicionais:</strong> {{ docObs }}
+                {{ docObs }}
               </div>
             </div>
 
