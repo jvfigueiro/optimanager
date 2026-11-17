@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,9 +12,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -45,6 +49,9 @@ func main() {
 		log.Fatalf("[OptiManager] Fatal error initializing database: %v", err)
 	}
 	defer db.Close()
+
+	// Ensure a persistent JWT_SECRET exists when running as a standalone portable binary
+	ensurePortableJWTSecret(filepath.Dir(db.Path))
 
 	// 2. Configure lightweight chi router
 	r := chi.NewRouter()
@@ -288,4 +295,36 @@ func runProfileDBF(args []string) error {
 		return err
 	}
 	return dbf.WriteReport(os.Stdout, prof, *asJSON)
+}
+
+// ensurePortableJWTSecret generates and persists a random 64-char JWT_SECRET in <dataDir>/.jwt_secret
+// when running outside Docker (/data absent) without JWT_SECRET or APP_ENV configured.
+func ensurePortableJWTSecret(dataDir string) {
+	if strings.TrimSpace(os.Getenv("JWT_SECRET")) != "" || strings.TrimSpace(os.Getenv("APP_ENV")) != "" {
+		return
+	}
+	if info, err := os.Stat("/data"); err == nil && info.IsDir() {
+		return
+	}
+
+	secretPath := filepath.Join(dataDir, ".jwt_secret")
+	if raw, err := os.ReadFile(secretPath); err == nil {
+		existing := strings.TrimSpace(string(raw))
+		if len(existing) >= 32 {
+			_ = os.Setenv("JWT_SECRET", existing)
+			return
+		}
+	}
+
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		log.Printf("[OptiManager] Warning: failed generating portable JWT secret: %v", err)
+		return
+	}
+	secret := hex.EncodeToString(buf)
+	if err := os.WriteFile(secretPath, []byte(secret+"\n"), 0600); err != nil {
+		log.Printf("[OptiManager] Warning: failed writing %s: %v", secretPath, err)
+	}
+	_ = os.Setenv("JWT_SECRET", secret)
+	log.Printf("[OptiManager] Portable mode: generated persistent JWT_SECRET at %s", secretPath)
 }
