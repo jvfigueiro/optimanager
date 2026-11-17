@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -41,7 +42,50 @@ func (d *DB) GetConfig() (*models.Config, error) {
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 	c.VTValorPadrao = money.CentavosToReais(c.VTValorPadraoCentavos)
+	c.ProximoNumeroOS = d.getProximoNumeroOS()
 	return &c, nil
+}
+
+// getProximoNumeroOS returns the next auto-increment ID that will be assigned to ordens_servico.
+func (d *DB) getProximoNumeroOS() int64 {
+	var maxID int64
+	_ = d.Reader.QueryRow(`SELECT COALESCE(MAX(id), 0) FROM ordens_servico`).Scan(&maxID)
+
+	var seq int64
+	_ = d.Reader.QueryRow(`SELECT COALESCE(seq, 0) FROM sqlite_sequence WHERE name = 'ordens_servico'`).Scan(&seq)
+
+	if seq > maxID {
+		return seq + 1
+	}
+	return maxID + 1
+}
+
+// syncProximoNumeroOS updates sqlite_sequence for ordens_servico when os_proximo_numero is configured in custom_presets.
+func (d *DB) syncProximoNumeroOS(customPresetsJSON string) {
+	if strings.TrimSpace(customPresetsJSON) == "" {
+		return
+	}
+	var parsed struct {
+		OSProximoNumero int64 `json:"os_proximo_numero"`
+	}
+	if err := json.Unmarshal([]byte(customPresetsJSON), &parsed); err != nil || parsed.OSProximoNumero <= 0 {
+		return
+	}
+
+	var maxID int64
+	_ = d.Writer.QueryRow(`SELECT COALESCE(MAX(id), 0) FROM ordens_servico`).Scan(&maxID)
+
+	desiredSeq := parsed.OSProximoNumero - 1
+	if desiredSeq < maxID {
+		desiredSeq = maxID
+	}
+
+	res, err := d.Writer.Exec(`UPDATE sqlite_sequence SET seq = ? WHERE name = 'ordens_servico'`, desiredSeq)
+	if err == nil {
+		if rows, _ := res.RowsAffected(); rows == 0 {
+			_, _ = d.Writer.Exec(`INSERT INTO sqlite_sequence (name, seq) VALUES ('ordens_servico', ?)`, desiredSeq)
+		}
+	}
 }
 
 // UpdateConfig updates the institutional business settings with optional optimistic locking on versao.
@@ -153,6 +197,7 @@ func (d *DB) UpdateConfig(cfg *models.Config) error {
 		}
 		return errors.New("no configuration rows were updated")
 	}
+	d.syncProximoNumeroOS(cfg.CustomPresets)
 	return nil
 }
 

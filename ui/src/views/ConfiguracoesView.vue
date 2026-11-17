@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { api } from '../api'
 import { useConfigStore } from '../stores/config'
 import { useAuthStore } from '../stores/auth'
@@ -455,13 +455,48 @@ async function handleDeleteUser(u: Usuario) {
   }
   await authStore.removeUsuario(u.id)
 }
+
+type ConfigTab = 'usuarios' | 'empresa' | 'os' | 'backups' | 'sobre'
+const activeTab = ref<ConfigTab>(authStore.user?.role === 'admin' ? 'usuarios' : 'empresa')
+
+const visibleTabs = computed(() => {
+  const isAdmin = authStore.user?.role === 'admin'
+  const all: Array<{ id: ConfigTab; label: string; adminOnly?: boolean }> = [
+    { id: 'usuarios', label: 'Usuários & Controle de Acesso', adminOnly: true },
+    { id: 'empresa', label: 'Configurações da Empresa & Personalização' },
+    { id: 'os', label: 'Configurações de OS e Serviços' },
+    { id: 'backups', label: 'Backups & Restauração de Dados', adminOnly: true },
+    { id: 'sobre', label: 'Sobre o OptiManager' },
+  ]
+  return all.filter((t) => !t.adminOnly || isAdmin)
+})
 </script>
 
 <template>
   <div class="max-w-4xl space-y-6">
+    <!-- Navegação por Abas -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-1.5 shadow-xs overflow-x-auto">
+      <div class="flex items-center gap-1 min-w-max">
+        <button
+          v-for="tab in visibleTabs"
+          :key="tab.id"
+          type="button"
+          @click="activeTab = tab.id"
+          class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap"
+          :class="
+            activeTab === tab.id
+              ? 'bg-opti text-white shadow-xs'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+          "
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+    </div>
+
     <!-- Card 1: Gestão de Usuários e Acessos (Apenas Administradores) -->
     <div
-      v-if="authStore.user?.role === 'admin'"
+      v-if="authStore.user?.role === 'admin' && activeTab === 'usuarios'"
       class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6"
     >
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -644,7 +679,10 @@ async function handleDeleteUser(u: Usuario) {
     </div>
 
     <!-- Card 2: Configurações da Empresa & Personalização -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6">
+    <div
+      v-if="activeTab === 'empresa'"
+      class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6"
+    >
       <div class="flex items-center gap-2.5 mb-2">
         <Settings class="w-5 h-5 text-opti" />
         <h3 class="font-bold text-lg text-slate-800 dark:text-white">
@@ -883,7 +921,10 @@ async function handleDeleteUser(u: Usuario) {
     </div>
 
     <!-- Card 4: Configurações de OS e Serviços -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-6">
+    <div
+      v-if="activeTab === 'os'"
+      class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-6"
+    >
       <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
         <div class="flex items-center gap-2.5">
           <Sparkles class="w-5 h-5 text-opti" />
@@ -1257,7 +1298,7 @@ async function handleDeleteUser(u: Usuario) {
 
     <!-- Card: Backups & Restauração do Banco de Dados (Apenas Administradores) -->
     <div
-      v-if="authStore.user?.role === 'admin'"
+      v-if="authStore.user?.role === 'admin' && activeTab === 'backups'"
       class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-6"
     >
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 pb-4">
@@ -1521,7 +1562,10 @@ async function handleDeleteUser(u: Usuario) {
     </div>
 
     <!-- Card 5: Sobre o Sistema & Dados da Empresa -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-5">
+    <div
+      v-if="activeTab === 'sobre'"
+      class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-6 space-y-5"
+    >
       <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
         <div class="flex items-center gap-2.5">
           <Info class="w-5 h-5 text-opti" />

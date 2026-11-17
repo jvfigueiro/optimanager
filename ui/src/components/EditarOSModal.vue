@@ -156,10 +156,15 @@ watch(status, (novoStatus) => {
   }
 })
 
-function finalizarServico() {
+async function finalizarServico() {
+  if (!props.ordem) return
+  if (!confirm(`Deseja finalizar / dar baixa na OS #${props.ordem.id} e marcá-la como Concluída?`)) {
+    return
+  }
   status.value = 'Concluído'
-  dataEntrega.value = getTodayISO()
-  horaEntrega.value = getCurrentTimeHHMM()
+  if (!dataEntrega.value) dataEntrega.value = getTodayISO()
+  if (!horaEntrega.value) horaEntrega.value = getCurrentTimeHHMM()
+  await handleUpdate()
 }
 
 async function handleUpdate() {
@@ -242,7 +247,7 @@ async function handleDelete() {
           <CheckCircle2 v-if="concluding" class="w-5 h-5 text-emerald-300" />
           <Edit2 v-else class="w-5 h-5" />
           <h3 class="font-bold text-sm sm:text-base">
-            {{ concluding ? `Concluir Serviço & Registrar Entrega — OS ${ordem.id}` : `Editar Serviço ${ordem.id}` }}
+            {{ concluding ? `Concluir Serviço & Registrar Entrega — OS #${ordem.id}` : `Editar Serviço #${ordem.id}` }}
           </h3>
         </div>
         <button
@@ -500,12 +505,12 @@ async function handleDelete() {
           <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
             Observações Adicionais
           </label>
-          <input
-            type="text"
+          <textarea
             v-model="obsTecnicas"
-            placeholder="Ex: Senha: 1234, peças trocadas, detalhes..."
+            rows="3"
+            placeholder="Ex: Senha, tensão, itens adicionais..."
             class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-opti"
-          />
+          ></textarea>
         </div>
 
         <!-- Linha 3: Valor & Pagamento -->

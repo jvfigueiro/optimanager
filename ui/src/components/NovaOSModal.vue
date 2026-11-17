@@ -30,6 +30,7 @@ function getCurrentTimeHHMM() {
 }
 
 const clienteNome = ref('')
+const clienteContato = ref('')
 const marca = ref('')
 const modelo = ref('')
 const problemaInformado = ref('')
@@ -40,8 +41,29 @@ const horaEmissao = ref(getCurrentTimeHHMM())
 const status = ref('Avaliação/Orçamento')
 const valorTotal = ref<number>(100)
 const pagamentoStatus = ref('Pendente')
-const pagamentoForma = ref('Pix')
+const pagamentoForma = ref('Pendente')
 const isSubmitting = ref(false)
+
+const proximoNumeroOS = computed(() => configStore.config.proximo_numero_os || configStore.presets.os_proximo_numero || 1000)
+
+const isExistingCliente = computed(() => {
+  const q = clienteNome.value.trim().toLowerCase()
+  if (!q) return false
+  return clientesStore.clientes.some((c) => c.nome.trim().toLowerCase() === q)
+})
+
+const matchingClientes = computed(() => {
+  const q = clienteNome.value.trim().toLowerCase()
+  if (!q || isExistingCliente.value) return []
+  return clientesStore.clientes
+    .filter((c) => c.nome.toLowerCase().includes(q) || (c.contato && c.contato.toLowerCase().includes(q)))
+    .slice(0, 6)
+})
+
+function selectCliente(nome: string) {
+  clienteNome.value = nome
+  clienteContato.value = ''
+}
 
 watch(
   () => nav.isNovaOSModalOpen,
@@ -118,6 +140,7 @@ async function salvarOrdem(printAfter = false) {
       data_emissao: dataEmissao.value,
       hora_emissao: horaEmissao.value,
       cliente_nome: clienteNome.value.trim(),
+      cliente_contato: isExistingCliente.value ? undefined : (clienteContato.value.trim() || undefined),
       equipamento: equipFinal,
       servico: servico.value.trim(),
       obs_tecnicas: mergeObsAndProblema(problemaInformado.value, obsTecnicas.value),
@@ -128,14 +151,16 @@ async function salvarOrdem(printAfter = false) {
       is_vt: false,
     })
 
-    // Atualiza listas e clientes no background
+    // Atualiza listas, clientes e próximo número no background
     clientesStore.loadClientes()
+    configStore.loadConfig()
     if (nav.currentView === 'dashboard') {
       dashboardStore.loadDashboard()
     }
 
     // Reset
     clienteNome.value = ''
+    clienteContato.value = ''
     marca.value = ''
     modelo.value = ''
     problemaInformado.value = ''
@@ -144,7 +169,7 @@ async function salvarOrdem(printAfter = false) {
     dataEmissao.value = getTodayISO()
     horaEmissao.value = getCurrentTimeHHMM()
     valorTotal.value = 100
-    pagamentoForma.value = 'Pix'
+    pagamentoForma.value = 'Pendente'
     pagamentoStatus.value = 'Pendente'
 
     nav.closeNovaOS()
@@ -183,7 +208,7 @@ async function handleSalvarEImprimir() {
       <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-2">
           <Wrench class="w-5 h-5" />
-          <h3 class="font-bold text-sm sm:text-base">Novo Serviço</h3>
+          <h3 class="font-bold text-sm sm:text-base">Novo Serviço #{{ proximoNumeroOS }}</h3>
         </div>
         <button
           @click="nav.closeNovaOS()"
@@ -230,20 +255,35 @@ async function handleSalvarEImprimir() {
             <input
               type="text"
               v-model="clienteNome"
-              list="clientes-datalist"
               required
-              placeholder="Digite para buscar ou criar..."
+              placeholder="Digite para buscar ou cadastrar novo..."
               class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
             />
-            <datalist id="clientes-datalist">
-              <option
-                v-for="cli in clientesStore.clientes"
+            <!-- Sugestões de clientes cadastrados ao digitar -->
+            <div v-if="matchingClientes.length > 0" class="flex flex-wrap items-center gap-1.5 mt-1.5">
+              <span class="text-[10px] text-slate-400 font-semibold">Cadastrados:</span>
+              <button
+                v-for="cli in matchingClientes"
                 :key="cli.id"
-                :value="cli.nome"
+                type="button"
+                @click="selectCliente(cli.nome)"
+                class="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-700 text-opti dark:text-blue-300 border border-blue-200 dark:border-slate-600 hover:bg-opti hover:text-white transition text-[11px] font-medium"
               >
-                {{ cli.doc ? `CPF/CNPJ: ${cli.doc}` : '' }}
-              </option>
-            </datalist>
+                {{ cli.nome }}<span v-if="cli.contato" class="opacity-70 ml-1">({{ cli.contato }})</span>
+              </button>
+            </div>
+            <!-- Campo Contato quando o cliente ainda não possui cadastro -->
+            <div v-if="clienteNome.trim() && !isExistingCliente" class="mt-2.5 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
+              <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-300 mb-1">
+                Contato (Novo Cliente)
+              </label>
+              <input
+                type="text"
+                v-model="clienteContato"
+                placeholder="Telefone / WhatsApp do cliente..."
+                class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
+              />
+            </div>
           </div>
 
           <div
@@ -365,12 +405,12 @@ async function handleSalvarEImprimir() {
           <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
             Observações Adicionais
           </label>
-          <input
-            type="text"
+          <textarea
             v-model="obsTecnicas"
-            placeholder="Ex: Senha de acesso, detalhes específicos, prazos..."
-            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-opti"
-          />
+            rows="3"
+            placeholder="Ex: Senha, tensão, itens adicionais..."
+            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
+          ></textarea>
         </div>
 
         <!-- Situação, Valor e Pagamento -->

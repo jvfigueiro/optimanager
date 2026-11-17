@@ -180,6 +180,13 @@ function gerarDocumento(os: OrdemServico) {
   ordensStore.selectedOSForDoc = os
   nav.navigate('reports')
 }
+
+function truncateText(text: string | undefined | null, maxLen = 65): string {
+  if (!text) return ''
+  const clean = text.trim()
+  if (clean.length <= maxLen) return clean
+  return clean.slice(0, maxLen).trimEnd() + '...'
+}
 </script>
 
 <template>
@@ -324,10 +331,10 @@ function gerarDocumento(os: OrdemServico) {
               <td class="py-3.5 px-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                 {{ o.equipamento }}
               </td>
-              <td class="py-3.5 px-4 max-w-sm">
-                <p class="text-slate-700 dark:text-slate-200 line-clamp-2">{{ o.servico }}</p>
-                <span v-if="o.obs_tecnicas" class="inline-block mt-1 text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded">
-                  Obs: {{ o.obs_tecnicas }}
+              <td class="py-3.5 px-4 max-w-[260px]">
+                <p class="text-slate-700 dark:text-slate-200 truncate" :title="o.servico">{{ truncateText(o.servico, 65) }}</p>
+                <span v-if="o.obs_tecnicas" class="inline-block mt-1 text-[11px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded max-w-full truncate" :title="o.obs_tecnicas">
+                  Obs: {{ truncateText(o.obs_tecnicas, 45) }}
                 </span>
               </td>
               <td class="py-3.5 px-4 text-right font-bold whitespace-nowrap text-slate-900 dark:text-white">
@@ -436,8 +443,8 @@ function gerarDocumento(os: OrdemServico) {
             </div>
           </div>
 
-          <p class="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-750 p-3 rounded-xl border border-slate-200 dark:border-slate-700 leading-relaxed">
-            {{ o.servico }}
+          <p class="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-750 p-3 rounded-xl border border-slate-200 dark:border-slate-700 leading-relaxed" :title="o.servico">
+            {{ truncateText(o.servico, 120) }}
           </p>
 
           <div class="flex justify-between items-center pt-1 text-xs">

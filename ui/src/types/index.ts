@@ -18,6 +18,7 @@ export interface Config {
   cor_primaria: string
   cor_secundaria: string
   modulos_ativos?: string
+  proximo_numero_os?: number
   versao?: number
   auto_logout_enabled?: number
   auto_logout_minutos?: number

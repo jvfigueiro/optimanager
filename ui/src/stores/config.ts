@@ -90,9 +90,11 @@ export const useConfigStore = defineStore('config', () => {
           ? parsed.formas_pagamento
           : DEFAULT_FORMAS_PAGAMENTO,
 
-        os_proximo_numero: typeof parsed.os_proximo_numero === 'number' && parsed.os_proximo_numero >= 1
-          ? parsed.os_proximo_numero
-          : 1000,
+        os_proximo_numero: typeof config.value.proximo_numero_os === 'number' && config.value.proximo_numero_os >= 1
+          ? config.value.proximo_numero_os
+          : (typeof parsed.os_proximo_numero === 'number' && parsed.os_proximo_numero >= 1
+            ? parsed.os_proximo_numero
+            : 1000),
         os_secao_problema_inf_ativa: parsed.os_secao_problema_inf_ativa !== false,
         os_secao_problema_inf_rotulo: typeof parsed.os_secao_problema_inf_rotulo === 'string' && parsed.os_secao_problema_inf_rotulo.trim()
           ? parsed.os_secao_problema_inf_rotulo

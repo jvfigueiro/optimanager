@@ -9,9 +9,6 @@ import {
   MessageCircle,
   FileText,
   ShieldCheck,
-  SlidersHorizontal,
-  Check,
-  X,
   Search,
 } from 'lucide-vue-next'
 
@@ -69,11 +66,9 @@ const docStatus = ref('Aberto')
 // Cláusula de garantia e observações legais
 const docTermoGarantia = ref('')
 
-// Modal de Personalização
-const isPersonalizarModalOpen = ref(false)
-const tempGarantia = ref('')
-const tempObs = ref('')
-const isSavingCustomTerms = ref(false)
+function formatDocValor(v: number): string {
+  return v && Number(v) > 0 ? formatBRL(v) : 'Não Informado'
+}
 
 onMounted(async () => {
   await configStore.loadConfig()
@@ -148,33 +143,6 @@ function carregarOSNoGerador(id: number) {
   docStatus.value = os.status || 'Aberto'
 }
 
-function openPersonalizarModal() {
-  tempGarantia.value = docTermoGarantia.value
-  tempObs.value = docObs.value
-  isPersonalizarModalOpen.value = true
-}
-
-function aplicarTermos() {
-  docTermoGarantia.value = tempGarantia.value
-  docObs.value = tempObs.value
-  isPersonalizarModalOpen.value = false
-}
-
-async function salvarComoPadrao() {
-  isSavingCustomTerms.value = true
-  try {
-    await configStore.saveConfig({
-      termo_garantia: tempGarantia.value,
-      obs_padrao: tempObs.value,
-    })
-    aplicarTermos()
-  } catch (err) {
-    console.error('Erro ao salvar termos padrão:', err)
-  } finally {
-    isSavingCustomTerms.value = false
-  }
-}
-
 const docTitulo = computed(() => {
   switch (docType.value) {
     case 'os':
@@ -239,7 +207,7 @@ function dispararWhatsApp() {
     `Item: ${docEquipamento.value}\n` +
     `Serviço: ${docServico.value}\n` +
     `Situação: ${statusStr}\n` +
-    `Valor: ${formatBRL(docValor.value)}\n\n` +
+    `Valor: ${formatDocValor(docValor.value)}\n\n` +
     `Qualquer dúvida estamos à disposição!`
 
   window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -462,16 +430,6 @@ function imprimirDocumento() {
           <span>Imprimir / Salvar como PDF (Ctrl+P)</span>
         </button>
 
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            @click="openPersonalizarModal"
-            class="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-650 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs border border-slate-300 dark:border-slate-600 shadow-2xs"
-          >
-            <SlidersHorizontal class="w-4 h-4 text-opti dark:text-blue-400 shrink-0" />
-            <span>Personalizar Termos & Cláusulas</span>
-          </button>
-
           <button
             @click="dispararWhatsApp"
             class="w-full bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs"
@@ -479,7 +437,6 @@ function imprimirDocumento() {
             <MessageCircle class="w-4 h-4 shrink-0" />
             <span>Enviar Resumo pelo WhatsApp</span>
           </button>
-        </div>
       </div>
     </div>
 
@@ -549,7 +506,7 @@ function imprimirDocumento() {
               </div>
               <div>
                 <span class="text-slate-600 font-semibold block text-[9px] uppercase">Valor Total:</span>
-                <span class="font-black text-opti text-xs">{{ formatBRL(docValor) }}</span>
+                <span class="font-black text-opti text-xs">{{ formatDocValor(docValor) }}</span>
               </div>
             </div>
 
@@ -655,7 +612,7 @@ function imprimirDocumento() {
               </div>
               <div>
                 <span class="text-slate-600 font-semibold block text-[9px] uppercase">Valor Total:</span>
-                <span class="font-black text-opti text-xs">{{ formatBRL(docValor) }}</span>
+                <span class="font-black text-opti text-xs">{{ formatDocValor(docValor) }}</span>
               </div>
             </div>
 
@@ -805,13 +762,13 @@ function imprimirDocumento() {
                 <div class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed">
                   <p class="whitespace-pre-line text-slate-900">{{ docServico }}</p>
                   <div class="text-right text-base font-black text-opti mt-4 pt-3 border-t border-slate-300">
-                    Valor Total: {{ formatBRL(docValor) }}
+                    Valor Total: {{ formatDocValor(docValor) }}
                   </div>
                 </div>
               </div>
               <div v-else class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed">
                 <div class="text-right text-base font-black text-opti">
-                  Valor Total: {{ formatBRL(docValor) }}
+                  Valor Total: {{ formatDocValor(docValor) }}
                 </div>
               </div>
 
@@ -829,12 +786,12 @@ function imprimirDocumento() {
                 </div>
                 <div class="text-right">
                   <span class="text-xs uppercase font-bold text-slate-600 block">Valor Recebido</span>
-                  <span class="text-xl font-black text-opti">{{ formatBRL(docValor) }}</span>
+                  <span class="text-xl font-black text-opti">{{ formatDocValor(docValor) }}</span>
                 </div>
               </div>
 
               <p class="text-justify leading-loose text-sm text-slate-900">
-                <strong>{{ configStore.config.fantasia }}</strong>, inscrito sob o CPF/CNPJ <strong>{{ configStore.config.cnpj }}</strong>, recebi de <strong>{{ docCliente }}</strong>, a importância de <strong>{{ formatBRL(docValor) }}</strong>, referente a: <em>{{ docServico }}</em>, e para clareza e fins legais firmo o presente recibo.
+                <strong>{{ configStore.config.fantasia }}</strong>, inscrito sob o CPF/CNPJ <strong>{{ configStore.config.cnpj }}</strong>, recebi de <strong>{{ docCliente }}</strong>, a importância de <strong>{{ formatDocValor(docValor) }}</strong>, referente a: <em>{{ docServico }}</em>, e para clareza e fins legais firmo o presente recibo.
               </p>
 
               <p class="text-right text-xs text-slate-700">
@@ -858,82 +815,6 @@ function imprimirDocumento() {
             </p>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Modal Personalizar Termos, Cláusulas & Guarda -->
-    <div
-      v-if="isPersonalizarModalOpen"
-      class="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 no-print"
-      @click.self="isPersonalizarModalOpen = false"
-    >
-      <div
-        class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]"
-      >
-        <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center shrink-0">
-          <div class="flex items-center gap-2">
-            <SlidersHorizontal class="w-5 h-5" />
-            <h3 class="font-bold text-sm sm:text-base">Personalizar Termos & Cláusulas</h3>
-          </div>
-          <button
-            @click="isPersonalizarModalOpen = false"
-            class="text-blue-200 hover:text-white p-1 rounded-lg transition"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <form @submit.prevent="aplicarTermos" class="p-5 space-y-4 text-xs sm:text-sm overflow-y-auto flex-1">
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Informações de Garantia e Observações Legais
-            </label>
-            <textarea
-              v-model="tempGarantia"
-              rows="3"
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-opti leading-relaxed"
-            ></textarea>
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-              Informações Adicionais
-            </label>
-            <textarea
-              v-model="tempObs"
-              rows="2"
-              class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-opti"
-            ></textarea>
-          </div>
-
-          <div class="pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2">
-            <button
-              type="button"
-              @click="salvarComoPadrao"
-              :disabled="isSavingCustomTerms"
-              class="px-3.5 py-2 border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/40 text-opti dark:text-sky-300 rounded-xl text-xs font-bold hover:bg-blue-100 transition flex items-center gap-1.5"
-            >
-              <Check class="w-4 h-4" />
-              <span>{{ isSavingCustomTerms ? 'Salvando...' : 'Salvar como Padrão do Sistema' }}</span>
-            </button>
-
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                @click="isPersonalizarModalOpen = false"
-                class="px-3.5 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                class="px-4 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition shadow-xs"
-              >
-                Aplicar ao Documento
-              </button>
-            </div>
-          </div>
-        </form>
       </div>
     </div>
   </div>

@@ -529,3 +529,84 @@ func TestPermissionsVerValoresAndOptimisticConcurrency(t *testing.T) {
 	}
 }
 
+func TestOrdemFiltersAndProximoNumeroOS(t *testing.T) {
+	r, db, teardown := setupTestServer(t)
+	defer teardown()
+
+	// Setup admin
+	wSetup := httptest.NewRecorder()
+	reqSetup := httptest.NewRequest(http.MethodPost, "/api/auth/setup", strings.NewReader(`{"nome":"Admin","email":"admin@test.com","senha":"password123"}`))
+	reqSetup.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wSetup, reqSetup)
+	if wSetup.Code != http.StatusCreated {
+		t.Fatalf("setup failed: %d %s", wSetup.Code, wSetup.Body.String())
+	}
+	var setupResp models.AuthResponse
+	_ = json.NewDecoder(wSetup.Body).Decode(&setupResp)
+	authHeader := "Bearer " + setupResp.Token
+
+	// Configure os_proximo_numero = 1050
+	cfg, err := db.GetConfig()
+	if err != nil {
+		t.Fatalf("get config: %v", err)
+	}
+	cfg.CustomPresets = `{"os_proximo_numero":1050}`
+	cfgBytes, _ := json.Marshal(cfg)
+	wCfg := httptest.NewRecorder()
+	reqCfg := httptest.NewRequest(http.MethodPut, "/api/config", bytes.NewReader(cfgBytes))
+	reqCfg.Header.Set("Authorization", authHeader)
+	reqCfg.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wCfg, reqCfg)
+	if wCfg.Code != http.StatusOK {
+		t.Fatalf("update config failed: %d %s", wCfg.Code, wCfg.Body.String())
+	}
+
+	// Verify /api/config returns proximo_numero_os = 1050
+	wGetCfg := httptest.NewRecorder()
+	reqGetCfg := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	r.ServeHTTP(wGetCfg, reqGetCfg)
+	var updatedCfg models.Config
+	_ = json.NewDecoder(wGetCfg.Body).Decode(&updatedCfg)
+	if updatedCfg.ProximoNumeroOS != 1050 {
+		t.Fatalf("expected proximo_numero_os = 1050, got %d", updatedCfg.ProximoNumeroOS)
+	}
+
+	// Create an order with status "Em Serviço" and pagamento_status "Pendente"
+	osPayload := `{"cliente_nome":"Cliente Teste","cliente_contato":"11999999999","equipamento":"Notebook","servico":"Troca de pasta","status":"Em Serviço","valor_total":150,"pagamento_status":"Pendente","pagamento_forma":"Pendente"}`
+	wCreate := httptest.NewRecorder()
+	reqCreate := httptest.NewRequest(http.MethodPost, "/api/ordens", strings.NewReader(osPayload))
+	reqCreate.Header.Set("Authorization", authHeader)
+	reqCreate.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wCreate, reqCreate)
+	if wCreate.Code != http.StatusCreated {
+		t.Fatalf("create order failed: %d %s", wCreate.Code, wCreate.Body.String())
+	}
+	var createdOS models.OrdemServico
+	_ = json.NewDecoder(wCreate.Body).Decode(&createdOS)
+	if createdOS.ID != 1050 {
+		t.Fatalf("expected created order ID 1050, got %d", createdOS.ID)
+	}
+
+	// Verify PENDENTE filter returns the open pending order
+	wPend := httptest.NewRecorder()
+	reqPend := httptest.NewRequest(http.MethodGet, "/api/ordens?status=PENDENTE", nil)
+	reqPend.Header.Set("Authorization", authHeader)
+	r.ServeHTTP(wPend, reqPend)
+	var pendList []models.OrdemServico
+	_ = json.NewDecoder(wPend.Body).Decode(&pendList)
+	if len(pendList) != 1 || pendList[0].ID != 1050 {
+		t.Fatalf("expected 1 order in PENDENTE filter, got %+v", pendList)
+	}
+
+	// Verify case-sensitive status filter "Em Serviço" works
+	wEmServ := httptest.NewRecorder()
+	reqEmServ := httptest.NewRequest(http.MethodGet, "/api/ordens?status=Em%20Servi%C3%A7o", nil)
+	reqEmServ.Header.Set("Authorization", authHeader)
+	r.ServeHTTP(wEmServ, reqEmServ)
+	var emServList []models.OrdemServico
+	_ = json.NewDecoder(wEmServ.Body).Decode(&emServList)
+	if len(emServList) != 1 || emServList[0].ID != 1050 {
+		t.Fatalf("expected 1 order in Em Serviço filter, got %+v", emServList)
+	}
+}
+

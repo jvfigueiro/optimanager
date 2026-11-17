@@ -296,8 +296,13 @@ async function instalarPwa() {
         </nav>
       </div>
 
-      <!-- Rodapé da Sidebar (Usuário Logado & Logout) -->
-      <div class="w-64 p-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-[#0c1322] text-xs">
+      <!-- Rodapé da Sidebar (Versão BETA, Usuário Logado & Logout) -->
+      <div class="w-64 p-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-[#0c1322] text-xs space-y-2">
+        <div class="flex items-center justify-center">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/70">
+            OptiManager 3.0.0 BETA
+          </span>
+        </div>
         <div
           v-if="authStore.user"
           class="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60"

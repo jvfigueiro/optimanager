@@ -21,8 +21,6 @@ import {
   ChevronRight,
   Eye,
   Trash2,
-  Users,
-  Copy,
   PlusCircle,
   FileText,
   CreditCard,
@@ -43,7 +41,6 @@ const authStore = useAuthStore()
 const isShortcutModalOpen = ref(false)
 const viewingOS = ref<OrdemServico | null>(null)
 const isOSModalOpen = ref(false)
-const cnpjCopied = ref(false)
 
 const DISMISSED_RECS_KEY = 'optimanager_dismissed_recommendations'
 const dismissedRecs = ref<string[]>(loadDismissedRecs())
@@ -76,14 +73,6 @@ function openViewOS(os: OrdemServico) {
 function closeViewOS() {
   isOSModalOpen.value = false
   viewingOS.value = null
-}
-
-async function handleCopyCNPJ() {
-  await dashboardStore.copyCNPJ()
-  cnpjCopied.value = true
-  setTimeout(() => {
-    cnpjCopied.value = false
-  }, 2000)
 }
 
 onMounted(() => {
@@ -140,7 +129,7 @@ const recomendacoesVisiveis = computed(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Bem-vindo ao OptiManager!
+          Olá {{ authStore.user?.nome || 'Usuário' }}!
         </h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
           Painel de controle definitivo para ordens de serviço, clientes e faturamento
@@ -149,7 +138,7 @@ const recomendacoesVisiveis = computed(() => {
     </div>
 
     <!-- Cards de Métricas do Topo -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <!-- Card 1: Faturamento de Hoje -->
       <div class="bg-white dark:bg-[#111928] rounded-2xl border border-slate-200/90 dark:border-slate-800/80 p-4 sm:p-5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col justify-between">
         <div>
@@ -214,40 +203,6 @@ const recomendacoesVisiveis = computed(() => {
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
           Soma de recebidos e pendentes registrados
         </p>
-      </div>
-
-      <!-- Card 4: Base de Clientes & CNPJ (com botão Copiar CNPJ) -->
-      <div class="bg-white dark:bg-[#111928] rounded-2xl border border-slate-200/90 dark:border-slate-800/80 p-4 sm:p-5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col justify-between">
-        <div>
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-xs shrink-0">
-              <Users class="w-5 h-5 stroke-[2.2]" />
-            </div>
-            <div class="min-w-0">
-              <h3 class="text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
-                {{ configStore.config.fantasia || 'Empresa' }}
-              </h3>
-            </div>
-          </div>
-          <div class="mt-4">
-            <p class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-              {{ clientesStore.clientes.length }} clientes
-            </p>
-          </div>
-        </div>
-        <div class="mt-2 flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
-          <span class="text-xs text-slate-500 dark:text-slate-400 truncate">
-            CNPJ: <span class="font-medium text-slate-700 dark:text-slate-300">{{ configStore.config.cnpj || 'Não definido' }}</span>
-          </span>
-          <button
-            @click="handleCopyCNPJ"
-            title="Copiar CNPJ da empresa"
-            class="text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 shrink-0 px-2 py-0.5 rounded-md hover:bg-sky-50 dark:hover:bg-sky-950/40 transition"
-          >
-            <Copy class="w-3 h-3" />
-            <span>{{ cnpjCopied ? 'Copiado!' : 'Copiar' }}</span>
-          </button>
-        </div>
       </div>
     </div>
 

@@ -20,6 +20,7 @@ type Config struct {
 	CorPrimaria           string  `json:"cor_primaria"`
 	CorSecundaria         string  `json:"cor_secundaria"`
 	ModulosAtivos         string  `json:"modulos_ativos"`
+	ProximoNumeroOS       int64   `json:"proximo_numero_os"`
 	Versao                int64   `json:"versao"`
 
 	// Backup configuration fields

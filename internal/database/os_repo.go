@@ -13,7 +13,8 @@ import (
 
 // ListOrdens queries service orders with client join, filtering and textual search.
 func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, error) {
-	filtroStatus = strings.TrimSpace(strings.ToUpper(filtroStatus))
+	rawFiltro := strings.TrimSpace(filtroStatus)
+	upperFiltro := strings.ToUpper(rawFiltro)
 	busca = strings.TrimSpace(busca)
 
 	query := `SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
@@ -27,18 +28,18 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 
 	args := make([]interface{}, 0, 4)
 
-	switch filtroStatus {
+	switch upperFiltro {
 	case "", "TODOS":
 		// No filter
-	case "ABERTOS":
+	case "ABERTO", "ABERTOS":
 		query += ` AND os.status != 'Concluído'`
-	case "CONCLUIDOS":
+	case "CONCLUIDO", "CONCLUIDOS", "CONCLUÍDO", "CONCLUÍDOS":
 		query += ` AND os.status = 'Concluído'`
-	case "PENDENTE":
-		query += ` AND os.status = 'Concluído' AND os.pagamento_status = 'Pendente'`
+	case "PENDENTE", "PAGAMENTO PENDENTE":
+		query += ` AND (LOWER(os.pagamento_status) = 'pendente' OR LOWER(os.pagamento_forma) = 'pendente')`
 	default:
-		query += ` AND os.status = ?`
-		args = append(args, filtroStatus)
+		query += ` AND LOWER(os.status) = LOWER(?)`
+		args = append(args, rawFiltro)
 	}
 
 	if busca != "" {
