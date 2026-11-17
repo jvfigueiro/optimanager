@@ -10,6 +10,7 @@ build-ui:
 build-windows: build-ui
 	mkdir -p $(DIST_DIR)
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o $(DIST_DIR)/$(APP_NAME)-windows-amd64.exe ./cmd/server
+	cp scripts/windows/setup-optimanager.ps1 $(DIST_DIR)/setup-optimanager.ps1
 
 build-linux: build-ui
 	mkdir -p $(DIST_DIR)

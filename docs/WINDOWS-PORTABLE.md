@@ -22,7 +22,19 @@ O OptiManager pode ser executado nativamente no Windows como um executável úni
 
 ---
 
-## 2. Acesso pela Rede Local & Firewall do Windows
+## 2. Atalho rápido: script automático (Firewall + início com o Windows)
+
+Copie também o `setup-optimanager.ps1` (gerado em `dist/` junto com o `.exe`) para a mesma pasta do executável e rode, em um **PowerShell como Administrador**:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup-optimanager.ps1
+```
+
+O script libera a porta no Firewall (perfis Privado/Domínio), cria a Tarefa Agendada `OptiManager` (inicia na inicialização do Windows, sem precisar de login, com reinício automático em falhas), inicia o servidor e mostra os endereços de acesso. Opções: `-Port 9000`, `-ExePath "C:\caminho\optimanager.exe"` e `-Uninstall` (remove regra e tarefa, preservando a pasta `data\`). As seções 3 e 4 abaixo descrevem o mesmo processo manualmente.
+
+---
+
+## 3. Acesso pela Rede Local & Firewall do Windows
 
 Para que outros computadores, tablets ou celulares na mesma rede Wi-Fi/cabo acessem o sistema pelo endereço **`http://<IP-DO-PC>:8585`**:
 
@@ -37,7 +49,7 @@ New-NetFirewallRule -DisplayName "OptiManager (Porta 8585)" -Direction Inbound -
 
 ---
 
-## 3. Executar Automaticamente na Inicialização (Serviço do Windows)
+## 4. Executar Automaticamente na Inicialização (Serviço do Windows)
 
 Para evitar que o OptiManager dependa de uma janela de terminal aberta, configure-o para iniciar automaticamente com o Windows:
 
@@ -59,7 +71,7 @@ Para evitar que o OptiManager dependa de uma janela de terminal aberta, configur
 
 ---
 
-## 4. AVISO CRÍTICO: Nunca compartilhe o `.db` via pasta de rede (SMB)
+## 5. AVISO CRÍTICO: Nunca compartilhe o `.db` via pasta de rede (SMB)
 
 > **NUNCA** coloque `optimanager.db` em uma pasta compartilhada do Windows (SMB / `\\SERVIDOR\Compartilhamento`) para ser aberto por dois executáveis `optimanager.exe` ao mesmo tempo, nem abra o arquivo `.db` simultaneamente por outros programas enquanto o servidor estiver rodando.
 >

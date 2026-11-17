@@ -131,9 +131,6 @@ const recomendacoesVisiveis = computed(() => {
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           Olá {{ authStore.user?.nome || 'Usuário' }}!
         </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Painel de controle definitivo para ordens de serviço, clientes e faturamento
-        </p>
       </div>
     </div>
 
@@ -367,15 +364,6 @@ const recomendacoesVisiveis = computed(() => {
           <CreditCard class="w-4 h-4 text-slate-500 dark:text-slate-400" />
           <span>Fluxo de Caixa</span>
         </button>
-        <a
-          href="https://www.nfse.gov.br/EmissorNacional"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="w-full bg-slate-100/90 dark:bg-[#131d2e] hover:bg-slate-200/90 dark:hover:bg-[#182438] text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/60 font-semibold text-xs sm:text-sm py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2"
-        >
-          <FileText class="w-4 h-4 text-slate-500 dark:text-slate-400" />
-          <span>NFS-e Nacional</span>
-        </a>
         <button
           @click="nav.navigate('settings')"
           class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center gap-2"
