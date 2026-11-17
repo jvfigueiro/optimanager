@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useOrdensStore } from '../stores/ordens'
+import { useConfigStore } from '../stores/config'
 import { useToastStore } from '../stores/toast'
 import { formatBRL, formatDate } from '../utils/formatters'
 import {
@@ -17,6 +18,7 @@ import {
 } from 'lucide-vue-next'
 
 const ordensStore = useOrdensStore()
+const configStore = useConfigStore()
 const toast = useToastStore()
 
 type PeriodoPreset = 'mes_atual' | 'mes_anterior' | 'ultimos_30' | 'ultimos_90' | 'ano_atual' | 'personalizado'
@@ -660,6 +662,142 @@ function imprimirRelatorio() {
       <p v-else class="text-xs text-slate-400 py-8 text-center">
         Nenhuma ordem de serviço localizada nos filtros aplicados.
       </p>
+    </div>
+
+    <!-- DOCUMENTO A4 PARA IMPRESSÃO / PDF NATIVO DO FINANCEIRO -->
+    <div
+      id="financeiro-print"
+      class="hidden print:block bg-white text-slate-900 p-6 sm:p-8 rounded-none text-xs"
+    >
+      <!-- Cabeçalho Institucional -->
+      <div class="flex justify-between items-start border-b-2 border-slate-900 pb-3 mb-4">
+        <div class="flex items-center gap-3">
+          <img
+            v-if="configStore.config.logo_base64"
+            :src="configStore.config.logo_base64"
+            alt="Logo"
+            class="w-12 h-12 object-contain rounded"
+          />
+          <div v-else class="bg-white text-opti border-2 border-opti font-black px-2 py-1 rounded text-sm tracking-tight">
+            OPTI
+          </div>
+          <div>
+            <h2 class="text-base font-black text-slate-900 leading-tight">
+              {{ configStore.config.fantasia || 'OptiManager' }}
+            </h2>
+            <p v-if="configStore.config.razao_social" class="text-[10px] text-slate-600 leading-tight">
+              {{ configStore.config.razao_social }}
+            </p>
+            <p class="text-[10px] text-slate-600 leading-tight">
+              <span v-if="configStore.config.cnpj">CNPJ: {{ configStore.config.cnpj }} • </span>
+              <span v-if="configStore.config.fones">Tel: {{ configStore.config.fones }} • </span>
+              <span v-if="configStore.config.cidade">{{ configStore.config.cidade }}</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="text-right">
+          <span class="inline-block border border-slate-800 font-black px-2.5 py-0.5 rounded text-[10px] uppercase tracking-wider bg-slate-100">
+            RELATÓRIO FINANCEIRO
+          </span>
+          <p class="text-xs font-bold text-slate-800 mt-1">
+            Período: {{ formatDate(dataInicio) }} a {{ formatDate(dataFim) }}
+          </p>
+          <p class="text-[10px] text-slate-500">
+            Emissão: {{ new Date().toLocaleDateString('pt-BR') }} às {{ new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Resumo Geral em Linha -->
+      <div class="grid grid-cols-4 gap-3 mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-500 block">Total Faturado</span>
+          <span class="text-sm font-black text-slate-900">{{ formatBRL(totalFaturado) }}</span>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-bold text-emerald-700 block">Recebido (Caixa)</span>
+          <span class="text-sm font-black text-emerald-700">{{ formatBRL(totalRecebido) }}</span>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-bold text-amber-700 block">Pendente</span>
+          <span class="text-sm font-black text-amber-700">{{ formatBRL(totalPendente) }}</span>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-500 block">Qtd. Serviços</span>
+          <span class="text-sm font-black text-slate-900">{{ ordensFiltradas.length }}</span>
+        </div>
+      </div>
+
+      <!-- Detalhamento por Formas de Pagamento -->
+      <div v-if="distribuicaoFormas.length" class="mb-4">
+        <h4 class="font-bold text-[11px] uppercase tracking-wider text-slate-700 mb-1.5 border-b border-slate-200 pb-1">
+          Distribuição por Forma de Pagamento
+        </h4>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+          <div
+            v-for="df in distribuicaoFormas"
+            :key="df.forma"
+            class="p-2 border border-slate-200 rounded bg-white flex justify-between items-center"
+          >
+            <div>
+              <span class="font-bold text-slate-800">{{ df.forma }}</span>
+              <span class="text-[10px] text-slate-500 block">{{ df.count }} registro(s)</span>
+            </div>
+            <span class="font-black text-slate-900">{{ formatBRL(df.total) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela Detalhada das Ordens -->
+      <div>
+        <h4 class="font-bold text-[11px] uppercase tracking-wider text-slate-700 mb-1.5 border-b border-slate-200 pb-1">
+          Lançamentos do Período ({{ ordensFiltradas.length }})
+        </h4>
+        <table class="w-full text-left text-[10px] border-collapse">
+          <thead>
+            <tr class="bg-slate-100 border-y border-slate-300 font-bold text-slate-700">
+              <th class="py-1 px-1.5">OS</th>
+              <th class="py-1 px-1.5">Data</th>
+              <th class="py-1 px-1.5">Cliente</th>
+              <th class="py-1 px-1.5">Descrição do Serviço</th>
+              <th class="py-1 px-1.5">Forma</th>
+              <th class="py-1 px-1.5 text-center">Status</th>
+              <th class="py-1 px-1.5 text-right">Valor</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200">
+            <tr v-for="o in ordensFiltradas" :key="o.id">
+              <td class="py-1 px-1.5 font-bold text-slate-900">#{{ o.id }}</td>
+              <td class="py-1 px-1.5 whitespace-nowrap">{{ formatDate(o.data_emissao) }}</td>
+              <td class="py-1 px-1.5 font-semibold text-slate-900 whitespace-nowrap">{{ o.cliente_nome }}</td>
+              <td class="py-1 px-1.5 text-slate-700 max-w-[220px] truncate">{{ o.servico }}</td>
+              <td class="py-1 px-1.5 whitespace-nowrap">{{ o.pagamento_forma || 'Pendente' }}</td>
+              <td class="py-1 px-1.5 text-center whitespace-nowrap">
+                <span
+                  class="px-1.5 py-0.2 rounded font-bold text-[9px]"
+                  :class="o.pagamento_status === 'Pago' ? 'text-emerald-700' : 'text-amber-700'"
+                >
+                  {{ o.pagamento_status }}
+                </span>
+              </td>
+              <td class="py-1 px-1.5 text-right font-black whitespace-nowrap">{{ formatBRL(o.valor_total) }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="border-t-2 border-slate-900 font-black text-slate-900 bg-slate-50">
+              <td colspan="6" class="py-1.5 px-1.5 text-right uppercase">Total Faturado no Período:</td>
+              <td class="py-1.5 px-1.5 text-right text-xs">{{ formatBRL(totalFaturado) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Rodapé do Documento -->
+      <div class="mt-6 pt-3 border-t border-slate-200 flex justify-between items-center text-[9px] text-slate-400">
+        <span>OptiManager • Gerenciamento Operacional & Financeiro</span>
+        <span>Página 1 / Documento Não-Fiscal</span>
+      </div>
     </div>
   </div>
 </template>

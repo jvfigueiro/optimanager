@@ -36,10 +36,12 @@
   body * {
     visibility: hidden;
   }
-  #a4-preview, #a4-preview * {
+  #a4-preview, #a4-preview *,
+  #financeiro-print, #financeiro-print * {
     visibility: visible;
   }
-  #a4-preview {
+  #a4-preview,
+  #financeiro-print {
     position: absolute;
     left: 0;
     top: 0;
