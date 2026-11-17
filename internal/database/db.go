@@ -59,23 +59,49 @@ type DB struct {
 	PreMigrationHook func() error // Used in tests to simulate pre-migration backup failure
 }
 
+// ResolveDataDir determines the base data directory for the database, backups, and uploads.
+// Priority: 1) dirname(DB_PATH) if DB_PATH env var is set; 2) "/data" if it exists (Docker);
+// 3) "<executable_dir>/data" for portable execution (e.g., Windows optimanager.exe).
+func ResolveDataDir() string {
+	if envPath := strings.TrimSpace(os.Getenv("DB_PATH")); envPath != "" {
+		return filepath.Dir(envPath)
+	}
+	if info, err := os.Stat("/data"); err == nil && info.IsDir() {
+		return "/data"
+	}
+	if exePath, err := os.Executable(); err == nil {
+		if resolved, err := filepath.EvalSymlinks(exePath); err == nil {
+			exePath = resolved
+		}
+		return filepath.Join(filepath.Dir(exePath), "data")
+	}
+	return "./data"
+}
+
+// UploadsDir returns the directory for storing uploaded files relative to the active data directory.
+func (d *DB) UploadsDir() string {
+	if d != nil && d.Path != "" && d.Path != ":memory:" {
+		return filepath.Join(filepath.Dir(d.Path), "uploads")
+	}
+	return filepath.Join(ResolveDataDir(), "uploads")
+}
+
 // New initializes the SQLite database with WAL mode and dedicated writer/reader pools.
 func New(customPath string) (*DB, error) {
-	dbPath := customPath
+	dbPath := strings.TrimSpace(customPath)
 	if dbPath == "" {
-		dbPath = os.Getenv("DB_PATH")
+		dbPath = strings.TrimSpace(os.Getenv("DB_PATH"))
 	}
 	if dbPath == "" {
-		if info, err := os.Stat("/data"); err == nil && info.IsDir() {
-			dbPath = "/data/optimanager.db"
-		} else {
-			dbPath = "./data/optimanager.db"
-		}
+		dbPath = filepath.Join(ResolveDataDir(), "optimanager.db")
 	}
 
 	dir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create directory for database (%s): %w", dir, err)
+	}
+	if dbPath != ":memory:" {
+		_ = os.MkdirAll(filepath.Join(dir, "uploads"), 0755)
 	}
 
 	writer, reader, err := openPools(dbPath)

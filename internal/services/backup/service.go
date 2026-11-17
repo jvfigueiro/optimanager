@@ -18,7 +18,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	_ "time/tzdata"
@@ -65,7 +64,7 @@ func NewService(db *database.DB, localDir, externalDir string) (*Service, error)
 		if db.Path != "" && db.Path != ":memory:" {
 			localDir = filepath.Join(filepath.Dir(db.Path), "backups")
 		} else {
-			localDir = "./data/backups"
+			localDir = filepath.Join(database.ResolveDataDir(), "backups")
 		}
 	}
 
@@ -565,14 +564,6 @@ func (s *Service) getActiveDatabaseSize() uint64 {
 		return 1024 * 1024
 	}
 	return uint64(fi.Size())
-}
-
-func getAvailableDiskSpace(dir string) (uint64, error) {
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(dir, &stat); err != nil {
-		return 0, err
-	}
-	return stat.Bavail * uint64(stat.Bsize), nil
 }
 
 func formatBytes(bytes int64) string {
