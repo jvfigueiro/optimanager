@@ -176,8 +176,10 @@ async function handleUpdate() {
       data_entrega: dataEntrega.value,
       hora_entrega: horaEntrega.value,
       valor_total: Number(valorTotal.value) || 0,
+      valor_total_centavos: Math.round((Number(valorTotal.value) || 0) * 100),
       pagamento_status: pagamentoStatus.value,
       pagamento_forma: pagamentoForma.value,
+      versao: props.ordem.versao,
     })
     emit('updated', atualizada)
     emit('close')

@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	_ "embed"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,11 +15,17 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// ErrVersionConflict is returned when an optimistic concurrency check fails (stale version).
+var ErrVersionConflict = errors.New("version conflict: record was modified by another user")
+
 //go:embed migrations/001_initial_schema.sql
 var migration001SQL string
 
 //go:embed migrations/002_backup_and_audit.sql
 var migration002SQL string
+
+//go:embed migrations/003_foundation.sql
+var migration003SQL string
 
 type Migration struct {
 	Version int
@@ -29,6 +36,7 @@ type Migration struct {
 var migrations = []Migration{
 	{Version: 1, Name: "001_initial_schema", SQL: migration001SQL},
 	{Version: 2, Name: "002_backup_and_audit", SQL: migration002SQL},
+	{Version: 3, Name: "003_foundation", SQL: migration003SQL},
 }
 
 // LatestMigrationVersion returns the highest supported schema version.
@@ -230,6 +238,12 @@ func (d *DB) migrate() error {
 	// Sequentially execute pending migrations
 	for _, m := range migrations {
 		if m.Version > currentVersion {
+			if m.Version == 3 {
+				// Ensure auto_logout columns exist on databases that were already at version 2 before running migration 3
+				if err := d.ensureAutoLogoutColumns(); err != nil {
+					return err
+				}
+			}
 			if err := d.applyMigration(m); err != nil {
 				return err
 			}
@@ -237,7 +251,6 @@ func (d *DB) migrate() error {
 		}
 	}
 
-	// Ensure auto_logout columns exist on databases that were already at version 2
 	if err := d.ensureAutoLogoutColumns(); err != nil {
 		return err
 	}
@@ -264,6 +277,13 @@ func (d *DB) ensureAutoLogoutColumns() error {
 }
 
 func (d *DB) applyMigration(m Migration) error {
+	// Disable foreign_keys outside the transaction so table rebuilds (CREATE/INSERT/DROP/RENAME)
+	// can execute safely inside the transaction, then re-enable and verify integrity.
+	_, _ = d.Writer.Exec("PRAGMA foreign_keys = OFF")
+	defer func() {
+		_, _ = d.Writer.Exec("PRAGMA foreign_keys = ON")
+	}()
+
 	tx, err := d.Writer.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction for migration %d (%s): %w", m.Version, m.Name, err)
@@ -272,6 +292,25 @@ func (d *DB) applyMigration(m Migration) error {
 
 	if _, err := tx.Exec(m.SQL); err != nil {
 		return fmt.Errorf("failed to execute SQL for migration %d (%s): %w", m.Version, m.Name, err)
+	}
+
+	// Verify foreign key integrity before committing the migration
+	fkRows, err := tx.Query("PRAGMA foreign_key_check")
+	if err != nil {
+		return fmt.Errorf("failed to run foreign_key_check for migration %d (%s): %w", m.Version, m.Name, err)
+	}
+	var fkTable string
+	var fkRowID sql.NullInt64
+	var fkParent string
+	var fkIdx int
+	hasFKViolation := false
+	if fkRows.Next() {
+		hasFKViolation = true
+		_ = fkRows.Scan(&fkTable, &fkRowID, &fkParent, &fkIdx)
+	}
+	fkRows.Close()
+	if hasFKViolation {
+		return fmt.Errorf("foreign key violation detected in migration %d (%s) on table %s -> %s", m.Version, m.Name, fkTable, fkParent)
 	}
 
 	if _, err := tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", m.Version)); err != nil {
@@ -387,7 +426,7 @@ func (d *DB) applyLegacyBaseline() error {
 		_ = d.Writer.QueryRow(`SELECT COUNT(*) FROM config WHERE id = 1`).Scan(&configRowCount)
 		if configRowCount == 0 {
 			insertQuery := `INSERT OR IGNORE INTO config (id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria)
-			VALUES (1, 'Minha Empresa Tech', 'Soluções em Tecnologia & Serviços Ltda', '00.000.000/0001-00', 'Administrador', '(11) 98765-4321', 'contato@empresa.com.br', 'Av. Paulista, 1000 - Bela Vista', 'São Paulo - SP', 80.00, 'Garantia legal de 90 dias para serviços executados e peças aplicadas.', '', '#0B5694', '#083f6e')`
+			VALUES (1, 'Minha Empresa Tech', 'Soluções em Tecnologia & Serviços Ltda', '', 'Administrador', '(11) 98765-4321', 'contato@empresa.com.br', 'Av. Paulista, 1000 - Bela Vista', 'São Paulo - SP', 80.00, 'Garantia legal de 90 dias para serviços executados e peças aplicadas.', '', '#0B5694', '#083f6e')`
 			if _, err := d.Writer.Exec(insertQuery); err != nil {
 				return fmt.Errorf("failed to insert default config record: %w", err)
 			}

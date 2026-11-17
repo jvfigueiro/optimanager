@@ -47,9 +47,6 @@ type AuthHandler struct {
 }
 
 // ResolveJWTSecret validates and returns the HMAC secret for signing JWT/session tokens.
-// It strictly verifies that the secret is set, has at least 32 characters, and is not
-// a deprecated or example placeholder key. If APP_ENV=dev and JWT_SECRET is unset,
-// it generates an ephemeral 32-byte cryptographic secret and logs a prominent warning.
 func ResolveJWTSecret() ([]byte, error) {
 	sec := strings.TrimSpace(os.Getenv("JWT_SECRET"))
 	appEnv := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
@@ -184,6 +181,10 @@ func (h *AuthHandler) extractUserFromRequest(r *http.Request) *models.Usuario {
 	if err != nil || u == nil {
 		return nil
 	}
+	// Reject inactive users or users without credentials (e.g. legacy imported technicians)
+	if !u.Ativo || strings.TrimSpace(u.SenhaHash) == "" {
+		return nil
+	}
 
 	return u
 }
@@ -212,21 +213,69 @@ func (h *AuthHandler) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// RequireAdmin middleware ensures the authenticated user has "admin" role.
+// RequireAdmin middleware ensures the authenticated user has administrator privileges.
 func (h *AuthHandler) RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		val := r.Context().Value(UserContextKey)
-		u, ok := val.(*models.Usuario)
-		if !ok || u == nil {
+		u := currentUserFromRequest(r)
+		if u == nil {
 			respondError(w, http.StatusUnauthorized, "Authentication required.")
 			return
 		}
-		if u.Role != "admin" {
+		if u.Role != "admin" && u.Perfil != "administrador" {
+			ip := ExtractClientIP(r)
+			_ = h.db.InsertAuditLogWithEntity(
+				u.ID,
+				u.Nome,
+				ip,
+				"acesso.negado",
+				fmt.Sprintf("method=%s path=%s perm=administrador", r.Method, r.URL.Path),
+				"rota",
+				r.URL.Path,
+			)
 			respondError(w, http.StatusForbidden, "Apenas administradores podem executar esta ação.")
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// RequirePermission middleware verifies that the authenticated user holds the given permission,
+// logging denials to audit_log without PII.
+func (h *AuthHandler) RequirePermission(perm string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			u := currentUserFromRequest(r)
+			if u == nil {
+				respondError(w, http.StatusUnauthorized, "Authentication required.")
+				return
+			}
+			if !u.HasPermission(perm) {
+				ip := ExtractClientIP(r)
+				_ = h.db.InsertAuditLogWithEntity(
+					u.ID,
+					u.Nome,
+					ip,
+					"acesso.negado",
+					fmt.Sprintf("method=%s path=%s perm=%s", r.Method, r.URL.Path, perm),
+					"permissao",
+					perm,
+				)
+				respondError(w, http.StatusForbidden, "Você não possui permissão para executar esta ação.")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// Me returns the currently authenticated user profile and effective permissions.
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	u := currentUserFromRequest(r)
+	if u == nil {
+		respondError(w, http.StatusUnauthorized, "Authentication required.")
+		return
+	}
+	respondJSON(w, http.StatusOK, u)
 }
 
 // Status checks if initial system setup is required (0 users) and whether current user is authenticated.
@@ -290,7 +339,7 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update institutional company settings if provided during initial wizard
+	// Update institutional company settings if provided during initial wizard (CNPJ is optional)
 	if cfg, err := h.db.GetConfig(); err == nil && cfg != nil {
 		cfg.Responsavel = strings.TrimSpace(req.Nome)
 		if strings.TrimSpace(req.Fantasia) != "" {
@@ -299,9 +348,11 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimSpace(req.RazaoSocial) != "" {
 			cfg.RazaoSocial = strings.TrimSpace(req.RazaoSocial)
 		}
-		if strings.TrimSpace(req.CNPJ) != "" {
-			cfg.CNPJ = strings.TrimSpace(req.CNPJ)
+		cnpj := strings.TrimSpace(req.CNPJ)
+		if cnpj == "00.000.000/0001-00" {
+			cnpj = ""
 		}
+		cfg.CNPJ = cnpj
 		if strings.TrimSpace(req.Fones) != "" {
 			cfg.Fones = strings.TrimSpace(req.Fones)
 		}
@@ -314,6 +365,7 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimSpace(req.Cidade) != "" {
 			cfg.Cidade = strings.TrimSpace(req.Cidade)
 		}
+		cfg.Versao = 0 // Bypass version check on initial setup
 		_ = h.db.UpdateConfig(cfg)
 	}
 
@@ -343,7 +395,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "Error verifying credentials")
 		return
 	}
-	if u == nil {
+	if u == nil || !u.Ativo || strings.TrimSpace(u.SenhaHash) == "" {
 		respondError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
@@ -396,7 +448,12 @@ func (h *AuthHandler) CreateUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.db.CreateUsuario(req.Nome, req.Email, req.Senha, req.Role)
+	ativo := true
+	if req.Ativo != nil {
+		ativo = *req.Ativo
+	}
+
+	u, err := h.db.CreateUsuarioWithProfile(req.Nome, req.Email, req.Senha, req.Role, req.Perfil, ativo)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			respondError(w, http.StatusConflict, err.Error())
@@ -424,8 +481,12 @@ func (h *AuthHandler) UpdateUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.db.UpdateUsuario(id, req.Nome, req.Email, req.Senha, req.Role)
+	u, err := h.db.UpdateUsuarioFull(id, &req)
 	if err != nil {
+		if errors.Is(err, database.ErrVersionConflict) {
+			respondVersionConflict(w)
+			return
+		}
 		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
@@ -451,7 +512,7 @@ func (h *AuthHandler) DeleteUsuario(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Prevent logged in user from deleting their own active account
-	if currentUser, ok := r.Context().Value(UserContextKey).(*models.Usuario); ok && currentUser != nil {
+	if currentUser := currentUserFromRequest(r); currentUser != nil {
 		if currentUser.ID == id {
 			respondError(w, http.StatusBadRequest, "You cannot delete your own active account.")
 			return

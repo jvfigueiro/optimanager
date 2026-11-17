@@ -794,8 +794,7 @@ async function handleDeleteUser(u: Usuario) {
             <input
               type="text"
               v-model="form.cnpj"
-              required
-              placeholder="00.000.000/0001-00"
+              placeholder="00.000.000/0001-00 (opcional)"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-mono focus:ring-2 focus:ring-opti outline-none"
             />
           </div>

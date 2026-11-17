@@ -1,3 +1,18 @@
+export function reaisToCentavos(reais: number): number {
+  return Math.round((Number(reais) || 0) * 100)
+}
+
+export function centavosToReais(centavos: number): number {
+  return (Number(centavos) || 0) / 100
+}
+
+export function formatCentavos(centavos: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(centavosToReais(centavos))
+}
+
 export function formatBRL(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',

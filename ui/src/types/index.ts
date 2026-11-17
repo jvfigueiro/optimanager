@@ -9,6 +9,7 @@ export interface Config {
   endereco: string
   cidade: string
   vt_valor_padrao: number
+  vt_valor_padrao_centavos?: number
   termo_garantia: string
   termo_responsabilidade?: string
   obs_padrao?: string
@@ -16,6 +17,8 @@ export interface Config {
   logo_base64: string
   cor_primaria: string
   cor_secundaria: string
+  modulos_ativos?: string
+  versao?: number
   auto_logout_enabled?: number
   auto_logout_minutos?: number
 }
@@ -43,6 +46,7 @@ export interface Cliente {
   doc: string
   contato: string
   desde_ano: number
+  versao?: number
   created_at?: string
 }
 
@@ -65,9 +69,11 @@ export interface OrdemServico {
   servico: string
   obs_tecnicas: string
   valor_total: number
+  valor_total_centavos?: number
   pagamento_status: PagamentoStatus
   pagamento_forma: PagamentoForma
   pago_em?: string
+  versao?: number
   created_at: string
   whatsapp_url?: string
 }
@@ -86,6 +92,7 @@ export interface CreateOrdemPayload {
   servico: string
   obs_tecnicas?: string
   valor_total: number
+  valor_total_centavos?: number
   pagamento_status?: string
   pagamento_forma?: string
   is_vt?: boolean
@@ -105,8 +112,10 @@ export interface UpdateOrdemPayload {
   servico: string
   obs_tecnicas?: string
   valor_total: number
+  valor_total_centavos?: number
   pagamento_status?: string
   pagamento_forma?: string
+  versao?: number
 }
 
 export interface Atalho {
@@ -119,9 +128,13 @@ export interface Atalho {
 
 export interface DashboardMetricas {
   faturamento_hoje: number
+  faturamento_hoje_centavos?: number
   caixa_recebido: number
+  caixa_recebido_centavos?: number
   pendente_receber: number
+  pendente_receber_centavos?: number
   faturamento_total: number
+  faturamento_total_centavos?: number
   qtd_abertos: number
   qtd_pendentes: number
 }
@@ -138,6 +151,10 @@ export interface Usuario {
   nome: string
   email: string
   role: 'admin' | 'operador'
+  perfil?: 'administrador' | 'atendente' | 'tecnico'
+  ativo?: boolean
+  versao?: number
+  permissoes?: string[]
   created_at: string
 }
 

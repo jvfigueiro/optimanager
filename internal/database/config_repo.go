@@ -7,13 +7,14 @@ import (
 	"strings"
 
 	"optimanager/internal/models"
+	"optimanager/internal/money"
 )
 
 // GetConfig retrieves the company/business institutional settings along with backup parameters.
 func (d *DB) GetConfig() (*models.Config, error) {
 	query := `SELECT id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, 
-	                 vt_valor_padrao, termo_garantia, termo_responsabilidade, obs_padrao, custom_presets, 
-	                 logo_base64, cor_primaria, cor_secundaria,
+	                 vt_valor_padrao, vt_valor_padrao_centavos, termo_garantia, termo_responsabilidade, obs_padrao, custom_presets, 
+	                 logo_base64, cor_primaria, cor_secundaria, modulos_ativos, versao,
 	                 backup_auto_enabled, backup_frequencia, backup_dia_semana, backup_horario,
 	                 backup_retencao_auto, backup_retencao_manual, backup_retencao_prerestore, backup_retencao_premigration,
 	                 backup_ultimo_sucesso, backup_ultimo_erro, backup_ultimo_erro_em,
@@ -25,8 +26,8 @@ func (d *DB) GetConfig() (*models.Config, error) {
 	var c models.Config
 	err := d.Reader.QueryRow(query).Scan(
 		&c.ID, &c.Fantasia, &c.RazaoSocial, &c.CNPJ, &c.Responsavel, &c.Fones, &c.EmailContato, &c.Endereco, &c.Cidade,
-		&c.VTValorPadrao, &c.TermoGarantia, &c.TermoResponsabilidade, &c.ObsPadrao, &c.CustomPresets,
-		&c.LogoBase64, &c.CorPrimaria, &c.CorSecundaria,
+		&c.VTValorPadrao, &c.VTValorPadraoCentavos, &c.TermoGarantia, &c.TermoResponsabilidade, &c.ObsPadrao, &c.CustomPresets,
+		&c.LogoBase64, &c.CorPrimaria, &c.CorSecundaria, &c.ModulosAtivos, &c.Versao,
 		&c.BackupAutoEnabled, &c.BackupFrequencia, &c.BackupDiaSemana, &c.BackupHorario,
 		&c.BackupRetencaoAuto, &c.BackupRetencaoManual, &c.BackupRetencaoPrerestore, &c.BackupRetencaoPremigration,
 		&c.BackupUltimoSucesso, &c.BackupUltimoErro, &c.BackupUltimoErroEm,
@@ -39,10 +40,11 @@ func (d *DB) GetConfig() (*models.Config, error) {
 		}
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
+	c.VTValorPadrao = money.CentavosToReais(c.VTValorPadraoCentavos)
 	return &c, nil
 }
 
-// UpdateConfig updates the institutional business settings.
+// UpdateConfig updates the institutional business settings with optional optimistic locking on versao.
 func (d *DB) UpdateConfig(cfg *models.Config) error {
 	autoLogoutEnabled := 0
 	if cfg.AutoLogoutEnabled != 0 {
@@ -53,34 +55,90 @@ func (d *DB) UpdateConfig(cfg *models.Config) error {
 		autoLogoutMinutos = 30
 	}
 
-	query := `UPDATE config SET 
-		fantasia = ?, razao_social = ?, cnpj = ?, responsavel = ?, 
-		fones = ?, email_contato = ?, endereco = ?, cidade = ?, vt_valor_padrao = ?, 
-		termo_garantia = ?, termo_responsabilidade = ?, obs_padrao = ?, custom_presets = ?, 
-		logo_base64 = ?, cor_primaria = ?, cor_secundaria = ?,
-		auto_logout_enabled = ?, auto_logout_minutos = ?
-		WHERE id = 1`
+	vtCentavos := cfg.VTValorPadraoCentavos
+	if vtCentavos == 0 && cfg.VTValorPadrao > 0 {
+		vtCentavos = money.ReaisToCentavos(cfg.VTValorPadrao)
+	}
+	vtReais := money.CentavosToReais(vtCentavos)
 
-	res, err := d.Writer.Exec(query,
-		strings.TrimSpace(cfg.Fantasia),
-		strings.TrimSpace(cfg.RazaoSocial),
-		strings.TrimSpace(cfg.CNPJ),
-		strings.TrimSpace(cfg.Responsavel),
-		strings.TrimSpace(cfg.Fones),
-		strings.TrimSpace(cfg.EmailContato),
-		strings.TrimSpace(cfg.Endereco),
-		strings.TrimSpace(cfg.Cidade),
-		cfg.VTValorPadrao,
-		strings.TrimSpace(cfg.TermoGarantia),
-		strings.TrimSpace(cfg.TermoResponsabilidade),
-		strings.TrimSpace(cfg.ObsPadrao),
-		strings.TrimSpace(cfg.CustomPresets),
-		cfg.LogoBase64,
-		strings.TrimSpace(cfg.CorPrimaria),
-		strings.TrimSpace(cfg.CorSecundaria),
-		autoLogoutEnabled,
-		autoLogoutMinutos,
-	)
+	modulosAtivos := strings.TrimSpace(cfg.ModulosAtivos)
+	if modulosAtivos == "" {
+		modulosAtivos = `{"estoque":true,"compras":true,"vendas":false,"financeiro":true}`
+	}
+
+	cnpj := strings.TrimSpace(cfg.CNPJ)
+	if cnpj == "00.000.000/0001-00" {
+		cnpj = ""
+	}
+
+	var res sql.Result
+	var err error
+	if cfg.Versao > 0 {
+		query := `UPDATE config SET 
+			fantasia = ?, razao_social = ?, cnpj = ?, responsavel = ?, 
+			fones = ?, email_contato = ?, endereco = ?, cidade = ?,
+			vt_valor_padrao = ?, vt_valor_padrao_centavos = ?,
+			termo_garantia = ?, termo_responsabilidade = ?, obs_padrao = ?, custom_presets = ?, 
+			logo_base64 = ?, cor_primaria = ?, cor_secundaria = ?, modulos_ativos = ?,
+			auto_logout_enabled = ?, auto_logout_minutos = ?,
+			versao = versao + 1
+			WHERE id = 1 AND versao = ?`
+		res, err = d.Writer.Exec(query,
+			strings.TrimSpace(cfg.Fantasia),
+			strings.TrimSpace(cfg.RazaoSocial),
+			cnpj,
+			strings.TrimSpace(cfg.Responsavel),
+			strings.TrimSpace(cfg.Fones),
+			strings.TrimSpace(cfg.EmailContato),
+			strings.TrimSpace(cfg.Endereco),
+			strings.TrimSpace(cfg.Cidade),
+			vtReais,
+			vtCentavos,
+			strings.TrimSpace(cfg.TermoGarantia),
+			strings.TrimSpace(cfg.TermoResponsabilidade),
+			strings.TrimSpace(cfg.ObsPadrao),
+			strings.TrimSpace(cfg.CustomPresets),
+			cfg.LogoBase64,
+			strings.TrimSpace(cfg.CorPrimaria),
+			strings.TrimSpace(cfg.CorSecundaria),
+			modulosAtivos,
+			autoLogoutEnabled,
+			autoLogoutMinutos,
+			cfg.Versao,
+		)
+	} else {
+		query := `UPDATE config SET 
+			fantasia = ?, razao_social = ?, cnpj = ?, responsavel = ?, 
+			fones = ?, email_contato = ?, endereco = ?, cidade = ?,
+			vt_valor_padrao = ?, vt_valor_padrao_centavos = ?,
+			termo_garantia = ?, termo_responsabilidade = ?, obs_padrao = ?, custom_presets = ?, 
+			logo_base64 = ?, cor_primaria = ?, cor_secundaria = ?, modulos_ativos = ?,
+			auto_logout_enabled = ?, auto_logout_minutos = ?,
+			versao = versao + 1
+			WHERE id = 1`
+		res, err = d.Writer.Exec(query,
+			strings.TrimSpace(cfg.Fantasia),
+			strings.TrimSpace(cfg.RazaoSocial),
+			cnpj,
+			strings.TrimSpace(cfg.Responsavel),
+			strings.TrimSpace(cfg.Fones),
+			strings.TrimSpace(cfg.EmailContato),
+			strings.TrimSpace(cfg.Endereco),
+			strings.TrimSpace(cfg.Cidade),
+			vtReais,
+			vtCentavos,
+			strings.TrimSpace(cfg.TermoGarantia),
+			strings.TrimSpace(cfg.TermoResponsabilidade),
+			strings.TrimSpace(cfg.ObsPadrao),
+			strings.TrimSpace(cfg.CustomPresets),
+			cfg.LogoBase64,
+			strings.TrimSpace(cfg.CorPrimaria),
+			strings.TrimSpace(cfg.CorSecundaria),
+			modulosAtivos,
+			autoLogoutEnabled,
+			autoLogoutMinutos,
+		)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to update configuration: %w", err)
 	}
@@ -90,6 +148,9 @@ func (d *DB) UpdateConfig(cfg *models.Config) error {
 		return err
 	}
 	if rows == 0 {
+		if cfg.Versao > 0 {
+			return ErrVersionConflict
+		}
 		return errors.New("no configuration rows were updated")
 	}
 	return nil

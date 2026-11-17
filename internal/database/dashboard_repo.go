@@ -5,17 +5,18 @@ import (
 	"fmt"
 
 	"optimanager/internal/models"
+	"optimanager/internal/money"
 )
 
-// GetDashboardData computes consolidated metrics and summaries in a single indexed query.
+// GetDashboardData computes consolidated metrics (in exact integer centavos) and summaries.
 func (d *DB) GetDashboardData() (*models.DashboardData, error) {
-	// 1. Consolidated metrics
+	// 1. Consolidated metrics in centavos
 	metricsQuery := `
 		SELECT
-			COALESCE(SUM(CASE WHEN data_emissao = DATE('now', 'localtime') AND status = 'Concluído' THEN valor_total ELSE 0 END), 0) AS faturamento_hoje,
-			COALESCE(SUM(CASE WHEN status = 'Concluído' AND pagamento_status = 'Pago' THEN valor_total ELSE 0 END), 0) AS caixa_recebido,
-			COALESCE(SUM(CASE WHEN status = 'Concluído' AND pagamento_status = 'Pendente' THEN valor_total ELSE 0 END), 0) AS pendente_receber,
-			COALESCE(SUM(CASE WHEN status = 'Concluído' THEN valor_total ELSE 0 END), 0) AS faturamento_total,
+			COALESCE(SUM(CASE WHEN data_emissao = DATE('now', 'localtime') AND status = 'Concluído' THEN valor_total_centavos ELSE 0 END), 0) AS faturamento_hoje_centavos,
+			COALESCE(SUM(CASE WHEN status = 'Concluído' AND pagamento_status = 'Pago' THEN valor_total_centavos ELSE 0 END), 0) AS caixa_recebido_centavos,
+			COALESCE(SUM(CASE WHEN status = 'Concluído' AND pagamento_status = 'Pendente' THEN valor_total_centavos ELSE 0 END), 0) AS pendente_receber_centavos,
+			COALESCE(SUM(CASE WHEN status = 'Concluído' THEN valor_total_centavos ELSE 0 END), 0) AS faturamento_total_centavos,
 			COALESCE(SUM(CASE WHEN status != 'Concluído' THEN 1 ELSE 0 END), 0) AS qtd_abertos,
 			COALESCE(SUM(CASE WHEN status = 'Concluído' AND pagamento_status = 'Pendente' THEN 1 ELSE 0 END), 0) AS qtd_pendentes
 		FROM ordens_servico;
@@ -23,10 +24,10 @@ func (d *DB) GetDashboardData() (*models.DashboardData, error) {
 
 	var metricas models.DashboardMetricas
 	err := d.Reader.QueryRow(metricsQuery).Scan(
-		&metricas.FaturamentoHoje,
-		&metricas.CaixaRecebido,
-		&metricas.PendenteReceber,
-		&metricas.FaturamentoTotal,
+		&metricas.FaturamentoHojeCentavos,
+		&metricas.CaixaRecebidoCentavos,
+		&metricas.PendenteReceberCentavos,
+		&metricas.FaturamentoTotalCentavos,
 		&metricas.QtdAbertos,
 		&metricas.QtdPendentes,
 	)
@@ -34,13 +35,18 @@ func (d *DB) GetDashboardData() (*models.DashboardData, error) {
 		return nil, fmt.Errorf("failed to compute dashboard metrics: %w", err)
 	}
 
+	metricas.FaturamentoHoje = money.CentavosToReais(metricas.FaturamentoHojeCentavos)
+	metricas.CaixaRecebido = money.CentavosToReais(metricas.CaixaRecebidoCentavos)
+	metricas.PendenteReceber = money.CentavosToReais(metricas.PendenteReceberCentavos)
+	metricas.FaturamentoTotal = money.CentavosToReais(metricas.FaturamentoTotalCentavos)
+
 	// 2. Open service orders (limited to 10 latest)
 	abertosQuery := `
 		SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
 		       os.status, os.cliente_id,
 		       c.nome, c.doc, c.contato,
-		       os.equipamento, os.servico, os.obs_tecnicas, os.valor_total,
-		       os.pagamento_status, os.pagamento_forma, os.pago_em, os.created_at
+		       os.equipamento, os.servico, os.obs_tecnicas, os.valor_total_centavos,
+		       os.pagamento_status, os.pagamento_forma, os.pago_em, os.versao, os.created_at
 		FROM ordens_servico os
 		INNER JOIN clientes c ON c.id = os.cliente_id
 		WHERE os.status != 'Concluído'
@@ -57,8 +63,8 @@ func (d *DB) GetDashboardData() (*models.DashboardData, error) {
 		SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
 		       os.status, os.cliente_id,
 		       c.nome, c.doc, c.contato,
-		       os.equipamento, os.servico, os.obs_tecnicas, os.valor_total,
-		       os.pagamento_status, os.pagamento_forma, os.pago_em, os.created_at
+		       os.equipamento, os.servico, os.obs_tecnicas, os.valor_total_centavos,
+		       os.pagamento_status, os.pagamento_forma, os.pago_em, os.versao, os.created_at
 		FROM ordens_servico os
 		INNER JOIN clientes c ON c.id = os.cliente_id
 		WHERE os.status = 'Concluído' AND os.pagamento_status = 'Pendente'
@@ -103,12 +109,13 @@ func (d *DB) fetchOrdens(query string, args ...interface{}) ([]models.OrdemServi
 			&os.ID, &os.DataEmissao, &os.HoraEmissao, &os.DataEntrega, &os.HoraEntrega,
 			&os.Status, &os.ClienteID,
 			&os.ClienteNome, &os.ClienteDoc, &os.ClienteContato,
-			&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotal,
-			&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.CreatedAt,
+			&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotalCentavos,
+			&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.Versao, &os.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
+		os.ValorTotal = money.CentavosToReais(os.ValorTotalCentavos)
 		if pagoEm.Valid {
 			os.PagoEm = &pagoEm.Time
 		}

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -39,6 +40,12 @@ func (h *OrdemHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !userCanViewValues(r) {
+		for i := range ordens {
+			ordens[i].RedactValues()
+		}
+	}
+
 	respondJSON(w, http.StatusOK, ordens)
 }
 
@@ -58,6 +65,10 @@ func (h *OrdemHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	if os == nil {
 		respondError(w, http.StatusNotFound, "Service order not found")
 		return
+	}
+
+	if !userCanViewValues(r) {
+		os.RedactValues()
 	}
 
 	respondJSON(w, http.StatusOK, os)
@@ -85,6 +96,10 @@ func (h *OrdemHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !userCanViewValues(r) {
+		novaOS.RedactValues()
+	}
+
 	respondJSON(w, http.StatusCreated, novaOS)
 }
 
@@ -109,12 +124,20 @@ func (h *OrdemHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	osAtualizada, err := h.db.UpdateOrdem(id, &req)
 	if err != nil {
+		if errors.Is(err, database.ErrVersionConflict) {
+			respondVersionConflict(w)
+			return
+		}
 		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return
 		}
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	if !userCanViewValues(r) {
+		osAtualizada.RedactValues()
 	}
 
 	respondJSON(w, http.StatusOK, osAtualizada)
@@ -152,6 +175,10 @@ func (h *OrdemHandler) BaixaPagamento(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	if !userCanViewValues(r) && os != nil {
+		os.RedactValues()
 	}
 
 	respondJSON(w, http.StatusOK, os)
@@ -199,6 +226,10 @@ func (h *OrdemHandler) DownloadPDF(w http.ResponseWriter, r *http.Request) {
 	if os == nil {
 		respondError(w, http.StatusNotFound, "Service order not found")
 		return
+	}
+
+	if !userCanViewValues(r) {
+		os.RedactValues()
 	}
 
 	cfg, err := h.db.GetConfig()
@@ -275,6 +306,11 @@ func (h *OrdemHandler) Batch(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case "delete":
+		u := currentUserFromRequest(r)
+		if u != nil && !u.HasPermission(models.PermExcluir) {
+			respondError(w, http.StatusForbidden, "Você não possui permissão para excluir ordens de serviço.")
+			return
+		}
 		if err := h.db.BatchDeleteOrdens(req.IDs); err != nil {
 			respondError(w, http.StatusInternalServerError, err.Error())
 			return

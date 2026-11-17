@@ -9,6 +9,7 @@ type AuditLog struct {
 	IP          string    `json:"ip"`
 	Acao        string    `json:"acao"`
 	Detalhe     string    `json:"detalhe"`
+	Entidade    string    `json:"entidade,omitempty"`
+	EntidadeID  string    `json:"entidade_id,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
-

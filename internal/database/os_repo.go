@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"optimanager/internal/models"
+	"optimanager/internal/money"
 )
 
 // ListOrdens queries service orders with client join, filtering and textual search.
@@ -18,8 +19,8 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 	query := `SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
 	                 os.status, os.cliente_id,
 	                 c.nome, c.doc, c.contato,
-	                 os.equipamento, os.servico, os.obs_tecnicas, os.valor_total,
-	                 os.pagamento_status, os.pagamento_forma, os.pago_em, os.created_at
+	                 os.equipamento, os.servico, os.obs_tecnicas, os.valor_total_centavos,
+	                 os.pagamento_status, os.pagamento_forma, os.pago_em, os.versao, os.created_at
 	          FROM ordens_servico os
 	          INNER JOIN clientes c ON c.id = os.cliente_id
 	          WHERE 1=1`
@@ -66,13 +67,14 @@ func (d *DB) ListOrdens(filtroStatus, busca string) ([]models.OrdemServico, erro
 			&os.ID, &os.DataEmissao, &os.HoraEmissao, &os.DataEntrega, &os.HoraEntrega,
 			&os.Status, &os.ClienteID,
 			&os.ClienteNome, &os.ClienteDoc, &os.ClienteContato,
-			&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotal,
-			&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.CreatedAt,
+			&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotalCentavos,
+			&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.Versao, &os.CreatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan service order: %w", err)
 		}
 
+		os.ValorTotal = money.CentavosToReais(os.ValorTotalCentavos)
 		if pagoEm.Valid {
 			os.PagoEm = &pagoEm.Time
 		}
@@ -89,8 +91,8 @@ func (d *DB) GetOrdemByID(id int64) (*models.OrdemServico, error) {
 	query := `SELECT os.id, os.data_emissao, os.hora_emissao, os.data_entrega, os.hora_entrega,
 	                 os.status, os.cliente_id,
 	                 c.nome, c.doc, c.contato,
-	                 os.equipamento, os.servico, os.obs_tecnicas, os.valor_total,
-	                 os.pagamento_status, os.pagamento_forma, os.pago_em, os.created_at
+	                 os.equipamento, os.servico, os.obs_tecnicas, os.valor_total_centavos,
+	                 os.pagamento_status, os.pagamento_forma, os.pago_em, os.versao, os.created_at
 	          FROM ordens_servico os
 	          INNER JOIN clientes c ON c.id = os.cliente_id
 	          WHERE os.id = ?`
@@ -102,8 +104,8 @@ func (d *DB) GetOrdemByID(id int64) (*models.OrdemServico, error) {
 		&os.ID, &os.DataEmissao, &os.HoraEmissao, &os.DataEntrega, &os.HoraEntrega,
 		&os.Status, &os.ClienteID,
 		&os.ClienteNome, &os.ClienteDoc, &os.ClienteContato,
-		&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotal,
-		&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.CreatedAt,
+		&os.Equipamento, &os.Servico, &os.ObsTecnicas, &os.ValorTotalCentavos,
+		&os.PagamentoStatus, &os.PagamentoForma, &pagoEm, &os.Versao, &os.CreatedAt,
 	)
 
 	if err != nil {
@@ -113,6 +115,7 @@ func (d *DB) GetOrdemByID(id int64) (*models.OrdemServico, error) {
 		return nil, fmt.Errorf("failed to get order #%d: %w", id, err)
 	}
 
+	os.ValorTotal = money.CentavosToReais(os.ValorTotalCentavos)
 	if pagoEm.Valid {
 		os.PagoEm = &pagoEm.Time
 	}
@@ -140,8 +143,8 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 	var cliente *models.Cliente
 	if req.ClienteID > 0 {
 		cliente = &models.Cliente{ID: req.ClienteID}
-		err = tx.QueryRow(`SELECT nome, doc, contato, desde_ano, created_at FROM clientes WHERE id = ?`, req.ClienteID).
-			Scan(&cliente.Nome, &cliente.Doc, &cliente.Contato, &cliente.DesdeAno, &cliente.CreatedAt)
+		err = tx.QueryRow(`SELECT nome, doc, contato, desde_ano, versao, created_at FROM clientes WHERE id = ?`, req.ClienteID).
+			Scan(&cliente.Nome, &cliente.Doc, &cliente.Contato, &cliente.DesdeAno, &cliente.Versao, &cliente.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("client #%d not found: %w", req.ClienteID, err)
 		}
@@ -155,10 +158,13 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 		}
 	}
 
-	// 2. Business rules: Technical Visit (VT) shortcut
+	// 2. Business rules: Technical Visit (VT) shortcut and centavos resolution
 	equipamento := strings.TrimSpace(req.Equipamento)
 	servico := strings.TrimSpace(req.Servico)
-	valor := req.ValorTotal
+	valorCentavos := req.ValorTotalCentavos
+	if valorCentavos == 0 && req.ValorTotal != 0 {
+		valorCentavos = money.ReaisToCentavos(req.ValorTotal)
+	}
 
 	if req.IsVT {
 		if equipamento == "" || strings.EqualFold(equipamento, "N/A") {
@@ -167,18 +173,20 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 		if !strings.HasPrefix(strings.ToUpper(servico), "VT - ") {
 			servico = "VT - " + servico
 		}
-		if valor <= 0 {
-			var vtPadrao float64
-			_ = tx.QueryRow(`SELECT vt_valor_padrao FROM config WHERE id = 1`).Scan(&vtPadrao)
-			if vtPadrao > 0 {
-				valor = vtPadrao
+		if valorCentavos <= 0 {
+			var vtPadraoCentavos int64
+			_ = tx.QueryRow(`SELECT vt_valor_padrao_centavos FROM config WHERE id = 1`).Scan(&vtPadraoCentavos)
+			if vtPadraoCentavos > 0 {
+				valorCentavos = vtPadraoCentavos
 			} else {
-				valor = 80.00
+				valorCentavos = 8000
 			}
 		}
 	} else if equipamento == "" {
 		equipamento = "N/A"
 	}
+
+	valorReais := money.CentavosToReais(valorCentavos)
 
 	// 3. Field defaults
 	dataEmissao := strings.TrimSpace(req.DataEmissao)
@@ -217,8 +225,8 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 	// 4. Insert into database
 	query := `INSERT INTO ordens_servico (
 		data_emissao, hora_emissao, data_entrega, hora_entrega, status, cliente_id, equipamento, servico, 
-		obs_tecnicas, valor_total, pagamento_status, pagamento_forma, pago_em
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		obs_tecnicas, valor_total, valor_total_centavos, pagamento_status, pagamento_forma, pago_em, versao
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`
 
 	res, err := tx.Exec(query,
 		dataEmissao,
@@ -230,7 +238,8 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 		equipamento,
 		servico,
 		strings.TrimSpace(req.ObsTecnicas),
-		valor,
+		valorReais,
+		valorCentavos,
 		pagamentoStatus,
 		pagamentoForma,
 		pagoEm,
@@ -252,23 +261,25 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 	_ = d.Reader.QueryRow(`SELECT cnpj, fantasia FROM config WHERE id = 1`).Scan(&cnpj, &fantasia)
 
 	novaOS := &models.OrdemServico{
-		ID:              id,
-		DataEmissao:     dataEmissao,
-		HoraEmissao:     horaEmissao,
-		DataEntrega:     dataEntrega,
-		HoraEntrega:     horaEntrega,
-		Status:          status,
-		ClienteID:       cliente.ID,
-		ClienteNome:     cliente.Nome,
-		ClienteDoc:      cliente.Doc,
-		ClienteContato:  cliente.Contato,
-		Equipamento:     equipamento,
-		Servico:         servico,
-		ObsTecnicas:     req.ObsTecnicas,
-		ValorTotal:      valor,
-		PagamentoStatus: pagamentoStatus,
-		PagamentoForma:  pagamentoForma,
-		CreatedAt:       time.Now(),
+		ID:                 id,
+		DataEmissao:        dataEmissao,
+		HoraEmissao:        horaEmissao,
+		DataEntrega:        dataEntrega,
+		HoraEntrega:        horaEntrega,
+		Status:             status,
+		ClienteID:          cliente.ID,
+		ClienteNome:        cliente.Nome,
+		ClienteDoc:         cliente.Doc,
+		ClienteContato:     cliente.Contato,
+		Equipamento:        equipamento,
+		Servico:            servico,
+		ObsTecnicas:        req.ObsTecnicas,
+		ValorTotal:         valorReais,
+		ValorTotalCentavos: valorCentavos,
+		PagamentoStatus:    pagamentoStatus,
+		PagamentoForma:     pagamentoForma,
+		Versao:             1,
+		CreatedAt:          time.Now(),
 	}
 	if pagoEm.Valid {
 		novaOS.PagoEm = &pagoEm.Time
@@ -278,7 +289,7 @@ func (d *DB) CreateOrdem(req *models.CreateOrdemRequest) (*models.OrdemServico, 
 	return novaOS, nil
 }
 
-// UpdateOrdem updates an existing service order record.
+// UpdateOrdem updates an existing service order record with optimistic concurrency checking when req.Versao > 0.
 func (d *DB) UpdateOrdem(id int64, req *models.UpdateOrdemRequest) (*models.OrdemServico, error) {
 	if strings.TrimSpace(req.Servico) == "" {
 		return nil, errors.New("service description is required")
@@ -292,13 +303,17 @@ func (d *DB) UpdateOrdem(id int64, req *models.UpdateOrdemRequest) (*models.Orde
 
 	var osExistente models.OrdemServico
 	var pagoEmExistente sql.NullTime
-	err = tx.QueryRow(`SELECT id, status, cliente_id, pagamento_status, pago_em FROM ordens_servico WHERE id = ?`, id).
-		Scan(&osExistente.ID, &osExistente.Status, &osExistente.ClienteID, &osExistente.PagamentoStatus, &pagoEmExistente)
+	err = tx.QueryRow(`SELECT id, status, cliente_id, pagamento_status, pago_em, versao FROM ordens_servico WHERE id = ?`, id).
+		Scan(&osExistente.ID, &osExistente.Status, &osExistente.ClienteID, &osExistente.PagamentoStatus, &pagoEmExistente, &osExistente.Versao)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("service order not found")
 		}
 		return nil, err
+	}
+
+	if req.Versao > 0 && req.Versao != osExistente.Versao {
+		return nil, ErrVersionConflict
 	}
 
 	clienteID := osExistente.ClienteID
@@ -348,14 +363,21 @@ func (d *DB) UpdateOrdem(id int64, req *models.UpdateOrdemRequest) (*models.Orde
 	dataEntrega := strings.TrimSpace(req.DataEntrega)
 	horaEntrega := strings.TrimSpace(req.HoraEntrega)
 
+	valorCentavos := req.ValorTotalCentavos
+	if valorCentavos == 0 && req.ValorTotal != 0 {
+		valorCentavos = money.ReaisToCentavos(req.ValorTotal)
+	}
+	valorReais := money.CentavosToReais(valorCentavos)
+
 	updateQuery := `UPDATE ordens_servico SET 
 		data_emissao = ?, hora_emissao = ?, data_entrega = ?, hora_entrega = ?,
 		status = ?, cliente_id = ?, equipamento = ?, 
-		servico = ?, obs_tecnicas = ?, valor_total = ?, pagamento_status = ?, 
-		pagamento_forma = ?, pago_em = ?
-		WHERE id = ?`
+		servico = ?, obs_tecnicas = ?, valor_total = ?, valor_total_centavos = ?,
+		pagamento_status = ?, pagamento_forma = ?, pago_em = ?,
+		versao = versao + 1
+		WHERE id = ? AND versao = ?`
 
-	_, err = tx.Exec(updateQuery,
+	res, err := tx.Exec(updateQuery,
 		dataEmissao,
 		horaEmissao,
 		dataEntrega,
@@ -365,14 +387,20 @@ func (d *DB) UpdateOrdem(id int64, req *models.UpdateOrdemRequest) (*models.Orde
 		equipamento,
 		strings.TrimSpace(req.Servico),
 		strings.TrimSpace(req.ObsTecnicas),
-		req.ValorTotal,
+		valorReais,
+		valorCentavos,
 		pagamentoStatus,
 		pagamentoForma,
 		pagoEm,
 		id,
+		osExistente.Versao,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update service order: %w", err)
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return nil, ErrVersionConflict
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -399,14 +427,14 @@ func (d *DB) UpdatePagamento(id int64, forma, status string) error {
 	if status == "Pago" {
 		res, err = d.Writer.Exec(
 			`UPDATE ordens_servico 
-			 SET status = 'Concluído', pagamento_status = 'Pago', pagamento_forma = ?, pago_em = CURRENT_TIMESTAMP 
+			 SET status = 'Concluído', pagamento_status = 'Pago', pagamento_forma = ?, pago_em = CURRENT_TIMESTAMP, versao = versao + 1 
 			 WHERE id = ?`,
 			forma, id,
 		)
 	} else {
 		res, err = d.Writer.Exec(
 			`UPDATE ordens_servico 
-			 SET pagamento_status = ?, pagamento_forma = ?, pago_em = NULL 
+			 SET pagamento_status = ?, pagamento_forma = ?, pago_em = NULL, versao = versao + 1 
 			 WHERE id = ?`,
 			status, forma, id,
 		)
@@ -460,7 +488,7 @@ func (d *DB) BatchBaixaOrdens(ids []int64, forma string) error {
 	}
 
 	query := fmt.Sprintf(`UPDATE ordens_servico 
-		SET status = 'Concluído', pagamento_status = 'Pago', pagamento_forma = ?, pago_em = CURRENT_TIMESTAMP 
+		SET status = 'Concluído', pagamento_status = 'Pago', pagamento_forma = ?, pago_em = CURRENT_TIMESTAMP, versao = versao + 1 
 		WHERE id IN (%s)`, strings.Join(placeholders, ","))
 
 	_, err := d.Writer.Exec(query, args...)
@@ -485,7 +513,7 @@ func (d *DB) BatchUpdateStatusOrdens(ids []int64, status string) error {
 		args[i+1] = id
 	}
 
-	query := fmt.Sprintf(`UPDATE ordens_servico SET status = ? WHERE id IN (%s)`, strings.Join(placeholders, ","))
+	query := fmt.Sprintf(`UPDATE ordens_servico SET status = ?, versao = versao + 1 WHERE id IN (%s)`, strings.Join(placeholders, ","))
 	_, err := d.Writer.Exec(query, args...)
 	return err
 }
@@ -505,17 +533,17 @@ func (d *DB) BatchDuplicarOrdens(ids []int64) ([]*models.OrdemServico, error) {
 	var novas []*models.OrdemServico
 	for _, id := range ids {
 		var o models.OrdemServico
-		err := tx.QueryRow(`SELECT cliente_id, equipamento, servico, obs_tecnicas, valor_total, pagamento_forma 
+		err := tx.QueryRow(`SELECT cliente_id, equipamento, servico, obs_tecnicas, valor_total, valor_total_centavos, pagamento_forma 
 			FROM ordens_servico WHERE id = ?`, id).
-			Scan(&o.ClienteID, &o.Equipamento, &o.Servico, &o.ObsTecnicas, &o.ValorTotal, &o.PagamentoForma)
+			Scan(&o.ClienteID, &o.Equipamento, &o.Servico, &o.ObsTecnicas, &o.ValorTotal, &o.ValorTotalCentavos, &o.PagamentoForma)
 		if err != nil {
 			continue
 		}
 
 		res, err := tx.Exec(`INSERT INTO ordens_servico 
-			(data_emissao, hora_emissao, status, cliente_id, equipamento, servico, obs_tecnicas, valor_total, pagamento_status, pagamento_forma)
-			VALUES (DATE('now', 'localtime'), TIME('now', 'localtime'), 'Orçamento', ?, ?, ?, ?, ?, 'Pendente', ?)`,
-			o.ClienteID, o.Equipamento, o.Servico, o.ObsTecnicas, o.ValorTotal, o.PagamentoForma)
+			(data_emissao, hora_emissao, status, cliente_id, equipamento, servico, obs_tecnicas, valor_total, valor_total_centavos, pagamento_status, pagamento_forma, versao)
+			VALUES (DATE('now', 'localtime'), TIME('now', 'localtime'), 'Orçamento', ?, ?, ?, ?, ?, ?, 'Pendente', ?, 1)`,
+			o.ClienteID, o.Equipamento, o.Servico, o.ObsTecnicas, o.ValorTotal, o.ValorTotalCentavos, o.PagamentoForma)
 		if err != nil {
 			return nil, err
 		}

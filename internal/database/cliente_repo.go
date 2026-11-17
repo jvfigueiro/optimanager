@@ -18,14 +18,14 @@ func (d *DB) ListClientes(search string) ([]models.Cliente, error) {
 
 	if search == "" {
 		rows, err = d.Reader.Query(
-			`SELECT id, nome, doc, contato, desde_ano, created_at 
+			`SELECT id, nome, doc, contato, desde_ano, versao, created_at 
 			 FROM clientes 
 			 ORDER BY nome COLLATE NOCASE ASC`,
 		)
 	} else {
 		pattern := "%" + search + "%"
 		rows, err = d.Reader.Query(
-			`SELECT id, nome, doc, contato, desde_ano, created_at 
+			`SELECT id, nome, doc, contato, desde_ano, versao, created_at 
 			 FROM clientes 
 			 WHERE nome LIKE ? OR doc LIKE ? OR contato LIKE ?
 			 ORDER BY nome COLLATE NOCASE ASC`,
@@ -41,7 +41,7 @@ func (d *DB) ListClientes(search string) ([]models.Cliente, error) {
 	clientes := make([]models.Cliente, 0, 16)
 	for rows.Next() {
 		var c models.Cliente
-		if err := rows.Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.Versao, &c.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan client: %w", err)
 		}
 		clientes = append(clientes, c)
@@ -54,11 +54,11 @@ func (d *DB) ListClientes(search string) ([]models.Cliente, error) {
 func (d *DB) GetClienteByID(id int64) (*models.Cliente, error) {
 	var c models.Cliente
 	err := d.Reader.QueryRow(
-		`SELECT id, nome, doc, contato, desde_ano, created_at 
+		`SELECT id, nome, doc, contato, desde_ano, versao, created_at 
 		 FROM clientes 
 		 WHERE id = ?`,
 		id,
-	).Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.CreatedAt)
+	).Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.Versao, &c.CreatedAt)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -81,18 +81,17 @@ func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.
 	var c models.Cliente
 	var err error
 
-	queryExisting := `SELECT id, nome, doc, contato, desde_ano, created_at 
+	queryExisting := `SELECT id, nome, doc, contato, desde_ano, versao, created_at 
 	                  FROM clientes 
 	                  WHERE nome = ? COLLATE NOCASE`
 
 	if tx != nil {
-		err = tx.QueryRow(queryExisting, nome).Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.CreatedAt)
+		err = tx.QueryRow(queryExisting, nome).Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.Versao, &c.CreatedAt)
 	} else {
-		err = d.Writer.QueryRow(queryExisting, nome).Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.CreatedAt)
+		err = d.Writer.QueryRow(queryExisting, nome).Scan(&c.ID, &c.Nome, &c.Doc, &c.Contato, &c.DesdeAno, &c.Versao, &c.CreatedAt)
 	}
 
 	if err == nil {
-		// Client exists; update empty fields if new details were supplied
 		needsUpdate := false
 		if c.Doc == "" && doc != "" {
 			c.Doc = doc
@@ -104,12 +103,13 @@ func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.
 		}
 
 		if needsUpdate {
-			updateQuery := `UPDATE clientes SET doc = ?, contato = ? WHERE id = ?`
+			updateQuery := `UPDATE clientes SET doc = ?, contato = ?, versao = versao + 1 WHERE id = ?`
 			if tx != nil {
 				_, _ = tx.Exec(updateQuery, c.Doc, c.Contato, c.ID)
 			} else {
 				_, _ = d.Writer.Exec(updateQuery, c.Doc, c.Contato, c.ID)
 			}
+			c.Versao++
 		}
 
 		return &c, nil
@@ -119,9 +119,8 @@ func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.
 		return nil, fmt.Errorf("failed to check existing client: %w", err)
 	}
 
-	// Create new client with current year
 	desdeAno := time.Now().Year()
-	insertQuery := `INSERT INTO clientes (nome, doc, contato, desde_ano) VALUES (?, ?, ?, ?)`
+	insertQuery := `INSERT INTO clientes (nome, doc, contato, desde_ano, versao) VALUES (?, ?, ?, ?, 1)`
 
 	var res sql.Result
 	if tx != nil {
@@ -145,6 +144,7 @@ func (d *DB) GetOrCreateCliente(tx *sql.Tx, nome, doc, contato string) (*models.
 		Doc:       doc,
 		Contato:   contato,
 		DesdeAno:  desdeAno,
+		Versao:    1,
 		CreatedAt: time.Now(),
 	}, nil
 }
@@ -162,7 +162,7 @@ func (d *DB) CreateCliente(c *models.Cliente) error {
 	}
 
 	res, err := d.Writer.Exec(
-		`INSERT INTO clientes (nome, doc, contato, desde_ano) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO clientes (nome, doc, contato, desde_ano, versao) VALUES (?, ?, ?, ?, 1)`,
 		c.Nome, c.Doc, c.Contato, c.DesdeAno,
 	)
 	if err != nil {
@@ -177,11 +177,12 @@ func (d *DB) CreateCliente(c *models.Cliente) error {
 		return err
 	}
 	c.ID = id
+	c.Versao = 1
 	c.CreatedAt = time.Now()
 	return nil
 }
 
-// UpdateCliente updates client information.
+// UpdateCliente updates client information with optimistic concurrency checking when Versao > 0.
 func (d *DB) UpdateCliente(c *models.Cliente) error {
 	c.Nome = strings.TrimSpace(c.Nome)
 	if c.Nome == "" {
@@ -190,12 +191,23 @@ func (d *DB) UpdateCliente(c *models.Cliente) error {
 	c.Doc = strings.TrimSpace(c.Doc)
 	c.Contato = strings.TrimSpace(c.Contato)
 
-	res, err := d.Writer.Exec(
-		`UPDATE clientes 
-		 SET nome = ?, doc = ?, contato = ?, desde_ano = ? 
-		 WHERE id = ?`,
-		c.Nome, c.Doc, c.Contato, c.DesdeAno, c.ID,
-	)
+	var res sql.Result
+	var err error
+	if c.Versao > 0 {
+		res, err = d.Writer.Exec(
+			`UPDATE clientes 
+			 SET nome = ?, doc = ?, contato = ?, desde_ano = ?, versao = versao + 1 
+			 WHERE id = ? AND versao = ?`,
+			c.Nome, c.Doc, c.Contato, c.DesdeAno, c.ID, c.Versao,
+		)
+	} else {
+		res, err = d.Writer.Exec(
+			`UPDATE clientes 
+			 SET nome = ?, doc = ?, contato = ?, desde_ano = ?, versao = versao + 1 
+			 WHERE id = ?`,
+			c.Nome, c.Doc, c.Contato, c.DesdeAno, c.ID,
+		)
+	}
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
 			return errors.New("another client with this name already exists")
@@ -208,7 +220,16 @@ func (d *DB) UpdateCliente(c *models.Cliente) error {
 		return err
 	}
 	if rows == 0 {
+		if c.Versao > 0 {
+			existing, _ := d.GetClienteByID(c.ID)
+			if existing != nil {
+				return ErrVersionConflict
+			}
+		}
 		return errors.New("client not found")
+	}
+	if updated, _ := d.GetClienteByID(c.ID); updated != nil {
+		*c = *updated
 	}
 	return nil
 }

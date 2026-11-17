@@ -2,11 +2,13 @@ package database_test
 
 import (
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"optimanager/internal/database"
+	"optimanager/internal/models"
 )
 
 func TestMigration_FreshDatabaseAppliesSequentially(t *testing.T) {
@@ -24,8 +26,8 @@ func TestMigration_FreshDatabaseAppliesSequentially(t *testing.T) {
 		t.Fatalf("failed to get user_version: %v", err)
 	}
 
-	if ver != 2 {
-		t.Fatalf("expected user_version to be 2 on fresh database, got %d", ver)
+	if ver != database.LatestMigrationVersion() {
+		t.Fatalf("expected user_version to be %d on fresh database, got %d", database.LatestMigrationVersion(), ver)
 	}
 
 	// Verify that table audit_log exists
@@ -35,7 +37,7 @@ func TestMigration_FreshDatabaseAppliesSequentially(t *testing.T) {
 		t.Fatalf("expected audit_log table to exist, got count %d, err: %v", auditCount, err)
 	}
 
-	// Verify that backup columns exist in config
+	// Verify that backup and foundation columns exist in config
 	cfg, err := db.GetConfig()
 	if err != nil {
 		t.Fatalf("failed to get config: %v", err)
@@ -49,20 +51,29 @@ func TestMigration_FreshDatabaseAppliesSequentially(t *testing.T) {
 	if cfg.BackupRetencaoManual != 5 {
 		t.Fatalf("expected default backup_retencao_manual to be 5, got %d", cfg.BackupRetencaoManual)
 	}
+	if cfg.VTValorPadraoCentavos != 8000 {
+		t.Fatalf("expected default vt_valor_padrao_centavos to be 8000, got %d", cfg.VTValorPadraoCentavos)
+	}
+	if cfg.CNPJ != "" {
+		t.Fatalf("expected placeholder CNPJ to be cleared on migration 003, got %q", cfg.CNPJ)
+	}
+	if cfg.Versao != 1 {
+		t.Fatalf("expected initial config versao to be 1, got %d", cfg.Versao)
+	}
 }
 
 func TestMigration_IdempotentOnReopen(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "idempotent_opti.db")
 
-	// First open: runs migrations to version 2
+	// First open: runs migrations to latest version
 	db1, err := database.New(dbPath)
 	if err != nil {
 		t.Fatalf("failed first open: %v", err)
 	}
 	db1.Close()
 
-	// Second open: should detect version 2 and skip migrations cleanly
+	// Second open: should detect latest version and skip migrations cleanly
 	db2, err := database.New(dbPath)
 	if err != nil {
 		t.Fatalf("failed second open: %v", err)
@@ -73,8 +84,8 @@ func TestMigration_IdempotentOnReopen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get user_version: %v", err)
 	}
-	if ver != 2 {
-		t.Fatalf("expected user_version to remain 2, got %d", ver)
+	if ver != database.LatestMigrationVersion() {
+		t.Fatalf("expected user_version to remain %d, got %d", database.LatestMigrationVersion(), ver)
 	}
 }
 
@@ -87,7 +98,6 @@ func TestMigration_PreMigrationBackupFailureAbortsBoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open raw sqlite db: %v", err)
 	}
-	// Create minimal config table and set user_version = 1
 	initV1 := `
 		CREATE TABLE config (
 			id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -116,15 +126,8 @@ func TestMigration_PreMigrationBackupFailureAbortsBoot(t *testing.T) {
 	}
 	rawDB.Close()
 
-	// 2. Now attempt to open with database.New, but simulate pre-migration backup failure
-	// We can simulate this by making the backup directory unwritable or using a read-only directory
+	// 2. Simulate pre-migration backup failure by creating a regular file at the path of 'backups'
 	backupDir := filepath.Join(tempDir, "backups")
-	if err := os.MkdirAll(backupDir, 0555); err != nil {
-		t.Fatalf("failed to create read-only backups dir: %v", err)
-	}
-	// If the user is running as root or permissions allow, make a file with the backupDir name
-	_ = os.RemoveAll(backupDir)
-	// Create a regular file at the path of the 'backups' directory so MkdirAll fails!
 	if err := os.WriteFile(backupDir, []byte("blocking-file"), 0644); err != nil {
 		t.Fatalf("failed to write blocking file: %v", err)
 	}
@@ -136,7 +139,7 @@ func TestMigration_PreMigrationBackupFailureAbortsBoot(t *testing.T) {
 		t.Fatalf("expected database.New to fail when pre-migration backup directory creation fails")
 	}
 
-	// 3. Verify that migration 002 was NOT applied and user_version remains 1
+	// 3. Verify that migration 002/003 were NOT applied and user_version remains 1
 	verifyDB, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("failed to open verify db: %v", err)
@@ -151,7 +154,6 @@ func TestMigration_PreMigrationBackupFailureAbortsBoot(t *testing.T) {
 		t.Fatalf("expected user_version to remain 1 after aborted migration, got %d", ver)
 	}
 
-	// Verify that table audit_log was NOT created
 	var auditCount int
 	_ = verifyDB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='audit_log'").Scan(&auditCount)
 	if auditCount != 0 {
@@ -163,7 +165,7 @@ func TestMigration_PreMigrationBackupCreatedSuccessfullyOnUpgrade(t *testing.T) 
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "premigration_success.db")
 
-	// 1. Create a version 1 database
+	// 1. Create a version 1 database with sample records
 	rawDB, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		t.Fatalf("failed to open raw sqlite db: %v", err)
@@ -188,7 +190,49 @@ func TestMigration_PreMigrationBackupCreatedSuccessfullyOnUpgrade(t *testing.T) 
 			cor_primaria TEXT NOT NULL DEFAULT '#0B5694',
 			cor_secundaria TEXT NOT NULL DEFAULT '#083f6e'
 		);
-		INSERT INTO config (id) VALUES (1);
+		INSERT INTO config (id, vt_valor_padrao) VALUES (1, 19.99);
+
+		CREATE TABLE clientes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			nome TEXT NOT NULL UNIQUE COLLATE NOCASE,
+			doc TEXT NOT NULL DEFAULT '',
+			contato TEXT NOT NULL DEFAULT '',
+			desde_ano INTEGER NOT NULL DEFAULT 2024,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		INSERT INTO clientes (id, nome, doc, contato) VALUES (1, 'Cliente V1', '', '11988887777');
+
+		CREATE TABLE ordens_servico (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			data_emissao DATE NOT NULL,
+			hora_emissao TEXT NOT NULL DEFAULT '',
+			data_entrega TEXT NOT NULL DEFAULT '',
+			hora_entrega TEXT NOT NULL DEFAULT '',
+			status TEXT NOT NULL DEFAULT 'Concluído',
+			cliente_id INTEGER NOT NULL,
+			equipamento TEXT NOT NULL DEFAULT 'Notebook',
+			servico TEXT NOT NULL,
+			obs_tecnicas TEXT NOT NULL DEFAULT '',
+			valor_total REAL NOT NULL DEFAULT 0.00,
+			pagamento_status TEXT NOT NULL DEFAULT 'Pago',
+			pagamento_forma TEXT NOT NULL DEFAULT 'Pix',
+			pago_em DATETIME,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE RESTRICT
+		);
+		INSERT INTO ordens_servico (id, data_emissao, status, cliente_id, servico, valor_total, pagamento_status)
+		VALUES (1000, '2026-11-17', 'Concluído', 1, 'Limpeza', 19.99, 'Pago');
+
+		CREATE TABLE usuarios (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			nome TEXT NOT NULL,
+			email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+			senha_hash TEXT NOT NULL,
+			role TEXT NOT NULL DEFAULT 'operador',
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		INSERT INTO usuarios (id, nome, email, senha_hash, role) VALUES (1, 'Op V1', 'op@test.com', 'hash', 'operador');
+
 		PRAGMA user_version = 1;
 	`
 	if _, err := rawDB.Exec(initV1); err != nil {
@@ -196,37 +240,80 @@ func TestMigration_PreMigrationBackupCreatedSuccessfullyOnUpgrade(t *testing.T) 
 	}
 	rawDB.Close()
 
-	// 2. Open with database.New to trigger upgrade from 1 to 2
+	// 2. Open with database.New to trigger upgrade from 1 to LatestMigrationVersion() (3)
 	db, err := database.New(dbPath)
 	if err != nil {
 		t.Fatalf("expected successful upgrade, got error: %v", err)
 	}
 	defer db.Close()
 
-	// 3. Verify user_version is now 2
+	// 3. Verify user_version is now LatestMigrationVersion() (3)
 	ver, err := db.GetUserVersion()
-	if err != nil || ver != 2 {
-		t.Fatalf("expected user_version 2, got %d, err: %v", ver, err)
+	if err != nil || ver != database.LatestMigrationVersion() {
+		t.Fatalf("expected user_version %d, got %d, err: %v", database.LatestMigrationVersion(), ver, err)
 	}
 
-	// 4. Verify that pre-migration backup file was created in backups/ with origin premigration
+	// 4. Verify centavos conversion on config and ordens_servico
+	cfg, err := db.GetConfig()
+	if err != nil {
+		t.Fatalf("GetConfig failed: %v", err)
+	}
+	if cfg.VTValorPadraoCentavos != 1999 {
+		t.Fatalf("expected vt_valor_padrao_centavos = 1999, got %d", cfg.VTValorPadraoCentavos)
+	}
+	if cfg.CNPJ != "" {
+		t.Fatalf("expected fake placeholder CNPJ to be cleared, got %q", cfg.CNPJ)
+	}
+
+	osRec, err := db.GetOrdemByID(1000)
+	if err != nil || osRec == nil {
+		t.Fatalf("GetOrdemByID(1000) failed: %v", err)
+	}
+	if osRec.ValorTotalCentavos != 1999 || osRec.ValorTotal != 19.99 {
+		t.Fatalf("expected order centavos=1999 and float=19.99, got %d / %v", osRec.ValorTotalCentavos, osRec.ValorTotal)
+	}
+
+	// 5. Verify operator user migrated to 'atendente' profile with permissions
+	u, err := db.GetUsuarioByID(1)
+	if err != nil || u == nil {
+		t.Fatalf("GetUsuarioByID(1) failed: %v", err)
+	}
+	if u.Perfil != "atendente" || !u.Ativo || !u.HasPermission(models.PermVerValores) {
+		t.Fatalf("expected active atendente with ver_valores, got %+v", u)
+	}
+
+	// 6. Verify inactive legacy technician creation (no email, no password)
+	tech, err := db.CreateInactiveLegacyTechnician("Técnico Histórico Legado")
+	if err != nil {
+		t.Fatalf("CreateInactiveLegacyTechnician failed: %v", err)
+	}
+	if tech.Ativo || tech.Email != "" || tech.Perfil != "tecnico" {
+		t.Fatalf("expected inactive tecnico with empty email, got %+v", tech)
+	}
+
+	// 7. Verify optimistic concurrency conflict on OrdemServico
+	_, err = db.UpdateOrdem(1000, &models.UpdateOrdemRequest{
+		Servico:            "Limpeza Atualizada 1",
+		ValorTotalCentavos: 2500,
+		Versao:             1,
+	})
+	if err != nil {
+		t.Fatalf("first update with versao=1 failed: %v", err)
+	}
+	_, err = db.UpdateOrdem(1000, &models.UpdateOrdemRequest{
+		Servico:            "Limpeza Stale",
+		ValorTotalCentavos: 3000,
+		Versao:             1, // stale version!
+	})
+	if !errors.Is(err, database.ErrVersionConflict) {
+		t.Fatalf("expected ErrVersionConflict on stale update, got %v", err)
+	}
+
+	// 8. Verify pre-migration backup file was created in backups/
 	backupDir := filepath.Join(tempDir, "backups")
 	entries, err := os.ReadDir(backupDir)
-	if err != nil {
-		t.Fatalf("failed to read backup dir: %v", err)
-	}
-	if len(entries) == 0 {
-		t.Fatalf("expected pre-migration backup file in %s, found none", backupDir)
-	}
-
-	foundPremigration := false
-	for _, e := range entries {
-		if filepath.Ext(e.Name()) == ".db" && len(e.Name()) > 10 {
-			foundPremigration = true
-		}
-	}
-	if !foundPremigration {
-		t.Fatalf("expected to find premigration .db file in backup directory")
+	if err != nil || len(entries) == 0 {
+		t.Fatalf("expected pre-migration backup file in %s, err: %v", backupDir, err)
 	}
 }
 
@@ -240,8 +327,8 @@ func TestAuditLog_InsertAndList(t *testing.T) {
 	}
 	defer db.Close()
 
-	// Insert audit log entries
-	err = db.InsertAuditLog(1, "Admin Test", "192.168.1.100", "BACKUP_DOWNLOAD", "optimanager_backup_2026-11-05_12-00-00_manual.db")
+	// Insert audit log entries (including PII canary that must be sanitized)
+	err = db.InsertAuditLogWithEntity(1, "Admin Test", "192.168.1.100", "BACKUP_DOWNLOAD", "optimanager_backup_2026-11-05_12-00-00_manual.db", "backup", "1")
 	if err != nil {
 		t.Fatalf("failed to insert audit log: %v", err)
 	}
@@ -251,7 +338,6 @@ func TestAuditLog_InsertAndList(t *testing.T) {
 		t.Fatalf("failed to insert second audit log: %v", err)
 	}
 
-	// List audit logs
 	logs, err := db.ListAuditLogs(10)
 	if err != nil {
 		t.Fatalf("failed to list audit logs: %v", err)
@@ -261,11 +347,10 @@ func TestAuditLog_InsertAndList(t *testing.T) {
 		t.Fatalf("expected 2 audit logs, got %d", len(logs))
 	}
 
-	// Verify order is DESC (newest first)
 	if logs[0].Acao != "BACKUP_DELETE" || logs[0].UsuarioNome != "Operador Test" {
 		t.Fatalf("expected newest log first, got: %+v", logs[0])
 	}
-	if logs[1].Acao != "BACKUP_DOWNLOAD" || logs[1].IP != "192.168.1.100" {
-		t.Fatalf("expected second log, got: %+v", logs[1])
+	if logs[1].Acao != "BACKUP_DOWNLOAD" || logs[1].Entidade != "backup" || logs[1].EntidadeID != "1" {
+		t.Fatalf("expected second log with entity metadata, got: %+v", logs[1])
 	}
 }

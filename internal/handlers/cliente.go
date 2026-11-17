@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -101,6 +102,10 @@ func (h *ClienteHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.UpdateCliente(&c); err != nil {
+		if errors.Is(err, database.ErrVersionConflict) {
+			respondVersionConflict(w)
+			return
+		}
 		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, err.Error())
 			return

@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -17,11 +19,24 @@ import (
 
 	"optimanager/internal/database"
 	"optimanager/internal/handlers"
+	"optimanager/internal/legacy/dbf"
+	"optimanager/internal/models"
 	"optimanager/internal/services/backup"
 	"optimanager/ui"
 )
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "profile-dbf":
+			if err := runProfileDBF(os.Args[2:]); err != nil {
+				fmt.Fprintf(os.Stderr, "[profile-dbf] Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
+
 	log.Println("[OptiManager] Initializing server...")
 
 	// 1. Initialize SQLite database connection and migrations
@@ -95,6 +110,7 @@ func main() {
 			ar.Post("/restore", backupHandler.RestoreInitial)
 			ar.Post("/login", authHandler.Login)
 			ar.Post("/logout", authHandler.Logout)
+			ar.With(authHandler.RequireAuth).Get("/me", authHandler.Me)
 		})
 
 		// Protected private routes
@@ -106,11 +122,11 @@ func main() {
 			// Clients
 			priv.Route("/clientes", func(cr chi.Router) {
 				cr.Get("/", clienteHandler.List)
-				cr.Post("/", clienteHandler.Create)
-				cr.Post("/batch", clienteHandler.Batch)
+				cr.With(authHandler.RequirePermission(models.PermGerenciarClientes)).Post("/", clienteHandler.Create)
+				cr.With(authHandler.RequirePermission(models.PermExcluir)).Post("/batch", clienteHandler.Batch)
 				cr.Get("/{id}", clienteHandler.GetByID)
-				cr.Put("/{id}", clienteHandler.Update)
-				cr.Delete("/{id}", clienteHandler.Delete)
+				cr.With(authHandler.RequirePermission(models.PermGerenciarClientes)).Put("/{id}", clienteHandler.Update)
+				cr.With(authHandler.RequirePermission(models.PermExcluir)).Delete("/{id}", clienteHandler.Delete)
 			})
 
 			// Service Orders
@@ -121,8 +137,8 @@ func main() {
 				or.Get("/{id}", ordemHandler.GetByID)
 				or.Get("/{id}/pdf", ordemHandler.DownloadPDF)
 				or.Put("/{id}", ordemHandler.Update)
-				or.Delete("/{id}", ordemHandler.Delete)
-				or.Patch("/{id}/baixa", ordemHandler.BaixaPagamento)
+				or.With(authHandler.RequirePermission(models.PermExcluir)).Delete("/{id}", ordemHandler.Delete)
+				or.With(authHandler.RequirePermission(models.PermVerFinanceiro)).Patch("/{id}/baixa", ordemHandler.BaixaPagamento)
 			})
 
 			// Quick Shortcuts (Read for all, mutations for Admin)
@@ -234,4 +250,42 @@ func main() {
 	}
 
 	log.Println("[OptiManager] Server stopped successfully.")
+}
+
+func runProfileDBF(args []string) error {
+	fs := flag.NewFlagSet("profile-dbf", flag.ContinueOnError)
+	encoding := fs.String("encoding", "", "Override DBF character encoding (cp1252, cp850, cp437, utf-8)")
+	asJSON := fs.Bool("json", false, "Output report in JSON format")
+
+	// Allow flags either before or after positional directory argument
+	var positional []string
+	var flagArgs []string
+	for i := 0; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "-") {
+			flagArgs = append(flagArgs, args[i])
+			if (args[i] == "-encoding" || args[i] == "--encoding") && i+1 < len(args) {
+				i++
+				flagArgs = append(flagArgs, args[i])
+			}
+		} else {
+			positional = append(positional, args[i])
+		}
+	}
+
+	if err := fs.Parse(flagArgs); err != nil {
+		return err
+	}
+	positional = append(positional, fs.Args()...)
+	if len(positional) == 0 {
+		return errors.New("usage: optimanager profile-dbf <directory> [--encoding cp1252|cp850] [--json]")
+	}
+
+	dirPath := positional[0]
+	prof, err := dbf.ProfileDirectory(dirPath, dbf.Options{
+		Encoding: *encoding,
+	})
+	if err != nil {
+		return err
+	}
+	return dbf.WriteReport(os.Stdout, prof, *asJSON)
 }

@@ -11,6 +11,7 @@ type Config struct {
 	Endereco              string  `json:"endereco"`
 	Cidade                string  `json:"cidade"`
 	VTValorPadrao         float64 `json:"vt_valor_padrao"`
+	VTValorPadraoCentavos int64   `json:"vt_valor_padrao_centavos"`
 	TermoGarantia         string  `json:"termo_garantia"`
 	TermoResponsabilidade string  `json:"termo_responsabilidade"`
 	ObsPadrao             string  `json:"obs_padrao"`
@@ -18,6 +19,8 @@ type Config struct {
 	LogoBase64            string  `json:"logo_base64"`
 	CorPrimaria           string  `json:"cor_primaria"`
 	CorSecundaria         string  `json:"cor_secundaria"`
+	ModulosAtivos         string  `json:"modulos_ativos"`
+	Versao                int64   `json:"versao"`
 
 	// Backup configuration fields
 	BackupAutoEnabled          int    `json:"backup_auto_enabled"`

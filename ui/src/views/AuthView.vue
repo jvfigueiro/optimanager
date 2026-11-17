@@ -183,8 +183,8 @@ function avancarParaEmpresa() {
 }
 
 async function handleSalvarEmpresa() {
-  if (!fantasia.value.trim() || !razaoSocial.value.trim() || !cnpj.value.trim() || !cidade.value.trim()) {
-    toast.show('Preencha Marca/Nome Fantasia, Razão Social, CNPJ e Cidade.', 'error')
+  if (!fantasia.value.trim() || !razaoSocial.value.trim() || !cidade.value.trim()) {
+    toast.show('Preencha Nome da Empresa, Razão Social e Cidade.', 'error')
     return
   }
 
@@ -840,12 +840,11 @@ async function handleLogin() {
               <!-- CNPJ -->
               <div>
                 <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  CNPJ (ou CPF) *
+                  CNPJ (opcional)
                 </label>
                 <input
                   type="text"
                   v-model="cnpj"
-                  required
                   placeholder="00.000.000/0001-00"
                   class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-opti"
                 />

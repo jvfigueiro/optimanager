@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"optimanager/internal/database"
@@ -33,6 +34,10 @@ func (h *ConfigHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.db.UpdateConfig(&cfg); err != nil {
+		if errors.Is(err, database.ErrVersionConflict) {
+			respondVersionConflict(w)
+			return
+		}
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

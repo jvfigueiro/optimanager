@@ -53,15 +53,17 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 			ar.Post("/setup", authH.Setup)
 			ar.Post("/login", authH.Login)
 			ar.Post("/logout", authH.Logout)
+			ar.With(authH.RequireAuth).Get("/me", authH.Me)
 		})
 
 		api.Group(func(protected chi.Router) {
 			protected.Use(authH.RequireAuth)
 
 			protected.Get("/dashboard", dashH.Get)
-			protected.Put("/config", cfgH.Update)
+			protected.With(authH.RequireAdmin).Put("/config", cfgH.Update)
 
 			protected.Route("/usuarios", func(ur chi.Router) {
+				ur.Use(authH.RequireAdmin)
 				ur.Get("/", authH.ListUsuarios)
 				ur.Post("/", authH.CreateUsuario)
 				ur.Put("/{id}", authH.UpdateUsuario)
@@ -69,23 +71,26 @@ func setupTestServer(t *testing.T) (*chi.Mux, *database.DB, func()) {
 			})
 			protected.Route("/clientes", func(cr chi.Router) {
 				cr.Get("/", cliH.List)
-				cr.Post("/", cliH.Create)
-				cr.Post("/batch", cliH.Batch)
-				cr.Delete("/{id}", cliH.Delete)
+				cr.With(authH.RequirePermission(models.PermGerenciarClientes)).Post("/", cliH.Create)
+				cr.With(authH.RequirePermission(models.PermExcluir)).Post("/batch", cliH.Batch)
+				cr.Get("/{id}", cliH.GetByID)
+				cr.With(authH.RequirePermission(models.PermGerenciarClientes)).Put("/{id}", cliH.Update)
+				cr.With(authH.RequirePermission(models.PermExcluir)).Delete("/{id}", cliH.Delete)
 			})
 			protected.Route("/ordens", func(or chi.Router) {
 				or.Get("/", osH.List)
 				or.Post("/", osH.Create)
 				or.Post("/batch", osH.Batch)
+				or.Get("/{id}", osH.GetByID)
 				or.Put("/{id}", osH.Update)
-				or.Delete("/{id}", osH.Delete)
-				or.Patch("/{id}/baixa", osH.BaixaPagamento)
+				or.With(authH.RequirePermission(models.PermExcluir)).Delete("/{id}", osH.Delete)
+				or.With(authH.RequirePermission(models.PermVerFinanceiro)).Patch("/{id}/baixa", osH.BaixaPagamento)
 			})
 			protected.Route("/atalhos", func(ar chi.Router) {
 				ar.Get("/", atH.List)
-				ar.Post("/", atH.Create)
-				ar.Put("/{id}", atH.Update)
-				ar.Delete("/{id}", atH.Delete)
+				ar.With(authH.RequireAdmin).Post("/", atH.Create)
+				ar.With(authH.RequireAdmin).Put("/{id}", atH.Update)
+				ar.With(authH.RequireAdmin).Delete("/{id}", atH.Delete)
 			})
 		})
 	})
@@ -395,3 +400,132 @@ func TestCreateOrdemAndAutoClient(t *testing.T) {
 		t.Fatalf("batch client delete failed: %s", wBatchCli.Body.String())
 	}
 }
+
+func TestPermissionsVerValoresAndOptimisticConcurrency(t *testing.T) {
+	r, db, teardown := setupTestServer(t)
+	defer teardown()
+
+	adminToken := setupAdminAndGetToken(t, r)
+	adminAuth := "Bearer " + adminToken
+
+	// 1. Verify /api/auth/me returns effective permissions for administrator
+	wMe := httptest.NewRecorder()
+	reqMe := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
+	reqMe.Header.Set("Authorization", adminAuth)
+	r.ServeHTTP(wMe, reqMe)
+	if wMe.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /api/auth/me, got %d", wMe.Code)
+	}
+	var adminUser models.Usuario
+	_ = json.NewDecoder(wMe.Body).Decode(&adminUser)
+	if adminUser.Perfil != "administrador" || !adminUser.HasPermission(models.PermVerValores) {
+		t.Fatalf("expected administrador with ver_valores, got %+v", adminUser)
+	}
+
+	// 2. Create an order worth R$ 150,00 (15000 centavos)
+	wCreateOS := httptest.NewRecorder()
+	reqCreateOS := httptest.NewRequest(http.MethodPost, "/api/ordens", strings.NewReader(`{"servico":"Reparo Placa","cliente_nome":"Cliente Valor","valor_total_centavos":15000,"status":"Concluído","pagamento_status":"Pago"}`))
+	reqCreateOS.Header.Set("Authorization", adminAuth)
+	reqCreateOS.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wCreateOS, reqCreateOS)
+	if wCreateOS.Code != http.StatusCreated {
+		t.Fatalf("expected 201 creating order, got %d: %s", wCreateOS.Code, wCreateOS.Body.String())
+	}
+	var createdOS models.OrdemServico
+	_ = json.NewDecoder(wCreateOS.Body).Decode(&createdOS)
+	if createdOS.ValorTotalCentavos != 15000 || createdOS.ValorTotal != 150.0 || createdOS.Versao != 1 {
+		t.Fatalf("expected 15000 centavos and versao=1, got %+v", createdOS)
+	}
+
+	// 3. Test optimistic concurrency on PUT /api/ordens/{id}: two updates with versao=1 -> one 200, one 409 version_conflict
+	updateBody1 := `{"servico":"Reparo Placa v2","valor_total_centavos":16000,"versao":1}`
+	wUpd1 := httptest.NewRecorder()
+	reqUpd1 := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/ordens/%d", createdOS.ID), strings.NewReader(updateBody1))
+	reqUpd1.Header.Set("Authorization", adminAuth)
+	reqUpd1.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wUpd1, reqUpd1)
+	if wUpd1.Code != http.StatusOK {
+		t.Fatalf("expected 200 on first update with versao=1, got %d: %s", wUpd1.Code, wUpd1.Body.String())
+	}
+
+	wUpdStale := httptest.NewRecorder()
+	reqUpdStale := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/ordens/%d", createdOS.ID), strings.NewReader(updateBody1))
+	reqUpdStale.Header.Set("Authorization", adminAuth)
+	reqUpdStale.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wUpdStale, reqUpdStale)
+	if wUpdStale.Code != http.StatusConflict || !strings.Contains(wUpdStale.Body.String(), "version_conflict") {
+		t.Fatalf("expected 409 version_conflict on stale update, got %d: %s", wUpdStale.Code, wUpdStale.Body.String())
+	}
+
+	// 4. Create a 'tecnico' user (lacks ver_valores and lacks excluir)
+	techUser, err := db.CreateUsuarioWithProfile("Tecnico Lab", "tec@optimanager.com", "senha123", "operador", "tecnico", true)
+	if err != nil {
+		t.Fatalf("failed to create tecnico user: %v", err)
+	}
+	wLogin := httptest.NewRecorder()
+	reqLogin := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"email":"tec@optimanager.com","senha":"senha123"}`))
+	reqLogin.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wLogin, reqLogin)
+	if wLogin.Code != http.StatusOK {
+		t.Fatalf("expected 200 on tecnico login, got %d", wLogin.Code)
+	}
+	var loginResp models.AuthResponse
+	_ = json.NewDecoder(wLogin.Body).Decode(&loginResp)
+	techAuth := "Bearer " + loginResp.Token
+
+	// 5. Verify ver_valores filters out monetary values in /api/ordens and /api/dashboard for tecnico
+	wListOS := httptest.NewRecorder()
+	reqListOS := httptest.NewRequest(http.MethodGet, "/api/ordens", nil)
+	reqListOS.Header.Set("Authorization", techAuth)
+	r.ServeHTTP(wListOS, reqListOS)
+	var techOrdens []models.OrdemServico
+	_ = json.NewDecoder(wListOS.Body).Decode(&techOrdens)
+	if len(techOrdens) == 0 || techOrdens[0].ValorTotal != 0 || techOrdens[0].ValorTotalCentavos != 0 {
+		t.Fatalf("expected monetary values to be redacted (0) for tecnico without ver_valores, got %+v", techOrdens)
+	}
+
+	wDashTech := httptest.NewRecorder()
+	reqDashTech := httptest.NewRequest(http.MethodGet, "/api/dashboard", nil)
+	reqDashTech.Header.Set("Authorization", techAuth)
+	r.ServeHTTP(wDashTech, reqDashTech)
+	var techDash models.DashboardData
+	_ = json.NewDecoder(wDashTech.Body).Decode(&techDash)
+	if techDash.Metricas.FaturamentoTotal != 0 || techDash.Metricas.FaturamentoTotalCentavos != 0 {
+		t.Fatalf("expected dashboard monetary metrics to be redacted (0) for tecnico, got %+v", techDash.Metricas)
+	}
+
+	// 6. Verify RequirePermission blocks DELETE /api/ordens/{id} for tecnico and logs acesso.negado in audit_log
+	wDelDenied := httptest.NewRecorder()
+	reqDelDenied := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/ordens/%d", createdOS.ID), nil)
+	reqDelDenied.Header.Set("Authorization", techAuth)
+	r.ServeHTTP(wDelDenied, reqDelDenied)
+	if wDelDenied.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 when tecnico attempts delete without excluir permission, got %d", wDelDenied.Code)
+	}
+
+	logs, err := db.ListAuditLogs(10)
+	if err != nil || len(logs) == 0 || logs[0].Acao != "acesso.negado" || logs[0].UsuarioID != techUser.ID {
+		t.Fatalf("expected acesso.negado in audit_log, got %+v (err=%v)", logs, err)
+	}
+
+	// 7. Verify inactive user cannot log in or use existing token
+	f := false
+	_, err = db.UpdateUsuarioFull(techUser.ID, &models.UpdateUsuarioRequest{
+		Nome:   techUser.Nome,
+		Email:  techUser.Email,
+		Perfil: "tecnico",
+		Ativo:  &f,
+	})
+	if err != nil {
+		t.Fatalf("failed to deactivate user: %v", err)
+	}
+
+	wInactiveMe := httptest.NewRecorder()
+	reqInactiveMe := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
+	reqInactiveMe.Header.Set("Authorization", techAuth)
+	r.ServeHTTP(wInactiveMe, reqInactiveMe)
+	if wInactiveMe.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for deactivated user's token, got %d", wInactiveMe.Code)
+	}
+}
+

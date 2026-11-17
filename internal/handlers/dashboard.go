@@ -21,6 +21,9 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !userCanViewValues(r) {
+		data.RedactValues()
+	}
+
 	respondJSON(w, http.StatusOK, data)
 }
-

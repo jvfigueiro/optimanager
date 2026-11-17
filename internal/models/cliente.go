@@ -8,6 +8,7 @@ type Cliente struct {
 	Doc       string    `json:"doc"`
 	Contato   string    `json:"contato"`
 	DesdeAno  int       `json:"desde_ano"`
+	Versao    int64     `json:"versao"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -23,4 +24,3 @@ type BatchClientesResponse struct {
 	Failed  []int64 `json:"failed"`
 	Message string  `json:"message"`
 }
-

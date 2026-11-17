@@ -51,6 +51,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       if (errJson && errJson.error) {
         errorMsg = errJson.error
       }
+      if (response.status === 409 && errJson && errJson.code === 'version_conflict') {
+        window.dispatchEvent(
+          new CustomEvent('optimanager:version-conflict', {
+            detail: { message: errorMsg, endpoint },
+          })
+        )
+      }
     } catch {
       // ignora se não for JSON
     }

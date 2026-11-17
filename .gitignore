@@ -15,12 +15,26 @@ bin/
 
 # Database files & SQLite Snapshots
 data/
-*.db
-*.db-shm
-*.db-wal
-*.db.tmp
-*.sqlite
-*.sqlite3
+*.[dD][bB]
+*.[dD][bB]-shm
+*.[dD][bB]-wal
+*.[dD][bB].tmp
+*.[sS][qQ][lL][iI][tT][eE]
+*.[sS][qQ][lL][iI][tT][eE]3
+*.[bB][aA][kK]
+
+# Legacy database exports (xBase/FoxPro/Clipper) - contain customer data, NEVER COMMIT
+*.[dD][bB][fF]
+*.[dD][bB][tT]
+*.[fF][pP][tT]
+*.[cC][dD][xX]
+*.[nN][tT][xX]
+*.[mM][dD][xX]
+*.[iI][dD][xX]
+*.[zZ][iI][pP]
+*.[cC][sS][vV]
+legacy-data/
+testdata-private/
 
 # Logs & Audit
 *.log
@@ -37,7 +51,6 @@ ui/dist/
 *.tmp
 *.swp
 *.swo
-*.csv
 
 # OS & Editor configurations
 .DS_Store
@@ -46,16 +59,3 @@ Thumbs.db
 .idea/
 *.sublime-project
 *.sublime-workspace
-
-# Legacy database exports (xBase/FoxPro) - contain real customer data, NEVER COMMIT
-*.dbf
-*.DBF
-*.dbt
-*.DBT
-*.fpt
-*.FPT
-*.cdx
-*.CDX
-*.zip
-legacy-data/
-testdata-private/
