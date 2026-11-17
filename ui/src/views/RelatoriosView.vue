@@ -57,6 +57,7 @@ const docCliente = ref('')
 const docCpfCnpj = ref('')
 const docEquipamento = ref('')
 const docValor = ref(0)
+const docProblemaInformado = ref('')
 const docServico = ref('')
 const docObs = ref('')
 const docData = ref('')
@@ -75,9 +76,7 @@ const tempObs = ref('')
 const isSavingCustomTerms = ref(false)
 
 onMounted(async () => {
-  if (!configStore.config.termo_garantia) {
-    await configStore.loadConfig()
-  }
+  await configStore.loadConfig()
 
   docTermoGarantia.value =
     configStore.config.termo_garantia ||
@@ -415,9 +414,21 @@ function imprimirDocumento() {
           </div>
         </div>
 
-        <div>
+        <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false">
           <label class="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-            Descritivo Detalhado / Serviços Realizados
+            {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+          </label>
+          <textarea
+            v-model="docProblemaInformado"
+            rows="2"
+            placeholder="Sintoma ou relato informado pelo cliente..."
+            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-opti"
+          ></textarea>
+        </div>
+
+        <div v-if="configStore.presets.os_secao_servico_exec_ativa !== false">
+          <label class="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+            {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
           </label>
           <textarea
             v-model="docServico"
@@ -540,10 +551,20 @@ function imprimirDocumento() {
               </div>
             </div>
 
-            <!-- Serviço Solicitado -->
-            <div class="text-[11px] space-y-0.5">
+            <!-- Problema Informado (1ª Via) -->
+            <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false && docProblemaInformado" class="text-[11px] space-y-0.5">
               <span class="font-bold text-slate-800 uppercase text-[9px] tracking-wide block">
-                Serviço / Descrição Técnica:
+                {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+              </span>
+              <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
+                {{ docProblemaInformado }}
+              </div>
+            </div>
+
+            <!-- Serviço Solicitado / Executado (1ª Via) -->
+            <div v-if="configStore.presets.os_secao_servico_exec_ativa !== false" class="text-[11px] space-y-0.5">
+              <span class="font-bold text-slate-800 uppercase text-[9px] tracking-wide block">
+                {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
               </span>
               <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
                 {{ docServico }}
@@ -636,10 +657,20 @@ function imprimirDocumento() {
               </div>
             </div>
 
-            <!-- Serviço Solicitado -->
-            <div class="text-[11px] space-y-0.5">
+            <!-- Problema Informado (1ª Via) -->
+            <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false && docProblemaInformado" class="text-[11px] space-y-0.5">
               <span class="font-bold text-slate-800 uppercase text-[9px] tracking-wide block">
-                Serviço / Descrição Técnica:
+                {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+              </span>
+              <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
+                {{ docProblemaInformado }}
+              </div>
+            </div>
+
+            <!-- Serviço Solicitado / Executado (1ª Via) -->
+            <div v-if="configStore.presets.os_secao_servico_exec_ativa !== false" class="text-[11px] space-y-0.5">
+              <span class="font-bold text-slate-800 uppercase text-[9px] tracking-wide block">
+                {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
               </span>
               <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
                 {{ docServico }}
@@ -720,15 +751,26 @@ function imprimirDocumento() {
                 <div class="col-span-2"><strong>Equipamento:</strong> {{ docEquipamento }}</div>
               </div>
 
-              <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
-                Descrição dos Serviços Realizados
-              </div>
-              <div class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed space-y-2">
-                <p class="whitespace-pre-line text-slate-900">{{ docServico }}</p>
-                <div v-if="docObs" class="pt-2 border-t border-slate-300 font-semibold text-opti">
-                  Parâmetros / Observações Técnicas: {{ docObs }}
+              <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false && docProblemaInformado" class="space-y-2">
+                <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+                  {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+                </div>
+                <div class="p-3 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed whitespace-pre-line text-slate-900">
+                  {{ docProblemaInformado }}
                 </div>
               </div>
+
+              <template v-if="configStore.presets.os_secao_servico_exec_ativa !== false">
+                <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+                  {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
+                </div>
+                <div class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed space-y-2">
+                  <p class="whitespace-pre-line text-slate-900">{{ docServico }}</p>
+                  <div v-if="docObs" class="pt-2 border-t border-slate-300 font-semibold text-opti">
+                    Parâmetros / Observações Técnicas: {{ docObs }}
+                  </div>
+                </div>
+              </template>
 
               <div v-if="docTermoGarantia" class="flex items-start gap-2 p-3 bg-white border border-opti/60 rounded-lg text-[11px] text-slate-800">
                 <ShieldCheck class="w-4 h-4 text-opti shrink-0 mt-0.5" />
