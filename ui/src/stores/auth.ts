@@ -146,6 +146,24 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function hasPermission(perm: string): boolean {
+    const u = user.value
+    if (!u || u.ativo === false) return false
+    if (u.role === 'admin' || u.perfil === 'administrador') return true
+    return Array.isArray(u.permissoes) && u.permissoes.includes(perm)
+  }
+
+  async function refreshMe() {
+    try {
+      const me = await api.getMe()
+      user.value = me
+      isAuthenticated.value = true
+      return me
+    } catch {
+      return null
+    }
+  }
+
   return {
     user,
     needsSetup,
@@ -153,6 +171,8 @@ export const useAuthStore = defineStore('auth', () => {
     initialized,
     loading,
     usuarios,
+    hasPermission,
+    refreshMe,
     checkStatus,
     setupAdmin,
     completeSetup,

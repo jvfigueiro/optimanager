@@ -78,6 +78,7 @@ export const api = {
 
   // Auth
   getAuthStatus: () => request<AuthStatusResponse>('/auth/status'),
+  getMe: () => request<Usuario>('/auth/me'),
   setupAdmin: (payload: SetupAdminPayload) =>
     request<AuthResponse>('/auth/setup', {
       method: 'POST',

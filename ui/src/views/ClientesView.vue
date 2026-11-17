@@ -137,6 +137,7 @@ async function handleUpdateClient() {
       nome: editNome.value.trim(),
       doc: editDoc.value.trim(),
       contato: editContato.value.trim(),
+      versao: editingClient.value.versao,
     })
     closeEdit()
   } catch (err) {
