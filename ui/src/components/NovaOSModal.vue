@@ -202,7 +202,7 @@ async function handleSalvarEImprimir() {
     @click.self="nav.closeNovaOS()"
   >
     <div
-      class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[92vh] flex flex-col"
+      class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-3xl lg:max-w-4xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[92vh] flex flex-col"
     >
       <!-- Header do Modal -->
       <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center shrink-0">
@@ -290,10 +290,10 @@ async function handleSalvarEImprimir() {
             v-if="configStore.presets.marcas_visivel !== false || configStore.presets.modelos_visivel !== false"
             class="grid grid-cols-1 sm:grid-cols-2 gap-3"
           >
-            <!-- Caixa Marcas / Fabricantes -->
+            <!-- Caixa Fabricante -->
             <div v-if="configStore.presets.marcas_visivel !== false">
               <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                {{ configStore.presets.marcas_titulo || 'Marcas / Fabricantes' }}
+                {{ configStore.presets.marcas_titulo || 'Fabricante' }}
               </label>
               <input
                 type="text"
@@ -321,10 +321,10 @@ async function handleSalvarEImprimir() {
               </div>
             </div>
 
-            <!-- Caixa Modelos / Tipos / Categorias de Item -->
+            <!-- Caixa Modelo -->
             <div v-if="configStore.presets.modelos_visivel !== false" :class="{ 'sm:col-span-2': configStore.presets.marcas_visivel === false }">
               <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                {{ configStore.presets.modelos_titulo || 'Modelos / Tipos / Categorias de Item' }}
+                {{ configStore.presets.modelos_titulo || 'Modelo' }}
               </label>
               <input
                 type="text"
@@ -354,49 +354,55 @@ async function handleSalvarEImprimir() {
           </div>
         </div>
 
-        <!-- Problema Informado (conforme Configurações de OS e Serviços) -->
-        <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false">
-          <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-            {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
-          </label>
-          <textarea
-            v-model="problemaInformado"
-            rows="2"
-            placeholder="Sintoma ou defeito relatado pelo cliente..."
-            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
-          ></textarea>
-        </div>
+        <!-- Seções de Texto (lado a lado em telas grandes) -->
+        <div
+          class="grid grid-cols-1 gap-3.5"
+          :class="configStore.presets.os_secao_problema_inf_ativa !== false ? 'lg:grid-cols-2' : ''"
+        >
+          <!-- Descrição do Serviço / Problema Informado -->
+          <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false">
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              {{ configStore.presets.os_secao_problema_inf_rotulo || 'Descrição do Serviço' }}
+            </label>
+            <textarea
+              v-model="problemaInformado"
+              rows="3"
+              placeholder="Sintoma ou relato informado pelo cliente..."
+              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
+            ></textarea>
+          </div>
 
-        <!-- Serviço Executado / Descrição do Serviço -->
-        <div>
-          <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-            {{
-              configStore.presets.os_secao_servico_exec_ativa !== false
-                ? (configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:')
-                : 'Descrição do Serviço'
-            }} *
-          </label>
-          <textarea
-            v-model="servico"
-            rows="3"
-            required
-            placeholder="O que foi executado ou precisa ser orçado..."
-            class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
-          ></textarea>
+          <!-- Serviço / Caixa personalizada 2 -->
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
+              {{
+                configStore.presets.os_secao_servico_exec_ativa === true
+                  ? (configStore.presets.os_secao_servico_exec_rotulo || 'Caixa personalizada 2')
+                  : 'Serviço'
+              }} *
+            </label>
+            <textarea
+              v-model="servico"
+              rows="3"
+              required
+              placeholder="O que foi executado ou precisa ser orçado..."
+              class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-opti"
+            ></textarea>
 
-          <!-- Sugestões de Serviços Frequentes (Aparecem apenas ao digitar) -->
-          <div v-if="matchingServicos.length > 0" class="flex flex-wrap items-center gap-1.5 mt-1.5">
-            <span class="text-[10px] text-slate-400 font-semibold">Sugestões:</span>
-            <button
-              v-for="s in matchingServicos"
-              :key="s"
-              type="button"
-              @click="selectServico(s)"
-              class="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-700 text-opti dark:text-blue-300 border border-blue-200 dark:border-slate-600 hover:bg-opti hover:text-white transition text-[11px] truncate max-w-xs"
-              :title="s"
-            >
-              + {{ s }}
-            </button>
+            <!-- Sugestões de Serviços Comuns (Aparecem apenas ao digitar) -->
+            <div v-if="matchingServicos.length > 0" class="flex flex-wrap items-center gap-1.5 mt-1.5">
+              <span class="text-[10px] text-slate-400 font-semibold">Sugestões:</span>
+              <button
+                v-for="s in matchingServicos"
+                :key="s"
+                type="button"
+                @click="selectServico(s)"
+                class="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-slate-700 text-opti dark:text-blue-300 border border-blue-200 dark:border-slate-600 hover:bg-opti hover:text-white transition text-[11px] truncate max-w-xs"
+                :title="s"
+              >
+                + {{ s }}
+              </button>
+            </div>
           </div>
         </div>
 

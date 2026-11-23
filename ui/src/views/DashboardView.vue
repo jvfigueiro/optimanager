@@ -24,7 +24,6 @@ import {
   PlusCircle,
   FileText,
   CreditCard,
-  Archive,
   Zap,
   MapPin,
   Info,
@@ -210,12 +209,12 @@ const recomendacoesVisiveis = computed(() => {
         <div>
           <div class="flex justify-between items-center mb-3">
             <h3 class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <Wrench class="w-4 h-4 text-sky-500" />
+              <Wrench class="w-4 h-4 text-opti dark:text-opti-soft" />
               <span>Serviços em Aberto ({{ dashboardStore.data.servicos_aberto.length }})</span>
             </h3>
             <button
               @click="irParaServicos('ABERTOS')"
-              class="text-xs text-sky-600 dark:text-sky-400 font-semibold hover:underline flex items-center gap-0.5"
+              class="text-xs text-opti dark:text-opti-soft font-semibold hover:underline flex items-center gap-0.5"
             >
               <span>Ver todos</span>
               <ChevronRight class="w-3.5 h-3.5" />
@@ -233,7 +232,7 @@ const recomendacoesVisiveis = computed(() => {
             >
               <div class="truncate">
                 <div class="flex items-center gap-1.5">
-                  <span class="text-xs font-bold text-sky-600 dark:text-sky-400">#{{ o.id }}</span>
+                  <span class="text-xs font-bold text-opti dark:text-opti-soft">#{{ o.id }}</span>
                   <span class="font-bold text-slate-800 dark:text-slate-200 truncate">
                     {{ o.cliente_nome }}
                   </span>
@@ -252,9 +251,9 @@ const recomendacoesVisiveis = computed(() => {
                 <button
                   @click="openViewOS(o)"
                   title="Visualizar detalhes da OS"
-                  class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-sky-50 text-slate-700 dark:text-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg font-bold transition flex items-center gap-1 border border-slate-200 dark:border-slate-700"
+                  class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-opti/10 text-slate-700 dark:text-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg font-bold transition flex items-center gap-1 border border-slate-200 dark:border-slate-700"
                 >
-                  <Eye class="w-3.5 h-3.5 text-sky-500" />
+                  <Eye class="w-3.5 h-3.5 text-opti dark:text-opti-soft" />
                   <span>Ver</span>
                 </button>
               </div>
@@ -276,7 +275,7 @@ const recomendacoesVisiveis = computed(() => {
             </h3>
             <button
               @click="irParaServicos('PENDENTE')"
-              class="text-xs text-sky-600 dark:text-sky-400 font-semibold hover:underline flex items-center gap-0.5"
+              class="text-xs text-opti dark:text-opti-soft font-semibold hover:underline flex items-center gap-0.5"
             >
               <span>Gerenciar</span>
               <ChevronRight class="w-3.5 h-3.5" />
@@ -319,7 +318,7 @@ const recomendacoesVisiveis = computed(() => {
     <div class="bg-white dark:bg-[#111928] rounded-2xl border border-slate-200/90 dark:border-slate-800/80 p-5 shadow-xs">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2">
-          <Zap class="w-4 h-4 text-sky-500 fill-sky-500" />
+          <Zap class="w-4 h-4 text-opti dark:text-opti-soft fill-current" />
           <h3 class="font-bold text-sm text-slate-900 dark:text-white">
             Ações Frequentes
           </h3>
@@ -327,18 +326,18 @@ const recomendacoesVisiveis = computed(() => {
         <button
           v-if="authStore.user?.role === 'admin'"
           @click="isShortcutModalOpen = true"
-          class="text-xs text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-750 font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
+          class="text-xs text-slate-600 dark:text-slate-300 hover:text-opti dark:hover:text-opti-soft bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-750 font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
         >
           <SlidersHorizontal class="w-3.5 h-3.5" />
           <span>Personalizar Atalhos</span>
         </button>
       </div>
 
-      <!-- Grid de 3 colunas -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
+      <!-- Grid de 4 colunas -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <button
           @click="nav.openNovaOS()"
-          class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center gap-2"
+          class="w-full bg-opti hover:bg-opti-dark text-white font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center gap-2"
         >
           <PlusCircle class="w-4 h-4 stroke-[2.2]" />
           <span>Novo Serviço</span>
@@ -364,13 +363,6 @@ const recomendacoesVisiveis = computed(() => {
           <CreditCard class="w-4 h-4 text-slate-500 dark:text-slate-400" />
           <span>Fluxo de Caixa</span>
         </button>
-        <button
-          @click="nav.navigate('settings')"
-          class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center gap-2"
-        >
-          <Archive class="w-4 h-4 stroke-[2.2]" />
-          <span>Gerenciar Backups</span>
-        </button>
       </div>
 
       <!-- Atalhos personalizados -->
@@ -382,7 +374,7 @@ const recomendacoesVisiveis = computed(() => {
           <div
             v-for="a in dashboardStore.data.atalhos"
             :key="a.id"
-            class="group relative bg-slate-50 dark:bg-[#131d2e] hover:bg-sky-50/60 dark:hover:bg-[#182438] border border-slate-200 dark:border-slate-700/60 rounded-xl p-3 transition flex flex-col justify-between cursor-pointer"
+            class="group relative bg-slate-50 dark:bg-[#131d2e] hover:bg-opti/5 dark:hover:bg-[#182438] border border-slate-200 dark:border-slate-700/60 rounded-xl p-3 transition flex flex-col justify-between cursor-pointer"
             @click="dashboardStore.openShortcut(a)"
           >
             <button
@@ -395,7 +387,7 @@ const recomendacoesVisiveis = computed(() => {
             </button>
             <div>
               <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 text-xs">
-                <ExternalLink class="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                <ExternalLink class="w-3.5 h-3.5 text-opti dark:text-opti-soft shrink-0" />
                 <span class="truncate">{{ a.titulo }}</span>
               </div>
               <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
@@ -410,21 +402,21 @@ const recomendacoesVisiveis = computed(() => {
     <!-- Recomendações -->
     <div
       v-if="recomendacoesVisiveis.length"
-      class="rounded-2xl border border-sky-200/90 dark:border-sky-900/40 bg-sky-50/50 dark:bg-sky-950/20 p-4 sm:p-5 space-y-2.5"
+      class="rounded-2xl border border-opti/25 dark:border-opti/30 bg-opti/5 dark:bg-opti/10 p-4 sm:p-5 space-y-2.5"
     >
       <div class="flex items-center gap-2 mb-1">
-        <MapPin class="w-4 h-4 text-sky-600 dark:text-sky-400" />
-        <h4 class="font-bold text-sm text-sky-950 dark:text-sky-200">
+        <MapPin class="w-4 h-4 text-opti dark:text-opti-soft" />
+        <h4 class="font-bold text-sm text-opti dark:text-opti-soft">
           Recomendações
         </h4>
       </div>
       <div
         v-for="rec in recomendacoesVisiveis"
         :key="rec.id"
-        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/80 dark:bg-[#0e1626]/80 p-3.5 rounded-xl border border-sky-100 dark:border-sky-900/30"
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/80 dark:bg-[#0e1626]/80 p-3.5 rounded-xl border border-opti/15 dark:border-opti/25"
       >
         <div class="flex items-start gap-2.5">
-          <Zap class="w-4 h-4 text-sky-500 fill-sky-500 shrink-0 mt-0.5" />
+          <Zap class="w-4 h-4 text-opti dark:text-opti-soft fill-current shrink-0 mt-0.5" />
           <div>
             <p class="text-xs font-bold text-slate-900 dark:text-white">
               {{ rec.titulo }}
@@ -437,7 +429,7 @@ const recomendacoesVisiveis = computed(() => {
         <div class="flex items-center gap-2 shrink-0">
           <button
             @click="nav.navigate(rec.actionView)"
-            class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-100/90 hover:bg-sky-200 dark:bg-sky-900/40 dark:hover:bg-sky-900/70 text-sky-900 dark:text-sky-200 flex items-center gap-1 transition"
+            class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-opti/15 hover:bg-opti/25 dark:bg-opti/25 dark:hover:bg-opti/35 text-opti dark:text-opti-soft flex items-center gap-1 transition"
           >
             <Info class="w-3.5 h-3.5" />
             <span>{{ rec.actionLabel }}</span>

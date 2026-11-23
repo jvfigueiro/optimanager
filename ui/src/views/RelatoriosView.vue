@@ -10,6 +10,10 @@ import {
   FileText,
   ShieldCheck,
   Search,
+  X,
+  ArrowRight,
+  ArrowLeft,
+  Eye,
 } from 'lucide-vue-next'
 
 const ordensStore = useOrdensStore()
@@ -23,6 +27,7 @@ const responsavelAtual = computed(() => {
 
 type DocType = 'os' | 'orcamento' | 'relatorio' | 'recibo'
 const docType = ref<DocType>('os')
+const activeTab = ref<'config' | 'preview'>('config')
 
 const selectedOSId = ref<number | null>(null)
 const osSearchQuery = ref('')
@@ -74,8 +79,7 @@ onMounted(async () => {
   await configStore.loadConfig()
 
   docTermoGarantia.value =
-    configStore.config.termo_garantia ||
-    'Garantia legal de 90 dias conforme Art. 26 do CDC para serviços executados e peças aplicadas.'
+    configStore.config.termo_garantia || 'Garantia legal de 90 dias.'
 
   // Garante carregamento do catálogo completo para pesquisa e reemissão histórica
   if (ordensStore.currentFiltro !== 'TODOS' || ordensStore.searchQuery !== '') {
@@ -219,12 +223,46 @@ function imprimirDocumento() {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- PAINEL DE CONFIGURAÇÃO (TOPO) -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 space-y-4 no-print">
+  <div class="space-y-5">
+    <!-- BARRA DE GUIAS INTERNAS DO GERADOR DE DOCUMENTOS -->
+    <div class="flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs no-print">
+      <button
+        type="button"
+        @click="activeTab = 'config'"
+        class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2"
+        :class="
+          activeTab === 'config'
+            ? 'bg-opti text-white shadow-xs'
+            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+        "
+      >
+        <FileText class="w-4 h-4" />
+        <span>1. Configurar Documento</span>
+      </button>
+
+      <button
+        type="button"
+        @click="activeTab = 'preview'"
+        class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2"
+        :class="
+          activeTab === 'preview'
+            ? 'bg-opti text-white shadow-xs'
+            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+        "
+      >
+        <Eye class="w-4 h-4" />
+        <span>2. Visualizar &amp; Imprimir</span>
+      </button>
+    </div>
+
+    <!-- GUIA 1: PAINEL DE CONFIGURAÇÃO -->
+    <div
+      v-if="activeTab === 'config'"
+      class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-5 space-y-4 no-print"
+    >
       <div>
         <h3 class="font-bold text-base text-slate-800 dark:text-white flex items-center gap-2">
-          <FileText class="w-5 h-5 text-opti" />
+          <FileText class="w-5 h-5 text-opti dark:text-opti-soft" />
           <span>Gerador de Documentos</span>
         </h3>
         <p class="text-xs text-slate-500 dark:text-slate-400">
@@ -240,7 +278,7 @@ function imprimirDocumento() {
           </label>
           <span
             v-if="selectedOSId"
-            class="text-[11px] font-bold text-opti dark:text-blue-400 bg-blue-50 dark:bg-slate-700 px-2 py-0.5 rounded-lg border border-blue-100 dark:border-slate-600"
+            class="text-[11px] font-bold text-opti dark:text-opti-soft bg-opti/10 dark:bg-opti/20 px-2 py-0.5 rounded-lg border border-opti/20 dark:border-opti/30"
           >
             OS Selecionada: #{{ selectedOSId }}
           </span>
@@ -386,7 +424,7 @@ function imprimirDocumento() {
 
         <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false">
           <label class="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-            {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+            {{ configStore.presets.os_secao_problema_inf_rotulo || 'Descrição do Serviço' }}
           </label>
           <textarea
             v-model="docProblemaInformado"
@@ -396,9 +434,13 @@ function imprimirDocumento() {
           ></textarea>
         </div>
 
-        <div v-if="configStore.presets.os_secao_servico_exec_ativa !== false">
+        <div>
           <label class="font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-            {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
+            {{
+              configStore.presets.os_secao_servico_exec_ativa === true
+                ? (configStore.presets.os_secao_servico_exec_rotulo || 'Caixa personalizada 2')
+                : 'Serviço'
+            }}
           </label>
           <textarea
             v-model="docServico"
@@ -420,49 +462,75 @@ function imprimirDocumento() {
         </div>
       </div>
 
-      <!-- Botões de Ação -->
-      <div class="space-y-2 pt-2">
+      <!-- Botão Avançar para Visualização e Impressão -->
+      <div class="pt-2 flex justify-end">
         <button
-          @click="imprimirDocumento"
-          class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm"
+          type="button"
+          @click="activeTab = 'preview'"
+          class="w-full sm:w-auto bg-opti hover:bg-opti-dark text-white font-bold py-3 px-6 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm"
         >
-          <Printer class="w-4 h-4" />
-          <span>Imprimir / Salvar como PDF (Ctrl+P)</span>
+          <span>Avançar</span>
+          <ArrowRight class="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+
+    <!-- GUIA 2: VISUALIZAÇÃO MONOCROMÁTICA, IMPRESSÃO E WHATSAPP -->
+    <div v-else class="space-y-4">
+      <!-- Barra de Ações da Tela de Visualização -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 no-print">
+        <button
+          type="button"
+          @click="activeTab = 'config'"
+          class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5"
+        >
+          <ArrowLeft class="w-4 h-4" />
+          <span>Voltar para Edição</span>
         </button>
 
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <button
+            type="button"
             @click="dispararWhatsApp"
-            class="w-full bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 text-xs"
+            class="bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 font-bold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-xs"
           >
             <MessageCircle class="w-4 h-4 shrink-0" />
             <span>Enviar Resumo pelo WhatsApp</span>
           </button>
-      </div>
-    </div>
 
-    <!-- FOLHA A4 DE PRÉ-VISUALIZAÇÃO AO VIVO (ABAIXO) -->
-    <div>
+          <button
+            type="button"
+            @click="imprimirDocumento"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl shadow transition flex items-center justify-center gap-2 text-xs sm:text-sm"
+          >
+            <Printer class="w-4 h-4" />
+            <span>Imprimir / Salvar como PDF (Ctrl+P)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FOLHA A4 DE PRÉ-VISUALIZAÇÃO (TONALIDADES MONOCROMÁTICAS PARA IMPRESSÃO) -->
       <div
         id="a4-preview"
-        class="bg-white text-slate-900 p-6 sm:p-8 rounded-2xl shadow-md border border-slate-200 text-xs sm:text-sm min-h-[640px]"
+        class="bg-white text-slate-900 p-6 sm:p-8 rounded-2xl shadow-md border border-slate-300 text-xs sm:text-sm min-h-[640px]"
       >
         <!-- LAYOUT DUPLICADO NA MESMA FOLHA: ORDEM DE SERVIÇO (OS) -->
         <div v-if="docType === 'os'" class="space-y-4">
           <!-- 1ª VIA -->
           <div class="p-2 bg-white space-y-2.5">
-            <div class="flex justify-between items-start border-b border-opti pb-2">
+            <div class="flex justify-between items-start border-b-2 border-slate-900 pb-2">
               <div class="flex items-center gap-2.5">
                 <img
                   v-if="configStore.config.logo_base64"
                   :src="configStore.config.logo_base64"
                   alt="Logo"
-                  class="w-9 h-9 object-contain rounded"
+                  class="w-9 h-9 object-contain rounded grayscale"
                 />
-                <div v-else class="bg-white text-opti border-2 border-opti font-black px-2 py-0.5 rounded text-xs tracking-tight">
+                <div v-else class="bg-white text-slate-900 border-2 border-slate-900 font-black px-2 py-0.5 rounded text-xs tracking-tight">
                   OPTI
                 </div>
                 <div>
-                  <h3 class="text-sm font-black text-opti leading-tight">
+                  <h3 class="text-sm font-black text-slate-900 leading-tight">
                     {{ configStore.config.fantasia }}
                   </h3>
                   <p class="text-[10px] text-slate-700 leading-tight">
@@ -476,7 +544,7 @@ function imprimirDocumento() {
 
               <div class="text-right">
                 <div class="inline-flex items-center gap-1.5">
-                  <span class="bg-white text-opti border-2 border-opti font-black px-2.5 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                  <span class="bg-white text-slate-900 border-2 border-slate-900 font-black px-2.5 py-0.5 rounded text-[10px] uppercase tracking-wider">
                     ORDEM DE SERVIÇO
                   </span>
                 </div>
@@ -487,7 +555,7 @@ function imprimirDocumento() {
             </div>
 
             <!-- Dados Cliente & Equipamento -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] bg-white p-2 rounded-lg border border-slate-300">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] bg-white p-2 rounded-lg border border-slate-400">
               <div>
                 <span class="text-slate-600 font-semibold block text-[9px] uppercase">Cliente:</span>
                 <span class="font-bold text-slate-900">{{ docCliente || 'N/A' }}</span>
@@ -506,28 +574,32 @@ function imprimirDocumento() {
               </div>
               <div>
                 <span class="text-slate-600 font-semibold block text-[9px] uppercase">Valor Total:</span>
-                <span class="font-black text-opti text-xs">{{ formatDocValor(docValor) }}</span>
+                <span class="font-black text-slate-900 text-xs">{{ formatDocValor(docValor) }}</span>
               </div>
             </div>
 
-            <!-- Problema Informado (1ª Via) -->
+            <!-- Seção 1 (1ª Via) -->
             <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false && docProblemaInformado" class="text-[11px] space-y-0.5">
-              <span class="font-bold text-slate-800 uppercase text-[9px] tracking-wide block">
-                {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+              <span class="font-bold text-slate-900 uppercase text-[9px] tracking-wide block">
+                {{ configStore.presets.os_secao_problema_inf_rotulo || 'Descrição do Serviço' }}
               </span>
-              <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
+              <div class="p-2 bg-white border border-slate-400 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
                 {{ docProblemaInformado }}
               </div>
             </div>
 
-            <!-- Serviço Solicitado / Executado (1ª Via) -->
-            <div v-if="configStore.presets.os_secao_servico_exec_ativa !== false" class="text-[11px] space-y-0.5">
-              <span class="font-bold text-slate-800 uppercase text-[9px] tracking-wide block">
-                {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
+            <!-- Seção 2 / Serviço (1ª Via) -->
+            <div v-if="configStore.presets.os_secao_servico_exec_ativa === true || docServico || docObs" class="text-[11px] space-y-0.5">
+              <span class="font-bold text-slate-900 uppercase text-[9px] tracking-wide block">
+                {{
+                  configStore.presets.os_secao_servico_exec_ativa === true
+                    ? (configStore.presets.os_secao_servico_exec_rotulo || 'Caixa personalizada 2')
+                    : 'Serviço'
+                }}
               </span>
-              <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
+              <div class="p-2 bg-white border border-slate-400 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
                 {{ docServico }}
-                <div v-if="docObs" class="pt-1 mt-1 border-t border-slate-300 text-opti font-semibold text-[11px]">
+                <div v-if="docObs" class="pt-1 mt-1 border-t border-slate-300 text-slate-700 font-semibold text-[11px]">
                   {{ docObs }}
                 </div>
               </div>
@@ -536,10 +608,10 @@ function imprimirDocumento() {
             <!-- Assinaturas -->
             <div class="pt-1">
               <div class="grid grid-cols-2 gap-6 text-[10px] text-center text-slate-700 mb-1">
-                <div class="border-t border-slate-500 pt-1">
+                <div class="border-t border-slate-600 pt-1">
                   {{ responsavelAtual }} ({{ configStore.config.fantasia || 'Empresa' }})
                 </div>
-                <div class="border-t border-slate-500 pt-1">
+                <div class="border-t border-slate-600 pt-1">
                   {{ docCliente || 'Assinatura do Cliente' }}
                 </div>
               </div>
@@ -556,19 +628,19 @@ function imprimirDocumento() {
 
           <!-- 2ª VIA -->
           <div class="p-2 bg-white space-y-2.5">
-            <div class="flex justify-between items-start border-b border-opti pb-2">
+            <div class="flex justify-between items-start border-b-2 border-slate-900 pb-2">
               <div class="flex items-center gap-2.5">
                 <img
                   v-if="configStore.config.logo_base64"
                   :src="configStore.config.logo_base64"
                   alt="Logo"
-                  class="w-9 h-9 object-contain rounded"
+                  class="w-9 h-9 object-contain rounded grayscale"
                 />
-                <div v-else class="bg-white text-opti border-2 border-opti font-black px-2 py-0.5 rounded text-xs tracking-tight">
+                <div v-else class="bg-white text-slate-900 border-2 border-slate-900 font-black px-2 py-0.5 rounded text-xs tracking-tight">
                   OPTI
                 </div>
                 <div>
-                  <h3 class="text-sm font-black text-opti leading-tight">
+                  <h3 class="text-sm font-black text-slate-900 leading-tight">
                     {{ configStore.config.fantasia }}
                   </h3>
                   <p class="text-[10px] text-slate-700 leading-tight">
@@ -582,7 +654,7 @@ function imprimirDocumento() {
 
               <div class="text-right">
                 <div class="inline-flex items-center gap-1.5">
-                  <span class="bg-white text-opti border-2 border-opti font-black px-2.5 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                  <span class="bg-white text-slate-900 border-2 border-slate-900 font-black px-2.5 py-0.5 rounded text-[10px] uppercase tracking-wider">
                     ORDEM DE SERVIÇO
                   </span>
                 </div>
@@ -593,7 +665,7 @@ function imprimirDocumento() {
             </div>
 
             <!-- Dados Cliente & Equipamento -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] bg-white p-2 rounded-lg border border-slate-300">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] bg-white p-2 rounded-lg border border-slate-400">
               <div>
                 <span class="text-slate-600 font-semibold block text-[9px] uppercase">Cliente:</span>
                 <span class="font-bold text-slate-900">{{ docCliente || 'N/A' }}</span>
@@ -612,28 +684,32 @@ function imprimirDocumento() {
               </div>
               <div>
                 <span class="text-slate-600 font-semibold block text-[9px] uppercase">Valor Total:</span>
-                <span class="font-black text-opti text-xs">{{ formatDocValor(docValor) }}</span>
+                <span class="font-black text-slate-900 text-xs">{{ formatDocValor(docValor) }}</span>
               </div>
             </div>
 
-            <!-- Problema Informado (1ª Via) -->
+            <!-- Seção 1 (2ª Via) -->
             <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false && docProblemaInformado" class="text-[11px] space-y-0.5">
-              <span class="font-bold text-slate-800 uppercase text-[9px] tracking-wide block">
-                {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+              <span class="font-bold text-slate-900 uppercase text-[9px] tracking-wide block">
+                {{ configStore.presets.os_secao_problema_inf_rotulo || 'Descrição do Serviço' }}
               </span>
-              <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
+              <div class="p-2 bg-white border border-slate-400 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
                 {{ docProblemaInformado }}
               </div>
             </div>
 
-            <!-- Serviço Solicitado / Executado (1ª Via) -->
-            <div v-if="configStore.presets.os_secao_servico_exec_ativa !== false" class="text-[11px] space-y-0.5">
-              <span class="font-bold text-slate-800 uppercase text-[9px] tracking-wide block">
-                {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
+            <!-- Seção 2 / Serviço (2ª Via) -->
+            <div v-if="configStore.presets.os_secao_servico_exec_ativa === true || docServico || docObs" class="text-[11px] space-y-0.5">
+              <span class="font-bold text-slate-900 uppercase text-[9px] tracking-wide block">
+                {{
+                  configStore.presets.os_secao_servico_exec_ativa === true
+                    ? (configStore.presets.os_secao_servico_exec_rotulo || 'Caixa personalizada 2')
+                    : 'Serviço'
+                }}
               </span>
-              <div class="p-2 bg-white border border-slate-300 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
+              <div class="p-2 bg-white border border-slate-400 rounded text-slate-900 leading-snug whitespace-pre-line text-xs">
                 {{ docServico }}
-                <div v-if="docObs" class="pt-1 mt-1 border-t border-slate-300 text-opti font-semibold text-[11px]">
+                <div v-if="docObs" class="pt-1 mt-1 border-t border-slate-300 text-slate-700 font-semibold text-[11px]">
                   {{ docObs }}
                 </div>
               </div>
@@ -642,10 +718,10 @@ function imprimirDocumento() {
             <!-- Assinaturas -->
             <div class="pt-1">
               <div class="grid grid-cols-2 gap-6 text-[10px] text-center text-slate-700 mb-1">
-                <div class="border-t border-slate-500 pt-1">
+                <div class="border-t border-slate-600 pt-1">
                   {{ responsavelAtual }} ({{ configStore.config.fantasia || 'Empresa' }})
                 </div>
-                <div class="border-t border-slate-500 pt-1">
+                <div class="border-t border-slate-600 pt-1">
                   {{ docCliente || 'Assinatura do Cliente' }}
                 </div>
               </div>
@@ -660,19 +736,19 @@ function imprimirDocumento() {
         <div v-else class="flex flex-col justify-between min-h-[580px]">
           <div>
             <!-- CABEÇALHO DA EMPRESA -->
-            <div class="flex justify-between items-start border-b-2 border-opti pb-4 mb-5">
+            <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-5">
               <div class="flex items-center gap-3.5">
                 <img
                   v-if="configStore.config.logo_base64"
                   :src="configStore.config.logo_base64"
                   alt="Logo"
-                  class="w-14 h-14 object-contain rounded"
+                  class="w-14 h-14 object-contain rounded grayscale"
                 />
-                <div v-else class="bg-white text-opti border-2 border-opti font-black px-3 py-2 rounded-lg text-lg tracking-tight">
+                <div v-else class="bg-white text-slate-900 border-2 border-slate-900 font-black px-3 py-2 rounded-lg text-lg tracking-tight">
                   OPTI
                 </div>
                 <div>
-                  <h2 class="text-xl font-black text-opti leading-tight">
+                  <h2 class="text-xl font-black text-slate-900 leading-tight">
                     {{ configStore.config.fantasia }}
                   </h2>
                   <p class="text-xs text-slate-700">CNPJ: {{ configStore.config.cnpj }}</p>
@@ -687,7 +763,7 @@ function imprimirDocumento() {
               </div>
 
               <div class="text-right">
-                <span class="bg-white text-opti border-2 border-opti font-black px-3 py-1.5 rounded-lg text-xs uppercase tracking-wider inline-block">
+                <span class="bg-white text-slate-900 border-2 border-slate-900 font-black px-3 py-1.5 rounded-lg text-xs uppercase tracking-wider inline-block">
                   {{ docTitulo }}
                 </span>
                 <p class="text-xs text-slate-700 mt-2 font-bold">
@@ -698,7 +774,7 @@ function imprimirDocumento() {
 
             <!-- MODELO: RELATÓRIO DE SERVIÇO -->
             <div v-if="docType === 'relatorio'" class="space-y-4">
-              <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+              <div class="bg-slate-100 text-slate-900 border-l-4 border-slate-900 border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
                 Dados do Atendimento
               </div>
               <div class="grid grid-cols-2 gap-2 text-xs border-b border-slate-300 pb-4">
@@ -711,28 +787,32 @@ function imprimirDocumento() {
               </div>
 
               <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false && docProblemaInformado" class="space-y-2">
-                <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
-                  {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+                <div class="bg-slate-100 text-slate-900 border-l-4 border-slate-900 border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+                  {{ configStore.presets.os_secao_problema_inf_rotulo || 'Descrição do Serviço' }}
                 </div>
-                <div class="p-3 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed whitespace-pre-line text-slate-900">
+                <div class="p-3 bg-white border border-slate-400 rounded-lg text-xs leading-relaxed whitespace-pre-line text-slate-900">
                   {{ docProblemaInformado }}
                 </div>
               </div>
 
-              <template v-if="configStore.presets.os_secao_servico_exec_ativa !== false">
-                <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
-                  {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
+              <template v-if="configStore.presets.os_secao_servico_exec_ativa === true || docServico || docObs">
+                <div class="bg-slate-100 text-slate-900 border-l-4 border-slate-900 border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+                  {{
+                    configStore.presets.os_secao_servico_exec_ativa === true
+                      ? (configStore.presets.os_secao_servico_exec_rotulo || 'Caixa personalizada 2')
+                      : 'Serviço'
+                  }}
                 </div>
-                <div class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed space-y-2">
+                <div class="p-4 bg-white border border-slate-400 rounded-lg text-xs leading-relaxed space-y-2">
                   <p class="whitespace-pre-line text-slate-900">{{ docServico }}</p>
-                  <div v-if="docObs" class="pt-2 border-t border-slate-300 font-semibold text-opti">
+                  <div v-if="docObs" class="pt-2 border-t border-slate-300 font-semibold text-slate-700">
                     {{ docObs }}
                   </div>
                 </div>
               </template>
 
-              <div v-if="docTermoGarantia" class="flex items-start gap-2 p-3 bg-white border border-opti/60 rounded-lg text-[11px] text-slate-800">
-                <ShieldCheck class="w-4 h-4 text-opti shrink-0 mt-0.5" />
+              <div v-if="docTermoGarantia" class="flex items-start gap-2 p-3 bg-white border border-slate-400 rounded-lg text-[11px] text-slate-800">
+                <ShieldCheck class="w-4 h-4 text-slate-800 shrink-0 mt-0.5" />
                 <span>{{ docTermoGarantia }}</span>
               </div>
             </div>
@@ -747,46 +827,50 @@ function imprimirDocumento() {
               </div>
 
               <div v-if="configStore.presets.os_secao_problema_inf_ativa !== false && docProblemaInformado" class="space-y-2">
-                <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
-                  {{ configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:' }}
+                <div class="bg-slate-100 text-slate-900 border-l-4 border-slate-900 border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+                  {{ configStore.presets.os_secao_problema_inf_rotulo || 'Descrição do Serviço' }}
                 </div>
-                <div class="p-3 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed whitespace-pre-line text-slate-900">
+                <div class="p-3 bg-white border border-slate-400 rounded-lg text-xs leading-relaxed whitespace-pre-line text-slate-900">
                   {{ docProblemaInformado }}
                 </div>
               </div>
 
-              <div v-if="configStore.presets.os_secao_servico_exec_ativa !== false" class="space-y-2">
-                <div class="bg-white text-opti border-l-4 border-opti border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
-                  {{ configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:' }}
+              <div v-if="configStore.presets.os_secao_servico_exec_ativa === true || docServico" class="space-y-2">
+                <div class="bg-slate-100 text-slate-900 border-l-4 border-slate-900 border-y border-r border-slate-300 text-xs font-black px-3 py-1.5 rounded-r-sm uppercase tracking-wide">
+                  {{
+                    configStore.presets.os_secao_servico_exec_ativa === true
+                      ? (configStore.presets.os_secao_servico_exec_rotulo || 'Caixa personalizada 2')
+                      : 'Serviço'
+                  }}
                 </div>
-                <div class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed">
+                <div class="p-4 bg-white border border-slate-400 rounded-lg text-xs leading-relaxed">
                   <p class="whitespace-pre-line text-slate-900">{{ docServico }}</p>
-                  <div class="text-right text-base font-black text-opti mt-4 pt-3 border-t border-slate-300">
+                  <div class="text-right text-base font-black text-slate-900 mt-4 pt-3 border-t border-slate-300">
                     Valor Total: {{ formatDocValor(docValor) }}
                   </div>
                 </div>
               </div>
-              <div v-else class="p-4 bg-white border border-slate-300 rounded-lg text-xs leading-relaxed">
-                <div class="text-right text-base font-black text-opti">
+              <div v-else class="p-4 bg-white border border-slate-400 rounded-lg text-xs leading-relaxed">
+                <div class="text-right text-base font-black text-slate-900">
                   Valor Total: {{ formatDocValor(docValor) }}
                 </div>
               </div>
 
-              <div v-if="docObs" class="p-3 bg-white border border-opti/60 rounded-lg text-xs text-slate-800">
+              <div v-if="docObs" class="p-3 bg-white border border-slate-400 rounded-lg text-xs text-slate-800">
                 {{ docObs }}
               </div>
             </div>
 
             <!-- MODELO: RECIBO DE PAGAMENTO -->
             <div v-else class="py-6 space-y-6">
-              <div class="flex justify-between items-center bg-white p-4 rounded-xl border-2 border-opti">
+              <div class="flex justify-between items-center bg-white p-4 rounded-xl border-2 border-slate-900">
                 <div>
                   <span class="text-xs uppercase font-bold text-slate-600 block">Data</span>
                   <span class="font-bold text-slate-900 text-sm">{{ docData }}</span>
                 </div>
                 <div class="text-right">
                   <span class="text-xs uppercase font-bold text-slate-600 block">Valor Recebido</span>
-                  <span class="text-xl font-black text-opti">{{ formatDocValor(docValor) }}</span>
+                  <span class="text-xl font-black text-slate-900">{{ formatDocValor(docValor) }}</span>
                 </div>
               </div>
 
@@ -803,14 +887,14 @@ function imprimirDocumento() {
           <!-- RODAPÉ & ASSINATURAS DO DOCUMENTO (PÁGINA INTEIRA) -->
           <div class="pt-8">
             <div class="grid grid-cols-2 gap-8 mb-6 text-xs text-center text-slate-700">
-              <div class="border-t border-slate-500 pt-1.5">
+              <div class="border-t border-slate-600 pt-1.5">
                 {{ responsavelAtual }} ({{ configStore.config.fantasia }})
               </div>
-              <div class="border-t border-slate-500 pt-1.5">
+              <div class="border-t border-slate-600 pt-1.5">
                 {{ docCliente || 'Assinatura do Cliente' }}
               </div>
             </div>
-            <p class="text-center text-[10px] font-bold text-opti border-t border-slate-300 pt-2 tracking-wide">
+            <p class="text-center text-[10px] font-bold text-slate-700 border-t border-slate-300 pt-2 tracking-wide">
               Emitido via OptiManager • {{ configStore.config.fantasia }}
             </p>
           </div>

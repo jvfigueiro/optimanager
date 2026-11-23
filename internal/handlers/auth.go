@@ -365,6 +365,9 @@ func (h *AuthHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		if strings.TrimSpace(req.Cidade) != "" {
 			cfg.Cidade = strings.TrimSpace(req.Cidade)
 		}
+		if strings.TrimSpace(req.LogoBase64) != "" {
+			cfg.LogoBase64 = strings.TrimSpace(req.LogoBase64)
+		}
 		cfg.Versao = 0 // Bypass version check on initial setup
 		_ = h.db.UpdateConfig(cfg)
 	}

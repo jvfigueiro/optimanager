@@ -164,7 +164,7 @@ async function instalarPwa() {
         <div class="p-3.5 space-y-2">
           <button
             @click="nav.openNovaOS()"
-            class="w-full bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center gap-2 text-xs"
+            class="w-full bg-opti hover:bg-opti-dark active:bg-opti-dark text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition flex items-center justify-center gap-2 text-xs"
           >
             <Plus class="w-4 h-4" />
             <span>Novo Serviço</span>
@@ -186,7 +186,7 @@ async function instalarPwa() {
             class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'dashboard'
-                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                ? 'bg-opti/15 text-opti dark:bg-opti/20 dark:text-opti-soft font-bold border border-opti/30 dark:border-opti/40 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
@@ -199,7 +199,7 @@ async function instalarPwa() {
             class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'orders'
-                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                ? 'bg-opti/15 text-opti dark:bg-opti/20 dark:text-opti-soft font-bold border border-opti/30 dark:border-opti/40 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
@@ -220,7 +220,7 @@ async function instalarPwa() {
             class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'clients'
-                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                ? 'bg-opti/15 text-opti dark:bg-opti/20 dark:text-opti-soft font-bold border border-opti/30 dark:border-opti/40 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
@@ -241,7 +241,7 @@ async function instalarPwa() {
             class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'finance'
-                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                ? 'bg-opti/15 text-opti dark:bg-opti/20 dark:text-opti-soft font-bold border border-opti/30 dark:border-opti/40 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
@@ -254,7 +254,7 @@ async function instalarPwa() {
             class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'reports'
-                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                ? 'bg-opti/15 text-opti dark:bg-opti/20 dark:text-opti-soft font-bold border border-opti/30 dark:border-opti/40 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
@@ -272,7 +272,7 @@ async function instalarPwa() {
             class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition"
             :class="
               nav.currentView === 'settings'
-                ? 'bg-sky-100/90 text-sky-950 dark:bg-blue-600/20 dark:text-sky-300 font-bold border border-sky-200/90 dark:border-blue-500/30 shadow-2xs'
+                ? 'bg-opti/15 text-opti dark:bg-opti/20 dark:text-opti-soft font-bold border border-opti/30 dark:border-opti/40 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/70'
             "
           >
@@ -298,8 +298,8 @@ async function instalarPwa() {
 
       <!-- Selo de versão (acima da linha divisória) -->
       <div class="w-64 px-3 pb-2 flex items-center justify-center">
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/70">
-          OptiManager v3.0.0 BETA
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800">
+          OptiManager 1.0.S7 Beta
         </span>
       </div>
 
@@ -310,7 +310,7 @@ async function instalarPwa() {
           class="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60"
         >
           <div class="flex items-center gap-2 min-w-0">
-            <div class="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-xs shrink-0">
+            <div class="w-7 h-7 rounded-lg bg-opti/15 text-opti dark:text-opti-soft flex items-center justify-center font-bold text-xs shrink-0">
               {{ authStore.user.nome.charAt(0).toUpperCase() }}
             </div>
             <div class="truncate">
@@ -344,7 +344,7 @@ async function instalarPwa() {
           >
             <Menu class="w-4 h-4 lg:hidden" />
             <PanelLeftClose v-if="nav.isDesktopSidebarOpen" class="w-4 h-4 hidden lg:block" />
-            <PanelLeftOpen v-else class="w-4 h-4 hidden lg:block text-sky-600 dark:text-sky-400" />
+            <PanelLeftOpen v-else class="w-4 h-4 hidden lg:block text-opti dark:text-opti-soft" />
           </button>
 
           <div>
@@ -372,7 +372,7 @@ async function instalarPwa() {
           <button
             @click="nav.openNovaOS()"
             :class="nav.isDesktopSidebarOpen ? 'lg:hidden' : 'flex'"
-            class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-xs flex items-center gap-1 transition"
+            class="bg-opti hover:bg-opti-dark text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-xs flex items-center gap-1 transition"
           >
             <Plus class="w-3.5 h-3.5" />
             <span>Novo</span>
@@ -397,7 +397,7 @@ async function instalarPwa() {
         <button
           @click="nav.navigate('dashboard')"
           class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
-          :class="nav.currentView === 'dashboard' ? 'text-sky-600 dark:text-sky-400 font-bold' : ''"
+          :class="nav.currentView === 'dashboard' ? 'text-opti dark:text-opti-soft font-bold' : ''"
         >
           <LayoutDashboard class="w-4 h-4" />
           <span>Dashboard</span>
@@ -406,7 +406,7 @@ async function instalarPwa() {
         <button
           @click="nav.navigate('orders')"
           class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
-          :class="nav.currentView === 'orders' ? 'text-sky-600 dark:text-sky-400 font-bold' : ''"
+          :class="nav.currentView === 'orders' ? 'text-opti dark:text-opti-soft font-bold' : ''"
         >
           <Wrench class="w-4 h-4" />
           <span>Serviços</span>
@@ -415,7 +415,7 @@ async function instalarPwa() {
         <button
           @click="nav.navigate('finance')"
           class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
-          :class="nav.currentView === 'finance' ? 'text-sky-600 dark:text-sky-400 font-bold' : ''"
+          :class="nav.currentView === 'finance' ? 'text-opti dark:text-opti-soft font-bold' : ''"
         >
           <DollarSign class="w-4 h-4" />
           <span>Financeiro</span>
@@ -424,7 +424,7 @@ async function instalarPwa() {
         <button
           @click="nav.navigate('reports')"
           class="flex flex-col items-center gap-1 px-2.5 py-1 transition"
-          :class="nav.currentView === 'reports' ? 'text-sky-600 dark:text-sky-400 font-bold' : ''"
+          :class="nav.currentView === 'reports' ? 'text-opti dark:text-opti-soft font-bold' : ''"
         >
           <FileText class="w-4 h-4" />
           <span>Relatórios</span>

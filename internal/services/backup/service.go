@@ -670,7 +670,7 @@ func createBackupZipArchive(destZipPath, srcDBPath, logoDataURI, origem string) 
 	// 3. Add backup_metadata.json manifest
 	meta := backupMetadata{
 		App:       "OptiManager",
-		Version:   "3.0.0",
+		Version:   "1.0.S7 Beta",
 		Origin:    origem,
 		CreatedAt: time.Now().Format(time.RFC3339),
 		HasLogo:   hasLogo,
@@ -1057,4 +1057,3 @@ func (s *Service) StartScheduler(ctx context.Context) {
 		}
 	}()
 }
-

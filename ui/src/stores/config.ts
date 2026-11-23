@@ -8,15 +8,15 @@ export const DEFAULT_ESTADOS_SERVICO = ['Avaliação/Orçamento', 'Em Serviço',
 export const DEFAULT_FORMAS_PAGAMENTO = ['Pendente', 'Dinheiro', 'Cartão', 'Boleto', 'Pix']
 
 export const DEFAULT_AUTOCOMPLETE_PRESETS: AutocompletePresets = {
-  marcas_titulo: 'Marcas / Fabricantes',
+  marcas_titulo: 'Fabricante',
   marcas_visivel: true,
   marcas: ['Asus', 'Acer', 'Dell', 'Lenovo', 'HP', 'Apple', 'Samsung', 'LG', 'Positivo'],
 
-  modelos_titulo: 'Modelos / Tipos / Categorias de Item',
+  modelos_titulo: 'Modelo',
   modelos_visivel: true,
   modelos: ['Notebook', 'Computador Desktop', 'All-in-One', 'Servidor', 'Monitor', 'N/A'],
 
-  servicos_titulo: 'Serviços Frequentes',
+  servicos_titulo: 'Serviços Comuns',
   servicos_visivel: true,
   servicos: [
     'Formatação e Instalação de Sistema Operacional',
@@ -32,9 +32,9 @@ export const DEFAULT_AUTOCOMPLETE_PRESETS: AutocompletePresets = {
 
   os_proximo_numero: 1000,
   os_secao_problema_inf_ativa: true,
-  os_secao_problema_inf_rotulo: 'Problema Informado:',
-  os_secao_servico_exec_ativa: true,
-  os_secao_servico_exec_rotulo: 'Serviço Executado:',
+  os_secao_problema_inf_rotulo: 'Descrição do Serviço',
+  os_secao_servico_exec_ativa: false,
+  os_secao_servico_exec_rotulo: 'Caixa personalizada 2',
 }
 
 export const useConfigStore = defineStore('config', () => {
@@ -51,9 +51,9 @@ export const useConfigStore = defineStore('config', () => {
     cidade: 'São Paulo - SP',
     vt_valor_padrao: 80,
     vt_valor_padrao_centavos: 8000,
-    termo_garantia: 'Garantia legal de 90 dias para serviços executados e peças aplicadas.',
+    termo_garantia: 'Garantia legal de 90 dias.',
     termo_responsabilidade: 'Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda.',
-    obs_padrao: 'Aparelho recebido com marcas normais de uso. Backup de dados sob responsabilidade do cliente.',
+    obs_padrao: '',
     custom_presets: JSON.stringify(DEFAULT_AUTOCOMPLETE_PRESETS),
     logo_base64: '',
     cor_primaria: '#0B5694',
@@ -70,15 +70,15 @@ export const useConfigStore = defineStore('config', () => {
     try {
       const parsed = JSON.parse(config.value.custom_presets)
       return {
-        marcas_titulo: typeof parsed.marcas_titulo === 'string' && parsed.marcas_titulo.trim() ? parsed.marcas_titulo : 'Marcas / Fabricantes',
+        marcas_titulo: typeof parsed.marcas_titulo === 'string' && parsed.marcas_titulo.trim() ? parsed.marcas_titulo : 'Fabricante',
         marcas_visivel: parsed.marcas_visivel !== false,
         marcas: Array.isArray(parsed.marcas) ? parsed.marcas : DEFAULT_AUTOCOMPLETE_PRESETS.marcas,
 
-        modelos_titulo: typeof parsed.modelos_titulo === 'string' && parsed.modelos_titulo.trim() ? parsed.modelos_titulo : 'Modelos / Tipos / Categorias de Item',
+        modelos_titulo: typeof parsed.modelos_titulo === 'string' && parsed.modelos_titulo.trim() ? parsed.modelos_titulo : 'Modelo',
         modelos_visivel: parsed.modelos_visivel !== false,
         modelos: Array.isArray(parsed.modelos) ? parsed.modelos : DEFAULT_AUTOCOMPLETE_PRESETS.modelos,
 
-        servicos_titulo: typeof parsed.servicos_titulo === 'string' && parsed.servicos_titulo.trim() ? parsed.servicos_titulo : 'Serviços Frequentes',
+        servicos_titulo: typeof parsed.servicos_titulo === 'string' && parsed.servicos_titulo.trim() ? parsed.servicos_titulo : 'Serviços Comuns',
         servicos_visivel: parsed.servicos_visivel !== false,
         servicos: Array.isArray(parsed.servicos) ? parsed.servicos : DEFAULT_AUTOCOMPLETE_PRESETS.servicos,
 
@@ -98,11 +98,11 @@ export const useConfigStore = defineStore('config', () => {
         os_secao_problema_inf_ativa: parsed.os_secao_problema_inf_ativa !== false,
         os_secao_problema_inf_rotulo: typeof parsed.os_secao_problema_inf_rotulo === 'string' && parsed.os_secao_problema_inf_rotulo.trim()
           ? parsed.os_secao_problema_inf_rotulo
-          : 'Problema Informado:',
-        os_secao_servico_exec_ativa: parsed.os_secao_servico_exec_ativa !== false,
+          : 'Descrição do Serviço',
+        os_secao_servico_exec_ativa: parsed.os_secao_servico_exec_ativa === true,
         os_secao_servico_exec_rotulo: typeof parsed.os_secao_servico_exec_rotulo === 'string' && parsed.os_secao_servico_exec_rotulo.trim()
           ? parsed.os_secao_servico_exec_rotulo
-          : 'Serviço Executado:',
+          : 'Caixa personalizada 2',
       }
     } catch {
       return DEFAULT_AUTOCOMPLETE_PRESETS
@@ -153,16 +153,44 @@ export const useConfigStore = defineStore('config', () => {
     setDarkMode(!isDarkMode.value, true)
   }
 
+  function parseHexRgb(hex: string): [number, number, number] | null {
+    const clean = hex.trim().replace('#', '')
+    if (clean.length === 3) {
+      const r = parseInt(clean[0] + clean[0], 16)
+      const g = parseInt(clean[1] + clean[1], 16)
+      const b = parseInt(clean[2] + clean[2], 16)
+      if (!Number.isNaN(r) && !Number.isNaN(g) && !Number.isNaN(b)) return [r, g, b]
+    }
+    if (clean.length === 6) {
+      const r = parseInt(clean.slice(0, 2), 16)
+      const g = parseInt(clean.slice(2, 4), 16)
+      const b = parseInt(clean.slice(4, 6), 16)
+      if (!Number.isNaN(r) && !Number.isNaN(g) && !Number.isNaN(b)) return [r, g, b]
+    }
+    return null
+  }
+
   // Aplica variáveis CSS no elemento raiz do documento
   function applyColorTheme(primaryHex: string, secondaryHex: string) {
     if (!primaryHex) return
     const root = document.documentElement
     root.style.setProperty('--color-primary', primaryHex)
 
-    if (secondaryHex) {
-      root.style.setProperty('--color-primary-dark', secondaryHex)
-    } else {
-      root.style.setProperty('--color-primary-dark', primaryHex)
+    const primaryRgb = parseHexRgb(primaryHex)
+    if (primaryRgb) {
+      root.style.setProperty('--color-primary-rgb', `${primaryRgb[0]} ${primaryRgb[1]} ${primaryRgb[2]}`)
+      // Versão suavizada/clara para boa legibilidade em fundos escuros (dark mode)
+      const softR = Math.round(primaryRgb[0] * 0.55 + 255 * 0.45)
+      const softG = Math.round(primaryRgb[1] * 0.55 + 255 * 0.45)
+      const softB = Math.round(primaryRgb[2] * 0.55 + 255 * 0.45)
+      root.style.setProperty('--color-primary-soft', `rgb(${softR}, ${softG}, ${softB})`)
+    }
+
+    const darkHex = secondaryHex || primaryHex
+    root.style.setProperty('--color-primary-dark', darkHex)
+    const darkRgb = parseHexRgb(darkHex)
+    if (darkRgb) {
+      root.style.setProperty('--color-primary-dark-rgb', `${darkRgb[0]} ${darkRgb[1]} ${darkRgb[2]}`)
     }
 
     // Calcula uma versão suave para fundos (light)

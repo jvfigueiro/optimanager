@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useAuthStore } from '../stores/auth'
 import { useConfigStore } from '../stores/config'
 import { useToastStore } from '../stores/toast'
+import { formatCNPJ, formatPhone } from '../utils/formatters'
 import ToastContainer from '../components/ToastContainer.vue'
 import {
   ShieldCheck,
@@ -30,7 +31,6 @@ import {
   RotateCcw,
   ExternalLink,
   PartyPopper,
-  X,
   FileCheck,
   Upload,
 } from 'lucide-vue-next'
@@ -47,9 +47,6 @@ const toast = useToastStore()
 // 5 = Dados da Empresa
 // 6 = Você está pronto para começar
 const setupStep = ref<1 | 2 | 3 | 4 | 5 | 6>(1)
-
-// Passo 1: Modal de documentação rápida
-const showDocModal = ref(false)
 
 // Passo 2: Licença e Termos
 const concordoLicenca = ref(false)
@@ -114,6 +111,29 @@ const fones = ref('')
 const emailContato = ref('')
 const endereco = ref('')
 const cidade = ref('')
+const logoBase64 = ref('')
+
+function handleLogoUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (!target.files || !target.files[0]) return
+
+  const file = target.files[0]
+  if (file.size > 1.5 * 1024 * 1024) {
+    toast.show('A imagem deve ter no máximo 1,5 MB.', 'error')
+    target.value = ''
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    logoBase64.value = (e.target?.result as string) || ''
+  }
+  reader.readAsDataURL(file)
+}
+
+function removerLogo() {
+  logoBase64.value = ''
+}
 
 const isSubmitting = ref(false)
 
@@ -171,10 +191,7 @@ function avancarParaEmpresa() {
     return
   }
 
-  // Sugestões amigáveis de valores iniciais se ainda em branco
-  if (!razaoSocial.value.trim()) {
-    razaoSocial.value = nome.value.trim()
-  }
+  // Sugestão amigável de e-mail inicial se ainda em branco
   if (!emailContato.value.trim()) {
     emailContato.value = email.value.trim()
   }
@@ -182,9 +199,35 @@ function avancarParaEmpresa() {
   setupStep.value = 5
 }
 
+function handleCnpjInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  const formatted = formatCNPJ(target.value)
+  cnpj.value = formatted
+  target.value = formatted
+}
+
+function handlePhoneInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  const formatted = formatPhone(target.value)
+  fones.value = formatted
+  target.value = formatted
+}
+
 async function handleSalvarEmpresa() {
   if (!fantasia.value.trim() || !razaoSocial.value.trim() || !cidade.value.trim()) {
     toast.show('Preencha Nome da Empresa, Razão Social e Cidade.', 'error')
+    return
+  }
+
+  const phoneDigits = fones.value.replace(/\D/g, '')
+  if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
+    toast.show('Informe um Telefone / WhatsApp válido no formato (00) 0000-0000 ou (00) 00000-0000.', 'error')
+    return
+  }
+
+  const cnpjDigits = cnpj.value.replace(/\D/g, '')
+  if (cnpjDigits.length > 0 && cnpjDigits.length !== 14) {
+    toast.show('Informe um CNPJ válido no formato 00.000.000/0000-00 ou deixe o campo em branco.', 'error')
     return
   }
 
@@ -203,6 +246,7 @@ async function handleSalvarEmpresa() {
         email_contato: emailContato.value.trim(),
         endereco: endereco.value.trim(),
         cidade: cidade.value.trim(),
+        logo_base64: logoBase64.value,
       },
       false
     )
@@ -269,8 +313,8 @@ async function handleLogin() {
       <div class="bg-opti text-white p-6 text-center relative">
         <div class="flex justify-center mb-3">
           <img
-            v-if="configStore.config.logo_base64"
-            :src="configStore.config.logo_base64"
+            v-if="logoBase64 || configStore.config.logo_base64"
+            :src="logoBase64 || configStore.config.logo_base64"
             alt="Logo"
             class="w-16 h-16 object-contain shrink-0"
           />
@@ -368,15 +412,18 @@ async function handleLogin() {
                 </span>
               </a>
 
-              <button
-                type="button"
-                @click="showDocModal = true"
+              <a
+                href="https://github.com/jvfigueiro/optimanager/tree/master/docs"
+                target="_blank"
+                rel="noopener noreferrer"
                 class="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-opti dark:hover:border-opti hover:bg-slate-50 dark:hover:bg-slate-750 transition text-center group"
               >
                 <BookOpen class="w-5 h-5 text-slate-500 group-hover:text-opti transition mb-1.5" />
                 <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Documentação</span>
-                <span class="text-[10px] text-slate-400 mt-0.5">Guia Rápido</span>
-              </button>
+                <span class="text-[10px] text-slate-400 flex items-center gap-0.5 mt-0.5">
+                  Guia <ExternalLink class="w-2.5 h-2.5" />
+                </span>
+              </a>
 
               <button
                 type="button"
@@ -802,6 +849,53 @@ async function handleLogin() {
               </p>
             </div>
 
+            <!-- Upload do Logotipo da Empresa -->
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center gap-3.5">
+              <div class="w-16 h-16 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                <img
+                  v-if="logoBase64"
+                  :src="logoBase64"
+                  alt="Logo Preview"
+                  class="w-full h-full object-contain"
+                />
+                <img
+                  v-else
+                  src="/icon.png"
+                  alt="Ícone Padrão"
+                  class="w-full h-full object-contain p-2 opacity-60"
+                />
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+                  Logotipo da Empresa (opcional)
+                </label>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <label class="cursor-pointer bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                    <Upload class="w-3.5 h-3.5" />
+                    <span>Escolher Imagem (PNG/JPG)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      @change="handleLogoUpload"
+                      class="hidden"
+                    />
+                  </label>
+                  <button
+                    v-if="logoBase64"
+                    type="button"
+                    @click="removerLogo"
+                    class="text-xs text-red-500 hover:underline px-2 py-1 font-semibold"
+                  >
+                    Remover
+                  </button>
+                </div>
+                <span class="text-[11px] text-slate-400 block">
+                  Recomendado: 200x200px, até 1,5 MB.
+                </span>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <!-- Marca / Nome Fantasia -->
               <div class="sm:col-span-2">
@@ -823,7 +917,7 @@ async function handleLogin() {
               <!-- Razão Social -->
               <div>
                 <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  Razão Social / Titular *
+                  Razão Social *
                 </label>
                 <div class="relative">
                   <FileText class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -844,7 +938,10 @@ async function handleLogin() {
                 </label>
                 <input
                   type="text"
-                  v-model="cnpj"
+                  :value="cnpj"
+                  @input="handleCnpjInput"
+                  inputmode="numeric"
+                  maxlength="18"
                   placeholder="00.000.000/0001-00"
                   class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-opti"
                 />
@@ -859,7 +956,10 @@ async function handleLogin() {
                   <Phone class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    v-model="fones"
+                    :value="fones"
+                    @input="handlePhoneInput"
+                    inputmode="numeric"
+                    maxlength="15"
                     required
                     placeholder="(11) 98765-4321"
                     class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl pl-10 pr-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-opti"
@@ -886,7 +986,7 @@ async function handleLogin() {
               <!-- Endereço -->
               <div>
                 <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  Endereço Comercial
+                  Endereço da Empresa
                 </label>
                 <div class="relative">
                   <MapPin class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -899,10 +999,10 @@ async function handleLogin() {
                 </div>
               </div>
 
-              <!-- Cidade - UF -->
+              <!-- Cidade -->
               <div>
                 <label class="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-1">
-                  Cidade - UF *
+                  Cidade *
                 </label>
                 <input
                   type="text"
@@ -1072,60 +1172,7 @@ async function handleLogin() {
       <div
         class="px-6 py-3.5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 text-center text-[11px] text-slate-400"
       >
-        OptiManager • Ver 3.0
-      </div>
-    </div>
-
-    <!-- Modal Informativo de Documentação (Passo 1) -->
-    <div
-      v-if="showDocModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto"
-    >
-      <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 my-auto">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <BookOpen class="w-5 h-5 text-opti" />
-            <h3 class="font-bold text-base text-slate-800 dark:text-white">
-              Guia & Documentação OptiManager
-            </h3>
-          </div>
-          <button
-            @click="showDocModal = false"
-            class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
-        <div class="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed max-h-72 overflow-y-auto pr-1">
-          <p>
-            O <strong>OptiManager</strong> foi arquitetado com foco em simplicidade, velocidade e auto-suficiência para pequenos empreendedores e prestadores de serviço:
-          </p>
-          <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl space-y-2 border border-slate-100 dark:border-slate-700">
-            <div>
-              <strong class="text-slate-800 dark:text-white font-bold block">Ordens de Serviço & Relatórios:</strong>
-              Acompanhe ordens em andamento, concluídas ou pendentes, gerando relatórios de serviço para envio ao cliente.
-            </div>
-            <div>
-              <strong class="text-slate-800 dark:text-white font-bold block">Base de Clientes com Autocompletar:</strong>
-              Ao cadastrar clientes frequentes, o sistema preenche dados de contato automaticamente ao abrir novas ordens.
-            </div>
-            <div>
-              <strong class="text-slate-800 dark:text-white font-bold block">Banco Local SQLite & Backups:</strong>
-              Todos os dados ficam sob seu controle. Na aba Configurações, configure rotinas automáticas de backup para tranquilidade total.
-            </div>
-          </div>
-        </div>
-
-        <div class="pt-2 flex justify-end">
-          <button
-            type="button"
-            @click="showDocModal = false"
-            class="bg-opti hover:bg-opti-dark text-white font-bold text-xs py-2 px-4 rounded-xl transition"
-          >
-            Entendi, fechar
-          </button>
-        </div>
+        OptiManager • 1.0.S7 Beta
       </div>
     </div>
 

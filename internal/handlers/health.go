@@ -42,7 +42,7 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 	resp := HealthResponse{
 		Status:      "ok",
 		App:         "OptiManager",
-		Version:     "3.0.0",
+		Version:     "1.0.S7 Beta",
 		Database:    dbStatus,
 		JournalMode: journalMode,
 		ForeignKeys: foreignKeys,

@@ -9,9 +9,10 @@ export default {
     extend: {
       colors: {
         opti: {
-          DEFAULT: 'var(--color-primary, #0B5694)',
-          dark: 'var(--color-primary-dark, #083f6e)',
-          light: 'var(--color-primary-light, #e6f0f9)'
+          DEFAULT: 'rgb(var(--color-primary-rgb, 11 86 148) / <alpha-value>)',
+          dark: 'rgb(var(--color-primary-dark-rgb, 8 63 110) / <alpha-value>)',
+          light: 'var(--color-primary-light, #e6f0f9)',
+          soft: 'var(--color-primary-soft, #77a3c7)'
         },
         assist: {
           page: {

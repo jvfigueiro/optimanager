@@ -194,7 +194,7 @@ async function handleDeleteClient(c: Cliente) {
           <button
             type="button"
             @click="openCreateModal"
-            class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 transition shrink-0"
+            class="bg-opti hover:bg-opti-dark text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs flex items-center justify-center gap-1.5 transition shrink-0"
           >
             <UserPlus class="w-4 h-4" />
             <span>Novo Cliente</span>
@@ -496,7 +496,7 @@ async function handleDeleteClient(c: Cliente) {
       @click.self="closeCreateModal"
     >
       <div
-        class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[92vh] flex flex-col"
+        class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-2xl lg:max-w-3xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-[92vh] flex flex-col"
       >
         <!-- Header do Modal -->
         <div class="bg-opti text-white px-5 py-3.5 flex justify-between items-center shrink-0">

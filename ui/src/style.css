@@ -4,8 +4,11 @@
 
 :root {
   --color-primary: #0B5694;
+  --color-primary-rgb: 11 86 148;
   --color-primary-dark: #083f6e;
+  --color-primary-dark-rgb: 8 63 110;
   --color-primary-light: #e6f0f9;
+  --color-primary-soft: #77a3c7;
 }
 
 .dark {

@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useConfigStore } from '../stores/config'
 import { useAuthStore } from '../stores/auth'
 import { useToastStore } from '../stores/toast'
+import { formatCNPJ, formatPhone } from '../utils/formatters'
 import type { Usuario, AutocompletePresets, BackupInfo, BackupConfigPayload } from '../types'
 import {
   Settings,
@@ -38,15 +39,15 @@ const form = ref({ ...configStore.config })
 const isSaving = ref(false)
 
 const customPresets = ref<AutocompletePresets>({
-  marcas_titulo: configStore.presets.marcas_titulo || 'Marcas / Fabricantes',
+  marcas_titulo: configStore.presets.marcas_titulo || 'Fabricante',
   marcas_visivel: configStore.presets.marcas_visivel !== false,
   marcas: [...configStore.presets.marcas],
 
-  modelos_titulo: configStore.presets.modelos_titulo || 'Modelos / Tipos / Categorias de Item',
+  modelos_titulo: configStore.presets.modelos_titulo || 'Modelo',
   modelos_visivel: configStore.presets.modelos_visivel !== false,
   modelos: [...configStore.presets.modelos],
 
-  servicos_titulo: configStore.presets.servicos_titulo || 'Serviços Frequentes',
+  servicos_titulo: configStore.presets.servicos_titulo || 'Serviços Comuns',
   servicos_visivel: configStore.presets.servicos_visivel !== false,
   servicos: [...configStore.presets.servicos],
 
@@ -55,9 +56,9 @@ const customPresets = ref<AutocompletePresets>({
 
   os_proximo_numero: configStore.presets.os_proximo_numero ?? 1000,
   os_secao_problema_inf_ativa: configStore.presets.os_secao_problema_inf_ativa ?? true,
-  os_secao_problema_inf_rotulo: configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:',
-  os_secao_servico_exec_ativa: configStore.presets.os_secao_servico_exec_ativa ?? true,
-  os_secao_servico_exec_rotulo: configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:',
+  os_secao_problema_inf_rotulo: configStore.presets.os_secao_problema_inf_rotulo || 'Descrição do Serviço',
+  os_secao_servico_exec_ativa: configStore.presets.os_secao_servico_exec_ativa === true,
+  os_secao_servico_exec_rotulo: configStore.presets.os_secao_servico_exec_rotulo || 'Caixa personalizada 2',
 })
 
 const newMarca = ref('')
@@ -328,15 +329,15 @@ onMounted(async () => {
   await Promise.all([configStore.loadConfig(), authStore.loadUsuarios(), carregarBackups()])
   form.value = { ...configStore.config }
   customPresets.value = {
-    marcas_titulo: configStore.presets.marcas_titulo || 'Marcas / Fabricantes',
+    marcas_titulo: configStore.presets.marcas_titulo || 'Fabricante',
     marcas_visivel: configStore.presets.marcas_visivel !== false,
     marcas: [...configStore.presets.marcas],
 
-    modelos_titulo: configStore.presets.modelos_titulo || 'Modelos / Tipos / Categorias de Item',
+    modelos_titulo: configStore.presets.modelos_titulo || 'Modelo',
     modelos_visivel: configStore.presets.modelos_visivel !== false,
     modelos: [...configStore.presets.modelos],
 
-    servicos_titulo: configStore.presets.servicos_titulo || 'Serviços Frequentes',
+    servicos_titulo: configStore.presets.servicos_titulo || 'Serviços Comuns',
     servicos_visivel: configStore.presets.servicos_visivel !== false,
     servicos: [...configStore.presets.servicos],
 
@@ -345,9 +346,9 @@ onMounted(async () => {
 
     os_proximo_numero: configStore.presets.os_proximo_numero ?? 1000,
     os_secao_problema_inf_ativa: configStore.presets.os_secao_problema_inf_ativa !== false,
-    os_secao_problema_inf_rotulo: configStore.presets.os_secao_problema_inf_rotulo || 'Problema Informado:',
-    os_secao_servico_exec_ativa: configStore.presets.os_secao_servico_exec_ativa !== false,
-    os_secao_servico_exec_rotulo: configStore.presets.os_secao_servico_exec_rotulo || 'Serviço Executado:',
+    os_secao_problema_inf_rotulo: configStore.presets.os_secao_problema_inf_rotulo || 'Descrição do Serviço',
+    os_secao_servico_exec_ativa: configStore.presets.os_secao_servico_exec_ativa === true,
+    os_secao_servico_exec_rotulo: configStore.presets.os_secao_servico_exec_rotulo || 'Caixa personalizada 2',
   }
 })
 
@@ -534,7 +535,7 @@ const visibleTabs = computed(() => {
               class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
               :class="
                 u.role === 'admin'
-                  ? 'bg-opti/10 text-opti dark:bg-opti/20 dark:text-sky-300'
+                  ? 'bg-opti/10 text-opti dark:bg-opti/20 dark:text-opti-soft'
                   : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
               "
             >
@@ -551,7 +552,7 @@ const visibleTabs = computed(() => {
                   class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
                   :class="
                     u.role === 'admin'
-                      ? 'bg-opti/15 text-opti dark:bg-opti/30 dark:text-sky-300'
+                      ? 'bg-opti/15 text-opti dark:bg-opti/30 dark:text-opti-soft'
                       : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
                   "
                 >
@@ -846,7 +847,10 @@ const visibleTabs = computed(() => {
             </label>
             <input
               type="text"
-              v-model="form.cnpj"
+              :value="form.cnpj"
+              @input="form.cnpj = formatCNPJ(($event.target as HTMLInputElement).value); ($event.target as HTMLInputElement).value = form.cnpj"
+              inputmode="numeric"
+              maxlength="18"
               placeholder="00.000.000/0001-00 (opcional)"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 font-mono focus:ring-2 focus:ring-opti outline-none"
             />
@@ -858,7 +862,10 @@ const visibleTabs = computed(() => {
             </label>
             <input
               type="text"
-              v-model="form.fones"
+              :value="form.fones"
+              @input="form.fones = formatPhone(($event.target as HTMLInputElement).value); ($event.target as HTMLInputElement).value = form.fones"
+              inputmode="numeric"
+              maxlength="15"
               required
               placeholder="(11) 98765-4321"
               class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-opti outline-none"
@@ -970,7 +977,7 @@ const visibleTabs = computed(() => {
               <input
                 type="text"
                 v-model="customPresets.os_secao_problema_inf_rotulo"
-                placeholder="Problema Informado:"
+                placeholder="Descrição do Serviço"
                 class="flex-1 font-semibold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
               />
             </div>
@@ -979,7 +986,7 @@ const visibleTabs = computed(() => {
               <input
                 type="text"
                 v-model="customPresets.os_secao_servico_exec_rotulo"
-                placeholder="Serviço Executado:"
+                placeholder="Caixa personalizada 2"
                 class="flex-1 font-semibold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
               />
             </div>
@@ -1027,7 +1034,7 @@ const visibleTabs = computed(() => {
             <input
               type="text"
               v-model="customPresets.marcas_titulo"
-              placeholder="Ex: Marcas / Fabricantes"
+              placeholder="Ex: Fabricante"
               class="flex-1 text-xs font-bold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
             />
           </div>
@@ -1085,7 +1092,7 @@ const visibleTabs = computed(() => {
             <input
               type="text"
               v-model="customPresets.modelos_titulo"
-              placeholder="Ex: Modelos / Tipos / Categorias de Item"
+              placeholder="Ex: Modelo"
               class="flex-1 text-xs font-bold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
             />
           </div>
@@ -1143,7 +1150,7 @@ const visibleTabs = computed(() => {
             <input
               type="text"
               v-model="customPresets.servicos_titulo"
-              placeholder="Ex: Serviços Frequentes"
+              placeholder="Ex: Serviços Comuns"
               class="flex-1 text-xs font-bold border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-white rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-opti"
             />
           </div>
@@ -1187,11 +1194,11 @@ const visibleTabs = computed(() => {
         </div>
       </div>
 
-      <!-- 4. Estados de Serviço (Status da OS) -->
+      <!-- 4. Estados de Serviço -->
       <div class="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-750/50">
         <div>
           <label class="block text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
-            Estados de Serviço (Status da OS)
+            Estados de Serviço
           </label>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">
             Situações disponíveis para as Ordens de Serviço (ex: Avaliação/Orçamento, Em Serviço, Aguardando, Concluído).
@@ -1583,11 +1590,11 @@ const visibleTabs = computed(() => {
       <!-- Bloco Institucional da Aplicação -->
       <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-750 dark:to-slate-700/60 border border-slate-200 dark:border-slate-700 space-y-3">
         <div>
-          <h4 class="text-xl font-black text-opti dark:text-blue-400 tracking-tight">
+          <h4 class="text-xl font-black text-opti dark:text-opti-soft tracking-tight">
             OptiManager
           </h4>
           <p class="text-xs text-slate-600 dark:text-slate-300 font-semibold mt-0.5">
-            Versão 3.0.0
+            Versão 1.0.S7 Beta
           </p>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Copyright &copy; {{ new Date().getFullYear() }} João Figueiró
@@ -1613,11 +1620,11 @@ const visibleTabs = computed(() => {
             class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
             title="Site Oficial do OptiManager"
           >
-            <Globe class="w-3.5 h-3.5 text-opti dark:text-blue-400" />
+            <Globe class="w-3.5 h-3.5 text-opti dark:text-opti-soft" />
             <span>Site oficial</span>
           </a>
           <a
-            href="https://github.com/jvfigueiro/optimanager#readme"
+            href="https://github.com/jvfigueiro/optimanager/tree/master/docs"
             target="_blank"
             rel="noopener noreferrer"
             class="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-650 text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
@@ -1639,10 +1646,10 @@ const visibleTabs = computed(() => {
         </div>
       </div>
 
-      <!-- Informações da empresa definidas pelo usuário administrador -->
+      <!-- Informações da empresa definidas para esta instalação -->
       <div class="space-y-2.5 pt-2">
         <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Informações da empresa definidas pelo usuário administrador
+          Informações da empresa definidas para esta instalação
         </h5>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">

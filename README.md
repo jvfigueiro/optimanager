@@ -2,164 +2,133 @@
 
 # OptiManager
 
-**Self-Hosted Business & Service Order Management System**
+**Sistema Web Auto-Hospedado para Gestão de Ordens de Serviço e Pequenos Negócios**
 
-[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
-[![Vue 3](https://img.shields.io/badge/Vue-3.5+-4FC08D?style=flat&logo=vuedotjs)](https://vuejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-[![SQLite](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?style=flat&logo=sqlite)](https://www.sqlite.org/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
-[![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?style=flat&logo=pwa)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Status: Early Development](https://img.shields.io/badge/Status-Early%20Development-orange.svg)](#project-status)
+[![Versão](https://img.shields.io/badge/Vers%C3%A3o-1.0.S7%20Beta-0B5694?style=flat)](docs/arch.md)
+[![Plataforma](https://img.shields.io/badge/Plataforma-Linux%20%7C%20Windows%20Port%C3%A1til%20%7C%20Docker-2496ED?style=flat)](docs/build.md)
+[![Licença: GPL v3](https://img.shields.io/badge/Licen%C3%A7a-GPLv3-blue.svg)](LICENSE)
 
-*A lightweight, fast, self-contained web application designed for micro and small business owners, technical freelancers, and service providers to manage work orders, client directories, technical reports, and billing with full data sovereignty.*
+*Aplicação web leve, rápida e auto-contida em binário único (Go + Vue 3 + SQLite), projetada para micro e pequenos empreendedores, assistências técnicas e prestadores de serviço com soberania total dos dados.*
 
-**Official Website:** [https://jvfigueiro.com/projects/optimanager](https://jvfigueiro.com/projects/optimanager)
+**Site Oficial:** [https://jvfigueiro.com/projects/optimanager](https://jvfigueiro.com/projects/optimanager)
 
 </div>
 
 ---
 
-## Project Status
+## Capturas de Tela
 
-> [!NOTE]
-> **Early Stage Development:**
-> OptiManager is currently in an early stage of development. Features, internal APIs, database schemas, and workflows are actively evolving and subject to change.
+| Dashboard | Serviços (Ordens de Serviço) |
+| :---: | :---: |
+| ![Dashboard do OptiManager](docs/screenshots/dashboard.png) | ![Tela de Serviços](docs/screenshots/servicos.png) |
 
----
+| Clientes | Gerador de Documentos (A4 Monocromático) |
+| :---: | :---: |
+| ![Tela de Clientes](docs/screenshots/clientes.png) | ![Gerador de Documentos](docs/screenshots/relatorios.png) |
 
-## Key Features
-
-- **Guided First-Run Wizard:** Smooth 6-step initial onboarding wizard (welcome screen, terms of use, choice between fresh setup or database restore, administrator account creation, and business information).
-- **End-to-End Service Order (OS) Management:** Create, track, and filter work orders across lifecycle stages (Quote, Open, In Progress, Completed, Delivered, Cancelled) with assignee, deadlines, and financial breakdown.
-- **Client Directory with Smart Autocomplete:** Maintain customer records for instant lookup and automated autofill across service orders and PDF reports.
-- **Professional Reports & Receipts:** Generate and print clean, client-ready Technical Reports, Quotes, and Delivery Receipts.
-- **Financial Dashboard & Metrics:** Real-time visibility into monthly revenue, daily turnover, average ticket, pending balances, and CSV export.
-- **Progressive Web App (PWA):** Fully installable on Desktop (Chrome, Edge) and mobile devices (Android, iOS) with a service worker for rapid offline shell loading.
-- **Security & Access Control:** Strict JWT-based authentication with boot-time HMAC secret entropy checks, role-based access control (RBAC), and persistent audit logging.
-- **Transactional Backup Engine:** Consistent atomic snapshots via SQLite native `VACUUM INTO`, pre-execution integrity checks (`PRAGMA integrity_check`), segregated retention policies, and automatic pre-migration safeguards.
-- **Modern Responsive Interface:** Clean UI with support for both Light and Dark themes.
+| Configurações |
+| :---: |
+| ![Tela de Configurações](docs/screenshots/configuracoes.png) |
 
 ---
 
-## Architecture & Technology Stack
+## Principais Recursos
 
-OptiManager is engineered for **minimal footprint** (< 40MB operational RAM), zero heavy runtime dependencies, and effortless deployment:
-
-- **Backend:** [Go](https://go.dev/) (Go 1.24+), utilizing the standard library `http.ServeMux` and lightweight middleware for CORS, gzip compression, logging, and panic recovery.
-- **Database:** Embedded [SQLite](https://www.sqlite.org/) configured in WAL mode (*Write-Ahead Logging*), dedicated connection pools (1 writer, 8 readers), numbered migrations, and schema tracking via `PRAGMA user_version`.
-- **Frontend:** [Vue 3](https://vuejs.org/) (Composition API), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/), [Tailwind CSS](https://tailwindcss.com/), [Pinia](https://pinia.vuejs.org/), and [Lucide Icons](https://lucide.dev/).
-- **Containerization:** Multi-stage [Docker](https://www.docker.com/) build yielding a minimal Alpine runtime image where all compiled frontend assets are directly embedded into the single Go binary (`//go:embed`).
+| Módulo | Descrição | Documentação |
+| :--- | :--- | :--- |
+| **Autenticação e Usuários** | Assistente inicial de 6 passos, login HMAC-SHA256 e controle RBAC | [autenticacao-e-usuarios.md](docs/modules/autenticacao-e-usuarios.md) |
+| **Dashboard e Atalhos** | Métricas resumidas, recomendações, ações frequentes e atalhos rápidos | [dashboard-e-atalhos.md](docs/modules/dashboard-e-atalhos.md) |
+| **Ordens de Serviço** | Criação, edição, conclusão, ações em lote e baixa de pagamento | [ordens-de-servico.md](docs/modules/ordens-de-servico.md) |
+| **Clientes** | Cadastro com busca, autocompletar em OS e contato via WhatsApp | [clientes.md](docs/modules/clientes.md) |
+| **Financeiro** | Fluxo de recebimentos, indicadores e exportação CSV | [financeiro.md](docs/modules/financeiro.md) |
+| **Relatórios e PDF** | Gerador A4 monocromático na UI e PDF nativo via Maroto v2 | [relatorios-e-pdf.md](docs/modules/relatorios-e-pdf.md) |
+| **Configurações** | Logo, accent colors, presets de OS/Serviços e auto-logout | [configuracoes.md](docs/modules/configuracoes.md) |
+| **Backup e Restauração** | Snapshots atômicos `VACUUM INTO`, `.zip`, agendador e retenção | [backup-e-restauracao.md](docs/modules/backup-e-restauracao.md) |
+| **Auditoria e Privacidade** | Tabela `audit_log`, redação LGPD em logs/erros e `TRUST_PROXY` | [auditoria-e-privacidade.md](docs/modules/auditoria-e-privacidade.md) |
+| **Migração Legada DBF** | Subcomando CLI `profile-dbf` para inspeção de bases DBF | [migracao-legada-dbf.md](docs/modules/migracao-legada-dbf.md) |
+| **Saúde e Monitoramento** | Endpoint `GET /api/health` e healthcheck Docker | [saude-e-monitoramento.md](docs/modules/saude-e-monitoramento.md) |
 
 ---
 
-## Quick Start with Docker (Recommended)
+## Requisitos
 
-### Prerequisites
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/) installed on your machine.
+- **Via Docker (Recomendado):** Docker e Docker Compose.
+- **Via Binário Portátil (Windows/Linux):** nenhum runtime externo necessário (`CGO_ENABLED=0`).
+- **Para compilar do código-fonte:** Go `1.26+` e Node.js `22+` (`npm`).
 
-### 1. Clone the Repository
+---
+
+## Instalação e Primeiros Passos
+
+### Opção 1: Docker Compose
 ```bash
 git clone https://github.com/jvfigueiro/optimanager.git
 cd optimanager
-```
-
-### 2. Initialize the Environment File (.env)
-The repository provides a utility script that generates a cryptographically secure HMAC secret without overwriting existing configuration files:
-
-```bash
-chmod +x scripts/init-env.sh
 ./scripts/init-env.sh
-```
-
-> **Note:** This creates `.env` with a 64-character hexadecimal `JWT_SECRET` generated via `openssl rand -hex 32`.
-
-### 3. Launch the Application Container
-```bash
 docker compose up -d
 ```
+Acesse `http://localhost:8585` e siga o **Assistente de Boas-Vindas** (6 passos) para configurar o administrador e os dados da empresa.
 
-### 4. Open in Your Browser
-Navigate to:
-```
-http://localhost:8585
-```
-Follow the **Welcome Wizard** to configure your administrator user and business details.
+### Opção 2: Windows Portátil
+Gere ou copie `optimanager-windows-amd64.exe` para uma pasta dedicada (ex.: `C:\OptiManager`) e execute-o. Para liberar a porta `8585` no Firewall e configurar inicialização automática com o Windows, consulte [docs/WINDOWS-PORTABLE.md](docs/WINDOWS-PORTABLE.md).
 
 ---
 
-## Environment Variables
+## Visão Geral da Arquitetura Modular
 
-The `.env` file governs runtime configuration:
+O OptiManager é um **monólito modular em binário único**: o frontend SPA é embutido no executável Go via `//go:embed all:dist` e os módulos verticais combinam modelos (`internal/models`), repositórios SQLite WAL (`internal/database`), serviços (`internal/services`), handlers HTTP (`internal/handlers`) e stores/views Vue (`ui/src`).
 
-| Variable | Description | Default | Required in Production |
-| :--- | :--- | :--- | :--- |
-| `PORT` | Public HTTP listening port | `8585` | No |
-| `DB_PATH` | Path to the SQLite database file inside container | `/data/optimanager.db` | No |
-| `TZ` | Container and application time zone | `America/Sao_Paulo` | No |
-| `JWT_SECRET` | 256-bit HMAC signing key (minimum 32 characters) | *Generated by script* | **Yes** |
-| `APP_ENV` | Application environment (`production` or `dev`) | `production` | No |
-| `TRUST_PROXY` | When `true`, honors `X-Forwarded-For` for client IP logging | `false` | No |
+Detalhes completos e diagramas Mermaid em [docs/arch.md](docs/arch.md).
 
 ---
 
-## Local Development
+## Tecnologias Utilizadas
 
-To run or develop outside of Docker:
-
-### Backend (Go)
-```bash
-# Run unit, integration, and race-condition tests
-go test ./... -race -count=1
-
-# Run static analysis
-go vet ./...
-
-# Start local development server
-APP_ENV=dev DB_PATH=./data/optimanager.db go run cmd/server/main.go
-```
-
-### Frontend (Vue 3 / Vite)
-```bash
-cd ui
-npm install
-npm run build   # Type-check (vue-tsc) and production build
-npm run dev     # Vite development server with HMR
-```
+- **Backend:** Go `1.26.1`, `chi/v5`, `modernc.org/sqlite` (WAL), `maroto/v2` (PDF), `golang.org/x/crypto` (`bcrypt`), `golang.org/x/text`
+- **Frontend:** Vue `3.5`, TypeScript `5.7`, Pinia `2.3`, Tailwind CSS `3.4`, Vite `6.1`, `lucide-vue-next`, PWA
+- **Infraestrutura:** Docker multi-stage (`alpine:3.21`), `Makefile`, PowerShell (`setup-optimanager.ps1`)
 
 ---
 
-## Directory Structure
+## Estrutura do Projeto
 
-```
+```text
 optimanager/
-├── cmd/
-│   └── server/             # Application entry point (main.go)
-├── docs/                   # Technical specifications and architectural plans
-├── internal/
-│   ├── database/           # SQLite connection pool, migrations, and repositories
-│   │   └── migrations/     # Versioned SQL scripts tracked by PRAGMA user_version
-│   ├── handlers/           # REST HTTP endpoints (Auth, OS, Clients, Config, Audit)
-│   ├── models/             # Domain entities and request/response DTOs
-│   └── services/
-│       ├── backup/         # Atomic backup engine (VACUUM INTO, retention, integrity)
-│       └── pdf/            # Document and report generation utilities
-├── scripts/
-│   └── init-env.sh         # Helper script for secure .env key provisioning
-├── ui/                     # Single Page Application frontend (Vue 3 + Vite)
-│   ├── public/             # Static assets, web manifest, and Service Worker
-│   └── src/
-│       ├── components/     # Modals, layout wrappers, and reusable UI components
-│       ├── stores/         # Global reactive state management (Pinia)
-│       └── views/          # Primary views (Dashboard, Orders, Clients, Finance, etc.)
-├── Dockerfile              # Multi-stage production container build (Node + Go -> Alpine)
-├── docker-compose.yml      # Container orchestration with persistent storage volume
-└── .env.example            # Environment variables template
+├── cmd/server/          # Ponto de entrada HTTP e CLI `profile-dbf`
+├── internal/            # Núcleo Go (database, handlers, models, money, redact, services, legacy/dbf)
+├── ui/                  # SPA Vue 3 + TypeScript + embedding `//go:embed all:dist`
+├── scripts/             # Scripts de build, ambiente, demo e setup Windows
+└── docs/                # Documentação técnica, módulos e guias
 ```
 
 ---
 
-## License
+## Como Contribuir e Criar Módulos
 
-This software is licensed under the terms of the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for complete details.
+Consulte o guia prático baseado no código real em [docs/create-module.md](docs/create-module.md) e as instruções de compilação em [docs/build.md](docs/build.md).
+
+---
+
+## Aviso de Responsabilidade
+
+O OptiManager armazena dados operacionais localmente no banco SQLite e permite restaurar backups que substituem a base ativa. No Windows, a execução opcional do script `scripts/windows/setup-optimanager.ps1` como Administrador altera configurações do sistema (cria regra de entrada no Firewall do Windows e registra uma Tarefa Agendada com privilégios elevados). Mantenha cópias de backup externas periódicas.
+
+---
+
+## Documentação Completa
+
+- [Mapa de Arquitetura (`docs/_analysis/00-map.md`)](docs/_analysis/00-map.md)
+- [Visão Geral e Diagramas (`docs/arch.md`)](docs/arch.md)
+- [Índice de Módulos (`docs/modules/README.md`)](docs/modules/README.md)
+- [Como Criar um Novo Módulo (`docs/create-module.md`)](docs/create-module.md)
+- [Compilação e Empacotamento (`docs/build.md`)](docs/build.md)
+- [Configurações, Logs e Auditoria (`docs/logs-and-settings.md`)](docs/logs-and-settings.md)
+- [FAQ e Solução de Problemas (`docs/faq-and-troubleshooting.md`)](docs/faq-and-troubleshooting.md)
+- [Guia Windows Portátil (`docs/WINDOWS-PORTABLE.md`)](docs/WINDOWS-PORTABLE.md)
+- [Dados, LGPD e Backups (`docs/DADOS-E-BACKUPS.md`)](docs/DADOS-E-BACKUPS.md)
+
+---
+
+## Licença
+
+Distribuído sob a licença **GNU General Public License v3.0 (GPLv3)**. Consulte o arquivo [LICENSE](LICENSE).

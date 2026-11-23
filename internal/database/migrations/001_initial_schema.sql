@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS config (
     vt_valor_padrao REAL NOT NULL DEFAULT 80.00,
     termo_garantia TEXT NOT NULL DEFAULT 'Garantia de 90 dias para serviços prestados e peças substituídas.',
     termo_responsabilidade TEXT NOT NULL DEFAULT 'Garantia legal de 90 dias conforme Art. 26 do CDC. Equipamentos não retirados em 90 dias estarão sujeitos a custas de guarda.',
-    obs_padrao TEXT NOT NULL DEFAULT 'Aparelho recebido com marcas normais de uso. Backup de dados sob responsabilidade do cliente.',
+    obs_padrao TEXT NOT NULL DEFAULT '',
     custom_presets TEXT NOT NULL DEFAULT '{"marcas":["Asus","Acer","Dell","Lenovo","HP","Apple","Samsung","LG","Positivo"],"modelos":["Notebook","Computador Desktop","All-in-One","Servidor","Monitor","Smartphone","Tablet","Outro"],"servicos":["Formatação e Instalação de Sistema","Limpeza Preventiva e Troca de Pasta Térmica","Troca de SSD / Upgrade de Memória RAM","Reparo de Placa-Mãe / Conector","Troca de Tela / Display","Remoção de Vírus e Otimização"]}',
     logo_base64 TEXT NOT NULL DEFAULT '',
     cor_primaria TEXT NOT NULL DEFAULT '#0B5694',
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS config (
 );
 
 INSERT OR IGNORE INTO config (id, fantasia, razao_social, cnpj, responsavel, fones, email_contato, endereco, cidade, vt_valor_padrao, termo_garantia, logo_base64, cor_primaria, cor_secundaria)
-VALUES (1, 'Minha Empresa Tech', 'Soluções em Tecnologia & Serviços Ltda', '00.000.000/0001-00', 'Administrador', '(11) 98765-4321', 'contato@empresa.com.br', 'Av. Paulista, 1000 - Bela Vista', 'São Paulo - SP', 80.00, 'Garantia legal de 90 dias para serviços executados e peças aplicadas.', '', '#0B5694', '#083f6e');
+VALUES (1, 'Minha Empresa Tech', 'Soluções em Tecnologia & Serviços Ltda', '00.000.000/0001-00', 'Administrador', '(11) 98765-4321', 'contato@empresa.com.br', 'Av. Paulista, 1000 - Bela Vista', 'São Paulo - SP', 80.00, 'Garantia legal de 90 dias.', '', '#0B5694', '#083f6e');
 
 CREATE TABLE IF NOT EXISTS clientes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

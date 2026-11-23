@@ -177,6 +177,7 @@ export interface SetupAdminPayload {
   email_contato?: string
   endereco?: string
   cidade?: string
+  logo_base64?: string
 }
 
 export interface AuthStatusResponse {

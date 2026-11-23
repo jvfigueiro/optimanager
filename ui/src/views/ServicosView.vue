@@ -379,7 +379,7 @@ function truncateText(text: string | undefined | null, maxLen = 65): string {
                   <button
                     @click="gerarDocumento(o)"
                     title="Imprimir ou gerar PDF"
-                    class="px-2.5 py-1.5 text-xs bg-opti-light dark:bg-slate-700 text-opti dark:text-sky-300 hover:bg-opti dark:hover:bg-opti hover:text-white dark:hover:text-white border border-transparent dark:border-slate-600 rounded-xl font-bold transition flex items-center gap-1"
+                    class="px-2.5 py-1.5 text-xs bg-opti-light dark:bg-slate-700 text-opti dark:text-opti-soft hover:bg-opti dark:hover:bg-opti hover:text-white dark:hover:text-white border border-transparent dark:border-slate-600 rounded-xl font-bold transition flex items-center gap-1"
                   >
                     <FileText class="w-3.5 h-3.5" />
                     <span>Doc</span>
@@ -683,7 +683,7 @@ function truncateText(text: string | undefined | null, maxLen = 65): string {
             type="button"
             :disabled="isProcessingBatch"
             @click="handleConfirmBatchStatus"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-xs"
+            class="px-4 py-2 bg-opti hover:bg-opti-dark text-white rounded-xl text-xs font-bold transition shadow-xs"
           >
             {{ isProcessingBatch ? 'Processando...' : 'Aplicar Novo Estado' }}
           </button>

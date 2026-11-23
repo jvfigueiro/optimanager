@@ -63,6 +63,7 @@ type SetupAdminRequest struct {
 	EmailContato string `json:"email_contato"`
 	Endereco     string `json:"endereco"`
 	Cidade       string `json:"cidade"`
+	LogoBase64   string `json:"logo_base64"`
 }
 
 type LoginRequest struct {
