@@ -3,6 +3,8 @@
 ## Visão geral e problema que resolve
 Consolida receitas, valores pendentes de recebimento, distribuição por forma de pagamento e métricas diárias/mensais a partir das Ordens de Serviço, permitindo impressão de resumo e exportação em CSV.
 
+![Tela Financeiro](../screenshots/financeiro.png)
+
 ## Como usar (passo a passo do ponto de vista do técnico)
 1. Acesse **Financeiro** na barra lateral.
 2. Utilize os filtros de período/mês e busca para analisar as ordens faturadas e pendentes.
