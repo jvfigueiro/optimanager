@@ -3,6 +3,8 @@
 ## Visão geral e problema que resolve
 Centraliza o ciclo de vida completo dos serviços prestados: abertura de atendimento, vinculação de cliente (com cadastro automático se novo), descrição técnica, acompanhamento de status, registro de entrega, baixa de pagamento e ações em lote.
 
+![Tela de Serviços (Ordens de Serviço)](../screenshots/servicos.png)
+
 ## Como usar (passo a passo do ponto de vista do técnico)
 1. Clique em **Novo Serviço** na barra lateral ou no Dashboard para abrir `NovaOSModal.vue`.
 2. Preencha cliente (selecionando um existente ou informando contato de novo cliente), fabricante, modelo, descrição do serviço, valor e situação.

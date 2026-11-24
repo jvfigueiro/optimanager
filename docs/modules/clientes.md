@@ -3,6 +3,8 @@
 ## Visão geral e problema que resolve
 Mantém um diretório centralizado de clientes (nome/razão social, CPF/CNPJ e telefone/WhatsApp) para evitar redigitação em novas Ordens de Serviço e agilizar o contato direto via WhatsApp.
 
+![Tela de Clientes](../screenshots/clientes.png)
+
 ## Como usar (passo a passo do ponto de vista do técnico)
 1. Acesse **Clientes** no menu lateral.
 2. Clique em **Novo Cliente** para cadastrar nome/razão social, CPF/CNPJ e contato.

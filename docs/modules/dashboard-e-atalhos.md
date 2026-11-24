@@ -3,6 +3,8 @@
 ## Visão geral e problema que resolve
 Fornece uma visão consolidada do negócio logo após o login (ordens em aberto, cobranças pendentes, métricas principais), recomendações operacionais contextuais e um painel de **Ações Frequentes** com atalhos personalizados para ferramentas ou links externos.
 
+![Tela do Dashboard](../screenshots/dashboard.png)
+
 ## Como usar (passo a passo do ponto de vista do técnico)
 1. Após o login, a tela inicial **Dashboard** é aberta automaticamente.
 2. Consulte os cards de **Serviços em Aberto** e **Pagamentos Pendentes** e clique em **Ver** para abrir uma OS ou **Ver todos** / **Gerenciar** para filtrar na tela de Serviços.

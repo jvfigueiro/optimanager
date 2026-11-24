@@ -521,14 +521,10 @@ function imprimirDocumento() {
             <div class="flex justify-between items-start border-b-2 border-slate-900 pb-2">
               <div class="flex items-center gap-2.5">
                 <img
-                  v-if="configStore.config.logo_base64"
-                  :src="configStore.config.logo_base64"
-                  alt="Logo"
+                  :src="configStore.config.logo_base64 || '/icon.png'"
+                  :alt="configStore.config.logo_base64 ? 'Logo' : 'OptiManager'"
                   class="w-9 h-9 object-contain rounded grayscale"
                 />
-                <div v-else class="bg-white text-slate-900 border-2 border-slate-900 font-black px-2 py-0.5 rounded text-xs tracking-tight">
-                  OPTI
-                </div>
                 <div>
                   <h3 class="text-sm font-black text-slate-900 leading-tight">
                     {{ configStore.config.fantasia }}
@@ -631,14 +627,10 @@ function imprimirDocumento() {
             <div class="flex justify-between items-start border-b-2 border-slate-900 pb-2">
               <div class="flex items-center gap-2.5">
                 <img
-                  v-if="configStore.config.logo_base64"
-                  :src="configStore.config.logo_base64"
-                  alt="Logo"
+                  :src="configStore.config.logo_base64 || '/icon.png'"
+                  :alt="configStore.config.logo_base64 ? 'Logo' : 'OptiManager'"
                   class="w-9 h-9 object-contain rounded grayscale"
                 />
-                <div v-else class="bg-white text-slate-900 border-2 border-slate-900 font-black px-2 py-0.5 rounded text-xs tracking-tight">
-                  OPTI
-                </div>
                 <div>
                   <h3 class="text-sm font-black text-slate-900 leading-tight">
                     {{ configStore.config.fantasia }}
@@ -739,14 +731,10 @@ function imprimirDocumento() {
             <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-5">
               <div class="flex items-center gap-3.5">
                 <img
-                  v-if="configStore.config.logo_base64"
-                  :src="configStore.config.logo_base64"
-                  alt="Logo"
+                  :src="configStore.config.logo_base64 || '/icon.png'"
+                  :alt="configStore.config.logo_base64 ? 'Logo' : 'OptiManager'"
                   class="w-14 h-14 object-contain rounded grayscale"
                 />
-                <div v-else class="bg-white text-slate-900 border-2 border-slate-900 font-black px-3 py-2 rounded-lg text-lg tracking-tight">
-                  OPTI
-                </div>
                 <div>
                   <h2 class="text-xl font-black text-slate-900 leading-tight">
                     {{ configStore.config.fantasia }}

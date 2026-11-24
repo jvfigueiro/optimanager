@@ -3,6 +3,8 @@
 ## Visão geral e problema que resolve
 Centraliza a identidade visual da empresa (logotipo e cores de destaque / accent colors), dados cadastrais, personalização dos campos e listas de **OS e Serviços**, segurança de sessão (auto-logout por inatividade) e informações institucionais (**Sobre o OptiManager**).
 
+![Tela de Configurações](../screenshots/configuracoes.png)
+
 ## Como usar (passo a passo do ponto de vista do técnico)
 1. Acesse **Configurações** na barra lateral (`ConfiguracoesView.vue`).
 2. Na aba **Empresa**:

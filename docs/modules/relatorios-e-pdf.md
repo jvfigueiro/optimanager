@@ -3,6 +3,8 @@
 ## Visão geral e problema que resolve
 Permite emitir documentos prontos para entrega ao cliente (Ordem de Serviço em 2 vias, Orçamento, Relatório de Serviço e Recibo de Pagamento) em layout A4 monocromático com edição em tempo real, além de disponibilizar geração de PDF nativo no backend.
 
+![Gerador de Documentos (Visualização A4 Monocromática)](../screenshots/relatorios.png)
+
 ## Como usar (passo a passo do ponto de vista do técnico)
 1. Acesse **Relatórios** na barra lateral (ou clique em imprimir/gerar documento a partir de uma OS).
 2. Na guia **1. Configurar Documento**:

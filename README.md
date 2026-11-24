@@ -18,17 +18,11 @@
 
 ## Capturas de Tela
 
-| Dashboard | Serviços (Ordens de Serviço) |
+| Dashboard | Gerador de Documentos (A4 Monocromático) |
 | :---: | :---: |
-| ![Dashboard do OptiManager](docs/screenshots/dashboard.png) | ![Tela de Serviços](docs/screenshots/servicos.png) |
+| ![Dashboard do OptiManager](docs/screenshots/dashboard.png) | ![Gerador de Documentos](docs/screenshots/relatorios.png) |
 
-| Clientes | Gerador de Documentos (A4 Monocromático) |
-| :---: | :---: |
-| ![Tela de Clientes](docs/screenshots/clientes.png) | ![Gerador de Documentos](docs/screenshots/relatorios.png) |
-
-| Configurações |
-| :---: |
-| ![Tela de Configurações](docs/screenshots/configuracoes.png) |
+> Mais capturas de tela das demais telas (**Serviços**, **Clientes**, **Configurações**) estão disponíveis na documentação de cada módulo em [`docs/modules/`](docs/modules/README.md).
 
 ---
 

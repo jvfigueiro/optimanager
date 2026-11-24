@@ -673,14 +673,10 @@ function imprimirRelatorio() {
       <div class="flex justify-between items-start border-b-2 border-slate-900 pb-3 mb-4">
         <div class="flex items-center gap-3">
           <img
-            v-if="configStore.config.logo_base64"
-            :src="configStore.config.logo_base64"
-            alt="Logo"
-            class="w-12 h-12 object-contain rounded"
+            :src="configStore.config.logo_base64 || '/icon.png'"
+            :alt="configStore.config.logo_base64 ? 'Logo' : 'OptiManager'"
+            class="w-12 h-12 object-contain rounded grayscale"
           />
-          <div v-else class="bg-white text-opti border-2 border-opti font-black px-2 py-1 rounded text-sm tracking-tight">
-            OPTI
-          </div>
           <div>
             <h2 class="text-base font-black text-slate-900 leading-tight">
               {{ configStore.config.fantasia || 'OptiManager' }}
