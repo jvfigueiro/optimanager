@@ -21,7 +21,7 @@ Baseado nos tratamentos de erro e validações implementados diretamente no cód
 
 ### 3. Erro ao excluir um cliente
 **Causa:** A tabela `ordens_servico` possui `FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE RESTRICT`. Clientes que possuem ao menos uma Ordem de Serviço não podem ser apagados.
-**Solução:** Mantenha o cadastro ou utilize a função de anonimização quando aplicável, preservando o histórico das OS.
+**Solução:** Mantenha o cadastro ou remova antes as Ordens de Serviço associadas, caso realmente deseje excluir o cliente.
 
 ---
 
